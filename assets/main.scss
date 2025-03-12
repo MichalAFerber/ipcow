@@ -75,3 +75,16 @@ footer {
     height: 400px;
   }
 }
+#ping-results {
+  margin: 20px auto;
+  max-width: 800px;
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+#ping-results pre {
+  white-space: pre-wrap;
+  font-size: 14px;
+  color: #333;
+}

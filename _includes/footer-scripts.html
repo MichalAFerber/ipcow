@@ -1,0 +1,75 @@
+{% if layout.common-ext-js %}
+  {% for js in layout.common-ext-js %}
+    {% include ext-js.html js=js %}
+  {% endfor %}
+{% endif %}
+
+{% if layout.common-js %}
+  {% for js in layout.common-js %}
+    <!-- doing something a bit funky here because I want to be careful not to include JQuery twice! -->
+    {% if js contains 'jquery' %}
+      <script>
+        if (typeof jQuery == 'undefined') {
+          document.write('<script src="{{ js | relative_url }}"></scr' + 'ipt>');
+        }
+      </script>
+    {% else %}
+      <script src="{{ js | relative_url }}"></script>
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if site.site-js %}
+  {% for js in site.site-js %}
+    <script src="{{ js | relative_url }}"></script>
+  {% endfor %}
+{% endif %}
+
+{% if page.ext-js %}
+  {% for js in page.ext-js %}
+    {% include ext-js.html js=js %}
+  {% endfor %}
+{% endif %}
+
+{% if page.js %}
+  {% for js in page.js %}
+    <script src="{{ js | relative_url }}"></script>
+  {% endfor %}
+{% endif %}
+
+  <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1/dist/ua-parser.min.js"></script>
+  <script src="{{ '/assets/js/main.js' | relative_url }}"></script>
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      if (currentTheme === 'dark') {
+        html.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+      }
+      updateButton();
+    }
+
+    function updateButton() {
+      const themeIcon = document.getElementById('theme-icon');
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+      const savedTheme = localStorage.getItem('theme');
+      const initialTheme = savedTheme || (prefersDark.matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', initialTheme);
+      updateButton();
+
+      prefersDark.addEventListener('change', e => {
+        const newTheme = e.matches ? 'dark' : 'light';
+        if (!savedTheme) document.documentElement.setAttribute('data-theme', newTheme);
+        updateButton();
+      });
+    });
+  </script>

@@ -1,0 +1,65 @@
+:root {
+  --body-bg: #ffffff;
+  --text-color: #404040;
+  --link-color: #0099ff;
+  --header-bg: #f8f9fa;
+  --header-text: #2c3e50;
+}
+:root[data-theme="dark"] {
+  --body-bg: #1a1a1a;
+  --text-color: #d3d3d3;
+  --link-color: #1e90ff;
+  --header-bg: #2c2c2c;
+  --header-text: #ecf0f1;
+}
+body {
+  background-color: var(--body-bg);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
+}
+a {
+  color: var(--link-color);
+}
+.site-header {
+  background-color: var(--header-bg);
+  color: var(--header-text);
+}
+.main-content, .post-content {
+  color: var(--text-color);
+}
+h1, h2, h3 {
+  color: var(--text-color);
+}
+.theme-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000; /* Ensure it stays above other elements */
+}
+.theme-toggle button {
+  background: var(--body-bg);
+  color: var(--text-color);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s;
+  border: 1px solid var(--link-color);
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 18px; /* Larger font for emoji visibility */
+  width: 40px; /* Fixed width for consistency */
+  height: 40px; /* Fixed height */
+  border-radius: 50%; /* Circular button */
+}
+.theme-toggle button:hover {
+  background-color: #444444;
+}
+@media (max-width: 600px) {
+  .theme-toggle {
+    bottom: 10px;
+    right: 10px;
+  }
+  .theme-toggle button {
+    width: 35px;
+    height: 35px;
+    font-size: 16px;
+  }
+}

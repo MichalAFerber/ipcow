@@ -30,10 +30,23 @@ a {
 h1, h2, h3 {
   color: var(--text-color);
 }
+.theme-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000; /* Ensure it stays above other elements */
+}
 .theme-toggle button {
   background: var(--body-bg);
   color: var(--text-color);
   border: 1px solid var(--link-color);
   padding: 5px 10px;
   cursor: pointer;
+  font-size: 18px; /* Larger font for emoji visibility */
+  width: 40px; /* Fixed width for consistency */
+  height: 40px; /* Fixed height */
+  border-radius: 50%; /* Circular button */
+}
+.theme-toggle button:hover {
+  background-color: #444444;
 }
