@@ -1,29 +1,40 @@
 async function loadInfo() {
   const response = await fetch('/api/info.php');
   const serverData = await response.json();
-  document.getElementById('ipv4').textContent = serverData.ipv4;
-  document.getElementById('ipv6').textContent = serverData.ipv6;
-  document.getElementById('hostname').textContent = serverData.hostname;
-  document.getElementById('isp').textContent = serverData.isp;
-  document.getElementById('country').textContent = serverData.country;
-  document.getElementById('region').textContent = serverData.region;
-  document.getElementById('city').textContent = serverData.city;
-  document.getElementById('latitude').textContent = serverData.latitude;
-  document.getElementById('longitude').textContent = serverData.longitude;
-  document.getElementById('timezone').textContent = serverData.timezone;
+
+  // Helper function to safely set text content
+  const setText = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+
+  setText('ipv4', serverData.ipv4);
+  setText('ipv6', serverData.ipv6);
+  setText('hostname', serverData.hostname);
+  setText('isp', serverData.isp);
+  setText('country', serverData.country);
+  setText('region', serverData.region);
+  setText('city', serverData.city);
+  setText('latitude', serverData.latitude);
+  setText('longitude', serverData.longitude);
+  setText('timezone', serverData.timezone);
 
   const ua = navigator.userAgent;
   const uaParser = new UAParser(ua);
-  document.getElementById('user-agent').textContent = ua;
-  document.getElementById('browser').textContent = uaParser.getBrowser().name || 'Unknown';
-  document.getElementById('browser-version').textContent = uaParser.getBrowser().version || 'Unknown';
-  document.getElementById('os').textContent = uaParser.getOS().name || 'Unknown';
-  document.getElementById('os-version').textContent = uaParser.getOS().version || 'Unknown';
-  document.getElementById('device').textContent = uaParser.getDevice().type || 'desktop';
-  document.getElementById('screen-resolution').textContent = `${screen.width}x${screen.height}`;
-  document.getElementById('viewport-size').textContent = `${window.innerWidth}x${window.innerHeight}`;
-  document.getElementById('cookies-enabled').textContent = navigator.cookieEnabled ? 'true' : 'false';
-  document.getElementById('javascript-enabled').textContent = 'true';
-  document.getElementById('language').textContent = navigator.language || 'Unknown';
+  setText('user-agent', ua);
+  setText('browser', uaParser.getBrowser().name || 'Unknown');
+  setText('browser-version', uaParser.getBrowser().version || 'Unknown');
+  setText('os', uaParser.getOS().name || 'Unknown');
+  setText('os-version', uaParser.getOS().version || 'Unknown');
+  setText('device', uaParser.getDevice().type || 'desktop');
+  setText('screen-resolution', `${screen.width}x${screen.height}`);
+  setText('viewport-size', `${window.innerWidth}x${window.innerHeight}`);
+  setText('cookies-enabled', navigator.cookieEnabled ? 'true' : 'false');
+  setText('javascript-enabled', 'true');
+  setText('language', navigator.language || 'Unknown');
 }
-window.onload = loadInfo;
+
+// Only run if we're on a page that needs this data
+if (document.getElementById('connection-info')) {
+  window.onload = loadInfo;
+}
