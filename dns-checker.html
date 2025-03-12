@@ -1,0 +1,21 @@
+---
+layout: default
+title: IPCow - DNS Checker
+---
+<h1>DNS Checker</h1>
+<form method="GET" action="/api/dns-checker.php">
+  <label for="domain">Enter Domain:</label>
+  <input type="text" id="domain" name="domain" placeholder="example.com" required>
+  <button type="submit">Check DNS</button>
+</form>
+<div id="dns-results"></div>
+<script>
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const domain = document.getElementById('domain').value;
+    const response = await fetch(`/api/dns-checker.php?domain=${domain}`);
+    const data = await response.text();
+    document.getElementById('dns-results').innerHTML = `<pre>${data}</pre>`;
+  });
+</script>
+
