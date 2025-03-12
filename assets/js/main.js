@@ -1,5 +1,7 @@
 console.log('Script loaded');
 async function loadInfo() {
+  const elements = document.querySelectorAll('#connection-info span');
+  elements.forEach(el => el.textContent = 'Loading...');
   console.log('Starting loadInfo');
   try {
     const response = await fetch('/api/info.php');
@@ -42,7 +44,7 @@ async function loadInfo() {
     console.log('LoadInfo completed');
   } catch (error) {
     console.error('Error in loadInfo:', error);
-    const elements = document.querySelectorAll('#connection-info span');
+    document.getElementById('error-message').style.display = 'block';
     elements.forEach(el => el.textContent = 'Error loading data');
   }
 }
