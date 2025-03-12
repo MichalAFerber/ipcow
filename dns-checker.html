@@ -8,14 +8,29 @@ title: IPCow - DNS Checker
   <input type="text" id="domain" name="domain" placeholder="example.com" required>
   <button type="submit">Check DNS</button>
 </form>
-<div id="dns-results"></div>
+<div id="dns-results">Loading...</div>
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const domain = document.getElementById('domain').value;
+    document.getElementById('dns-results').innerHTML = 'Loading...';
     const response = await fetch(`/api/dns-checker.php?domain=${domain}`);
     const data = await response.text();
-    document.getElementById('dns-results').innerHTML = `<pre>${data}</pre>`;
+    const records = data.split('\n').filter(line => line.trim() !== '');
+    let formatted = '<table>';
+    formatted += '<tr><th>Type</th><th>Value</th></tr>';
+    records.forEach(record => {
+      if (record.includes('[type] =>')) {
+        const type = record.match(/\[type\] => (\w+)/)?.[1] || '';
+        const valueMatch = record.includes('[ip] =>') ? record.match(/\[ip\] => (.+)/)?.[1] : 
+                         record.includes('[target] =>') ? record.match(/\[target\] => (.+)/)?.[1] : 
+                         record.includes('[txt] =>') ? record.match(/\[txt\] => (.+)/)?.[1] : '';
+        const value = valueMatch || '';
+        if (type && value) {
+          formatted += `<tr><td>${type}</td><td>${value}</td></tr>`;
+        }
+      }
+    });
+    document.getElementById('dns-results').innerHTML = data.trim() === 'Invalid domain.' || data.trim() === 'No DNS records found for ' + domain + '.' ? data : formatted;
   });
 </script>
-
