@@ -87,7 +87,6 @@ post_search: true
 # If this setting is off, then long sub-menu words might get cut off
 # See https://github.com/daattali/beautiful-jekyll/issues/765 to understand the issue this setting can solve
 navbar-var-length: true
-
 # The keywords to associate with your website, for SEO purposes
 #keywords: "my,list,of,keywords"
 
@@ -121,7 +120,7 @@ footer-hover-col: "#0085A1"
 
 # For any extra visual customization, you can include additional CSS files in every page on your site. List any custom CSS files here
 site-css:
-  - "https://beautifuljekyll.com/pro/dark-mode.min.css"
+  - "/assets/css/dark-mode.min.css"
 
 # If you have common JavaScript files that should be included in every page, list them here
 #site-js:

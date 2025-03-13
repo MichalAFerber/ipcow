@@ -41,10 +41,7 @@ iframe {
     font-size: 16px;
   }
 }
-#speed-test {
-  margin: 20px auto;
-  max-width: 800px;
-}
+
 #dns-results pre {
   background: #f9f9f9;
   padding: 15px;
@@ -86,4 +83,16 @@ iframe {
   white-space: pre-wrap;
   font-size: 14px;
   color: #333;
+}
+#speed-test {
+    padding: 40px;
+    max-width: 800px;
+}
+#connection-info {
+  padding: 40px;
+}
+#connection-info ul {
+  list-style: none;
+  padding: 0;
+  margin-left: 20px;
 }
