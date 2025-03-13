@@ -1,10 +1,12 @@
 ---
 layout: page
 title: Ping Test
+subtitle: Ping any host or IP address.
+share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
+# full-width: true
 ---
-<form id="ping-form">
-  <label for="host">Enter Host or IP Address:</label>
-  <input type="text" id="host" name="host" placeholder="e.g., google.com or 8.8.8.8" required>
+<form id="ping-form" style="text-align: center; margin-top: 20px;">
+  <input type="text" id="host" name="host" placeholder="google.com or 8.8.8.8" required>
   <button type="submit">Ping</button>
 </form>
 <div id="ping-results"></div>

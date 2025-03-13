@@ -2,12 +2,16 @@ title: IP Cow
 author: TechGuyWithABeard&nbsp;&bull;&nbsp;a ThompsonBlack company
 
 navbar-links:
-#  About Me: "aboutme"
   Blog: "blog"
   Contact: "contact"
   Tools:
     - DNS Checker: "dns-checker"
+    - HTTP Header Analyzer: "http-header-analyzer"
+    - IP Lookup: "ip-lookup"
     - Ping Test: "ping"
+    - Port Scanner: "port-scanner"
+    - Speedtest: "speedtest"
+    - Traceroute: "traceroute"
 
 # avatar: "/assets/img/avatar-icon.png"
 round-avatar: true
@@ -52,7 +56,7 @@ social-network-links:
 
 # If you want your website to generate an RSS feed, provide a description
 # The URL for the feed will be https://<your_website>/feed.xml
-rss-description: This website is a virtual proof that I'm awesome
+rss-description: Here you can see the internet IP address your device is using along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools.
 
 # Select which social network share links to show in posts
 share-links-active:
@@ -87,13 +91,13 @@ post_search: true
 # If this setting is off, then long sub-menu words might get cut off
 # See https://github.com/daattali/beautiful-jekyll/issues/765 to understand the issue this setting can solve
 navbar-var-length: true
+
 # The keywords to associate with your website, for SEO purposes
-#keywords: "my,list,of,keywords"
+keywords: "my,list,of,keywords"
 
 ######################################
 # --- Colours / background image --- #
 ######################################
-
 # Personalize the colours in your website. Colour values can be any valid CSS colour
 
 page-col: "#FFFFFF"
@@ -120,7 +124,8 @@ footer-hover-col: "#0085A1"
 
 # For any extra visual customization, you can include additional CSS files in every page on your site. List any custom CSS files here
 site-css:
-  - "/assets/css/dark-mode.min.css"
+#  - "https://beautifuljekyll.com/pro/dark-mode.min.css"
+#  - "/assets/css/dark-mode.min.css"
 
 # If you have common JavaScript files that should be included in every page, list them here
 #site-js:
@@ -134,13 +139,11 @@ timezone: "America/New York"
 markdown: kramdown
 highlighter: rouge
 permalink: pretty
-# permalink: /:year-:month-:day-:title/
 paginate: 5
 
 kramdown:
   input: GFM
 
-# Default YAML values (more information on Jekyll's site)
 defaults:
   -
     scope:
@@ -160,7 +163,6 @@ sass:
   sass_dir: assets/css
   style: compressed
 
-# Exclude these files from production site
 exclude:
   - CHANGELOG.md
   - CNAME

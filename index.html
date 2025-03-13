@@ -1,17 +1,21 @@
 ---
 layout: page
 title: My IP Address
-full-width: true
+subtitle: IPv4
+share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
+# full-width: true
 ---
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-      document.querySelector('.page-heading h1').innerHTML = '<div>IPv4:&nbsp;<span id="ipv4">Loading...</span></div><div>IPv6:&nbsp;<span id="ipv6">Loading...</span></div>';
+    document.querySelector('.page-heading h1').innerHTML = '<div><span id="ipv4">Loading...</span></div>';
+    // document.querySelector('.page-heading h1').innerHTML = '<div>IPv4:&nbsp;<span id="ipv4">Loading...</span></div><div>IPv6:&nbsp;<span id="ipv6">Loading...</span></div>';
   });
 </script>
-
 <section id="connection-info">
   <h2>Your Connection</h2>
   <ul>
+    <li>IPv4: <span id="ipv4">Loading...</span></li>
+    <li>IPv6: <span id="ipv6">Loading...</span></li>
     <li>User Agent: <span id="user-agent">Loading...</span></li>
     <li>Hostname: <span id="hostname">Loading...</span></li>
     <li>ISP: <span id="isp">Loading...</span></li>
@@ -32,8 +36,4 @@ full-width: true
     <li>Longitude: <span id="longitude">Loading...</span></li>
     <li>Timezone: <span id="timezone">Loading...</span></li>
   </ul>
-</section>
-<section id="speed-test">
-  <h2>Speed Test</h2>
-  <iframe src="https://ipcow.dualstack.speedtestcustom.com/" width="100%" height="650" frameborder="0"></iframe>
 </section>
