@@ -1,11 +1,13 @@
 ---
 layout: page
-title:
+title: My IP Address
 ---
-<h1>
-    <div>IPv4:&nbsp;<span id="ipv4">Loading...</span></div>
-    <div>IPv6:&nbsp;<span id="ipv6">Loading...</span></div>
-</h1>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      document.querySelector('.page-heading h1').innerHTML = '<div>IPv4:&nbsp;<span id="ipv4">Loading...</span></div><div>IPv6:&nbsp;<span id="ipv6">Loading...</span></div>';
+  });
+</script>
+
 <section id="connection-info">
   <h2>Your Connection</h2>
   <ul>
