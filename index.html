@@ -5,13 +5,6 @@ subtitle: Your Current IP Address
 share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 # full-width: true
 ---
-<section id="ip-display">
-  <h2>Your IP Addresses</h2>
-  <div>
-    <p>IPv4: <span id="ipv4-display">Loading...</span></p>
-    <p>IPv6: <span id="ipv6-display">Loading...</span></p>
-  </div>
-</section>
 <section id="connection-info">
   <h2>Your Connection</h2>
   <ul>
@@ -40,13 +33,11 @@ share-description: "IP Cow is a free service that shows you the public IP addres
   </ul>
 </section>
 <div id="error-message">Error loading connection info.</div>
-<link rel="stylesheet" href="{{ '/assets/css/styles.css' | relative_url }}">
+<link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
 <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1/dist/ua-parser.min.js"></script>
 <script src="{{ '/assets/js/connection-info.js' | relative_url }}"></script>
-
-
-<!-- <script>
+<script>
   document.addEventListener('DOMContentLoaded', function() {
-    document.querySelector('.page-heading h1').innerHTML = '<span id="ipv4">Loading...</span>';
+    document.querySelector('.page-heading .page-subheading').innerHTML = '<span id="ipv4-display">Loading...</span><br><span id="ipv6-display">Loading...</span>';
   });
-</script> -->
+</script>
