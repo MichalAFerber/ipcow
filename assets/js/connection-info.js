@@ -1,34 +1,46 @@
 console.log('Script loaded');
 
 async function loadInfo() {
-  const elements = document.querySelectorAll('#connection-info span, #ipv4');
+  const elements = document.querySelectorAll('#connection-info span, #ip-display');
   elements.forEach(el => el.textContent = 'Loading...');
   const errorMessage = document.getElementById('error-message');
 
   try {
-    const response = await fetch('/api/info.php');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    // Fetch IPv4 from info.php
+    const infoResponse = await fetch('/api/info.php');
+    if (!infoResponse.ok) {
+      throw new Error(`HTTP error! status: ${infoResponse.status} - ${infoResponse.statusText}`);
     }
-    const serverData = await response.json();
-    console.log('Server data:', serverData);
-
+    const serverData = await infoResponse.json();
     if (!serverData.success || serverData.error) {
       throw new Error(serverData.error || 'Failed to load server data.');
     }
-
     const data = serverData.data;
+
+    // Fetch IPv6 from checkip.ipcow.com?ip=v6
+    const checkIpResponse = await fetch('https://checkip.ipcow.com/?ip=v6', {
+      cache: 'no-store'
+    });
+    if (!checkIpResponse.ok) {
+      throw new Error('Failed to fetch IPv6 from checkip.ipcow.com');
+    }
+    let ipv6 = await checkIpResponse.text();
+    if (ipv6 === 'No IPv6 detected') {
+      ipv6 = 'Unavailable';
+    }
+
+    // Check query string for IP version
+    const urlParams = new URLSearchParams(window.location.search);
+    const ipVersion = urlParams.get('ip');
+    const showIPv6 = ipVersion === 'v6';
+
     const setText = (id, value) => {
       const element = document.getElementById(id);
       if (element) element.textContent = value || 'Unknown';
     };
 
-    // Check query string for IP version
-    const urlParams = new URLSearchParams(window.location.search);
-    const ipVersion = urlParams.get('ip');
-    const showIPv6 = ipVersion === 'v6' && data.ipv6 !== 'Not available';
-    setText('ipv4', showIPv6 ? data.ipv6 : data.ipv4);
-
+    // Display IP based on query string
+    setText('ip-display', showIPv6 ? ipv6 : data.ipv4);
     setText('hostname', data.hostname);
     setText('isp', data.isp);
     setText('country', data.country);

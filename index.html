@@ -10,34 +10,34 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     document.querySelector('.page-heading h1').innerHTML = '<span id="ipv4">Loading...</span>';
   });
 </script>
-<section id="connection-info">
-  <h2>Your Connection</h2>
-  <ul>
-    <li><a href="?ip=v4">Show IPv4</a> | <a href="?ip=v6">Show IPv6</a></li>
-    <li>Hostname: <span id="hostname">Loading...</span></li>
-    <li>ISP: <span id="isp">Loading...</span></li>
-    <li>Country: <span id="country">Loading...</span></li>
-    <li>Region: <span id="region">Loading...</span></li>
-    <li>City: <span id="city">Loading...</span></li>
-    <li>Latitude: <span id="latitude">Loading...</span></li>
-    <li>Longitude: <span id="longitude">Loading...</span></li>
-    <li>Timezone: <span id="timezone">Loading...</span></li>
-    <li>User Agent: <span id="user-agent">Loading...</span></li>
-    <li>Browser: <span id="browser">Loading...</span></li>
-    <li>Browser Version: <span id="browser-version">Loading...</span></li>
-    <li>Operating System: <span id="os">Loading...</span></li>
-    <li>OS Version: <span id="os-version">Loading...</span></li>
-    <li>Device Type: <span id="device">Loading...</span></li>
-    <li>Device Vendor: <span id="device-vendor">Loading...</span></li>
-    <li>Device Model: <span id="device-model">Loading...</span></li>
-    <li>CPU Architecture: <span id="cpu-architecture">Loading...</span></li>
-    <li>Screen Resolution: <span id="screen-resolution">Loading...</span></li>
-    <li>Viewport Size: <span id="viewport-size">Loading...</span></li>
-    <li>Cookies Enabled: <span id="cookies-enabled">Loading...</span></li>
-    <li>JavaScript Enabled: <span id="javascript-enabled">Loading...</span></li>
-    <li>Language: <span id="language">Loading...</span></li>
-  </ul>
-</section>
-<div id="error-message" style="display: none; color: red; text-align: center;">Error loading connection info.</div>
-<script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1/dist/ua-parser.min.js"></script>
-<script src="{{ '/assets/js/connection-info.js' | relative_url }}"></script>
+    <section id="connection-info">
+      <h2>Your Connection</h2>
+      <ul>
+        <li><a href="?ip=v4">Show IPv4</a> | <a href="?ip=v6">Show IPv6</a></li>
+        <li>Hostname: <span id="hostname">Loading...</span></li>
+        <li>ISP: <span id="isp">Loading...</span></li>
+        <li>Country: <span id="country">Loading...</span></li>
+        <li>Region: <span id="region">Loading...</span></li>
+        <li>City: <span id="city">Loading...</span></li>
+        <li>Latitude: <span id="latitude">Loading...</span></li>
+        <li>Longitude: <span id="longitude">Loading...</span></li>
+        <li>Timezone: <span id="timezone">Loading...</span></li>
+        <li>User Agent: <span id="user-agent">Loading...</span></li>
+        <li>Browser: <span id="browser">Loading...</span></li>
+        <li>Browser Version: <span id="browser-version">Loading...</span></li>
+        <li>Operating System: <span id="os">Loading...</span></li>
+        <li>OS Version: <span id="os-version">Loading...</span></li>
+        <li>Device Type: <span id="device">Loading...</span></li>
+        <li>Device Vendor: <span id="device-vendor">Loading...</span></li>
+        <li>Device Model: <span id="device-model">Loading...</span></li>
+        <li>CPU Architecture: <span id="cpu-architecture">Loading...</span></li>
+        <li>Screen Resolution: <span id="screen-resolution">Loading...</span></li>
+        <li>Viewport Size: <span id="viewport-size">Loading...</span></li>
+        <li>Cookies Enabled: <span id="cookies-enabled">Loading...</span></li>
+        <li>JavaScript Enabled: <span id="javascript-enabled">Loading...</span></li>
+        <li>Language: <span id="language">Loading...</span></li>
+      </ul>
+    </section>
+    <div id="error-message">Error loading connection info.</div>
+    <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1/dist/ua-parser.min.js"></script>
+    <script src="{{ '/assets/js/connection-info.js' | relative_url }}"></script>

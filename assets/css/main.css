@@ -1,4 +1,8 @@
-
+#error-message {
+  display: none;
+  color: red;
+  text-align: center;
+}
 iframe {
   border: none;
   border-radius: 8px;
