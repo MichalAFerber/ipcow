@@ -46,11 +46,10 @@ async function loadInfo() {
     setText('cookies-enabled', navigator.cookieEnabled ? 'true' : 'false');
     setText('javascript-enabled', 'true');
     setText('language', navigator.language);
-    setText('engine', uaParser.getEngine().name);
     setText('device-vendor', uaParser.getDevice().vendor || 'Unknown');
     setText('device-model', uaParser.getDevice().model || 'Unknown');
     setText('cpu-architecture', uaParser.getCPU().architecture || 'Unknown');
-    
+
     // IP toggle functionality
     const toggleButton = document.getElementById('toggle-ip');
     const ipDisplay = document.getElementById('ipv4');
