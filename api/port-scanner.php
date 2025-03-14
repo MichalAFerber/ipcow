@@ -53,8 +53,9 @@ if ($output && strpos($output, 'Nmap scan report') !== false) {
     foreach ($lines as $index => $line) {
         $line = trim($line);
         file_put_contents($logPath, "Line $index: $line\n", FILE_APPEND);
-        if (preg_match('/^Nmap scan report for/', $line)) {
+        if (preg_match('/^PORT\s+STATE\s+SERVICE/', $line)) {
             $inPortSection = true;
+            file_put_contents($logPath, "Entered port section at line $index\n", FILE_APPEND);
             continue;
         }
         if ($inPortSection && preg_match('/^(\d+)\/tcp\s+(open|closed|filtered)\s+(\S+)/i', $line, $matches)) {
