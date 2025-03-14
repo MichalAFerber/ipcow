@@ -17,7 +17,7 @@ async function loadInfo() {
     }
     const data = serverData.data;
 
-    // Fetch IPv4 from checkip.ipcow.com (default connection)
+    // Fetch IPv4 from checkip.ipcow.com
     const checkIpV4Response = await fetch('https://checkip.ipcow.com/', {
       cache: 'no-store'
     });
@@ -25,6 +25,7 @@ async function loadInfo() {
       throw new Error('Failed to fetch IPv4 from checkip.ipcow.com');
     }
     const ipv4FromCheckIp = await checkIpV4Response.text();
+    console.log('IPv4 from checkip:', ipv4FromCheckIp);
 
     // Fetch IPv6 from checkip.ipcow.com?ip=v6
     const checkIpV6Response = await fetch('https://checkip.ipcow.com/?ip=v6', {
@@ -34,6 +35,7 @@ async function loadInfo() {
       throw new Error('Failed to fetch IPv6 from checkip.ipcow.com');
     }
     let ipv6FromCheckIp = await checkIpV6Response.text();
+    console.log('IPv6 from checkip:', ipv6FromCheckIp);
     if (ipv6FromCheckIp === 'No IPv6 detected') {
       ipv6FromCheckIp = 'Unavailable';
     }
