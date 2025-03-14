@@ -33,11 +33,9 @@ $portString = implode(',', $portList);
 $command = "/usr/bin/nmap -Pn -p " . escapeshellarg($portString) . " " . escapeshellarg($target) . " 2>&1";
 $output = shell_exec($command);
 
-// Debug: Log the raw output to a different path
-$logPath = '/var/www/html/nmap_debug.log'; // Adjust to a writable path
-if (!file_put_contents($logPath, "Command: $command\nOutput: $output\n\n", FILE_APPEND)) {
-    error_log("Failed to write to $logPath");
-}
+// Debug: Log the raw output
+$logPath = '/var/www/html/nmap_debug.log';
+file_put_contents($logPath, "Command: $command\nOutput:\n$output\n\n", FILE_APPEND);
 
 // Check if shell_exec is disabled or failed
 if ($output === null) {
@@ -46,13 +44,15 @@ if ($output === null) {
     exit;
 }
 
-// Parse nmap output
+// Parse nmap output with enhanced debugging
 $results = [];
 if ($output && strpos($output, 'Nmap scan report') !== false) {
     $lines = explode("\n", $output);
     $inPortSection = false;
-    foreach ($lines as $line) {
+    file_put_contents($logPath, "Parsed Lines:\n", FILE_APPEND);
+    foreach ($lines as $index => $line) {
         $line = trim($line);
+        file_put_contents($logPath, "Line $index: $line\n", FILE_APPEND);
         if (preg_match('/^Nmap scan report for/', $line)) {
             $inPortSection = true;
             continue;
@@ -62,6 +62,7 @@ if ($output && strpos($output, 'Nmap scan report') !== false) {
             $status = ucfirst(strtolower($matches[2]));
             $service = $matches[3];
             $results[$port] = "$status ($service)";
+            file_put_contents($logPath, "Matched: Port $port = $status ($service)\n", FILE_APPEND);
         }
     }
 
@@ -69,6 +70,7 @@ if ($output && strpos($output, 'Nmap scan report') !== false) {
     foreach ($portList as $port) {
         if (!isset($results[$port])) {
             $results[$port] = 'Filtered (unknown)';
+            file_put_contents($logPath, "Added: Port $port = Filtered (unknown)\n", FILE_APPEND);
         }
     }
 
