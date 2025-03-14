@@ -28,29 +28,35 @@ foreach ($portList as $port) {
     }
 }
 
-// Resolve hostname to IP if necessary
-$ip = filter_var($target, FILTER_VALIDATE_IP) ? $target : gethostbyname($target);
-if ($ip === $target && !filter_var($ip, FILTER_VALIDATE_IP)) {
-    $response['error'] = 'Could not resolve hostname.';
-    echo json_encode($response);
-    exit;
-}
+// Prepare nmap command
+$portString = implode(',', $portList);
+$command = "nmap -Pn -p " . escapeshellarg($portString) . " " . escapeshellarg($target) . " 2>&1";
+$output = shell_exec($command);
 
-// Scan ports
+// Parse nmap output
 $results = [];
-$timeout = 2; // Seconds to wait for connection
-foreach ($portList as $port) {
-    $connection = @fsockopen($ip, $port, $errno, $errstr, $timeout);
-    if (is_resource($connection)) {
-        $results[$port] = 'Open';
-        fclose($connection);
-    } else {
-        $results[$port] = ($errno === 111) ? 'Closed' : 'Filtered'; // 111 = Connection refused
+if ($output) {
+    $lines = explode("\n", $output);
+    foreach ($lines as $line) {
+        if (preg_match('/^(\d+)\/tcp\s+(open|closed|filtered)/i', trim($line), $matches)) {
+            $port = $matches[1];
+            $status = ucfirst(strtolower($matches[2]));
+            $results[$port] = $status;
+        }
     }
-}
 
-$response['success'] = true;
-$response['data']['ports'] = $results;
+    // Ensure all requested ports are in the results
+    foreach ($portList as $port) {
+        if (!isset($results[$port])) {
+            $results[$port] = 'Filtered'; // Default to Filtered if not reported (e.g., timeout)
+        }
+    }
+
+    $response['success'] = true;
+    $response['data']['ports'] = $results;
+} else {
+    $response['error'] = 'Failed to execute port scan.';
+}
 
 echo json_encode($response);
 ?>
