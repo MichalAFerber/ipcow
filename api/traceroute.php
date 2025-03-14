@@ -17,8 +17,8 @@ if (!filter_var($target, FILTER_VALIDATE_IP) && !preg_match('/^[a-zA-Z0-9.-]+$/'
     exit;
 }
 
-// Prepare traceroute command
-$command = "traceroute -n " . escapeshellarg($target) . " 2>&1"; // -n disables DNS lookups for speed
+// Prepare tcptraceroute command (use port 80 for TCP)
+$command = "/usr/sbin/tcptraceroute.db -n " . escapeshellarg($target) . " 80 2>&1";
 $output = shell_exec($command);
 
 // Debug: Log the raw output
@@ -26,7 +26,7 @@ $logPath = '/var/www/html/traceroute_debug.log';
 file_put_contents($logPath, "Command: $command\nOutput:\n$output\n\n", FILE_APPEND);
 
 if ($output === null) {
-    $response['error'] = 'Unable to execute traceroute: shell_exec might be disabled or traceroute failed.';
+    $response['error'] = 'Unable to execute traceroute: shell_exec might be disabled or tcptraceroute failed.';
     echo json_encode($response);
     exit;
 }
@@ -36,23 +36,29 @@ if ($output) {
     $lines = explode("\n", $output);
     foreach ($lines as $line) {
         $line = trim($line);
-        if (preg_match('/^\s*(\d+)\s+([\d.]+)\s+([\d.]+)\s+ms/', $line, $matches)) {
+        // Match lines like "1  192.168.1.1  10.5 ms" or "1  *"
+        if (preg_match('/^\s*(\d+)\s+([0-9.]+|\*)\s*([\d.]+)?\s*ms/', $line, $matches)) {
             $hopNumber = $matches[1];
-            $ip = $matches[2];
-            $latency = $matches[3];
+            $ip = $matches[2] === '*' ? 'N/A' : $matches[2];
+            $latency = isset($matches[3]) ? $matches[3] : 'N/A';
+            $hostname = ($ip !== 'N/A') ? (gethostbyaddr($ip) ?: 'Unknown') : 'N/A';
             $hops[] = [
                 'hop' => $hopNumber,
                 'ip' => $ip,
                 'latency' => $latency,
-                'hostname' => gethostbyaddr($ip) ?: 'Unknown'
+                'hostname' => $hostname
             ];
         }
     }
 
-    $response['success'] = true;
-    $response['data']['hops'] = $hops;
+    if (empty($hops)) {
+        $response['error'] = 'No hops detected. The target might be unreachable, or traceroute packets are being blocked by a firewall.';
+    } else {
+        $response['success'] = true;
+        $response['data']['hops'] = $hops;
+    }
 } else {
-    $response['error'] = 'No traceroute data received.';
+    $response['error'] = 'No traceroute data received. Check server configuration.';
     file_put_contents($logPath, "No valid output detected.\n", FILE_APPEND);
 }
 
