@@ -65,7 +65,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       if (records.length > 0) {
         const exportBtn = document.createElement('button');
         exportBtn.textContent = 'Download JSON';
-        exportBtn.style.marginTop = '10px';
+        exportBtn.style.marginTop = '20px';
+        exportBtn.className = 'btn btn-primary';
         exportBtn.onclick = () => {
           const exportData = {
             domain: domain,
