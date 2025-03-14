@@ -30,32 +30,43 @@ foreach ($portList as $port) {
 
 // Prepare nmap command
 $portString = implode(',', $portList);
-$command = "nmap -Pn -p " . escapeshellarg($portString) . " " . escapeshellarg($target) . " 2>&1";
+$command = "/usr/bin/nmap -Pn -p " . escapeshellarg($portString) . " " . escapeshellarg($target) . " 2>&1";
 $output = shell_exec($command);
+
+// Debug: Log the raw output
+file_put_contents('/tmp/nmap_debug.log', "Command: $command\nOutput: $output\n\n", FILE_APPEND);
+
+// Check if shell_exec is disabled
+if ($output === null) {
+    $response['error'] = 'Unable to execute port scan: shell_exec might be disabled.';
+    echo json_encode($response);
+    exit;
+}
 
 // Parse nmap output
 $results = [];
 if ($output) {
     $lines = explode("\n", $output);
     foreach ($lines as $line) {
-        if (preg_match('/^(\d+)\/tcp\s+(open|closed|filtered)/i', trim($line), $matches)) {
+        if (preg_match('/^(\d+)\/tcp\s+(open|closed|filtered)\s+(\S+)/i', trim($line), $matches)) {
             $port = $matches[1];
             $status = ucfirst(strtolower($matches[2]));
-            $results[$port] = $status;
+            $service = $matches[3];
+            $results[$port] = "$status ($service)";
         }
     }
 
     // Ensure all requested ports are in the results
     foreach ($portList as $port) {
         if (!isset($results[$port])) {
-            $results[$port] = 'Filtered'; // Default to Filtered if not reported (e.g., timeout)
+            $results[$port] = 'Filtered (unknown)';
         }
     }
 
     $response['success'] = true;
     $response['data']['ports'] = $results;
 } else {
-    $response['error'] = 'Failed to execute port scan.';
+    $response['error'] = 'Failed to execute port scan or no output received.';
 }
 
 echo json_encode($response);
