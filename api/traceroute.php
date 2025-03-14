@@ -34,7 +34,7 @@ if ($output === null) {
 $hops = [];
 $resolved_ip = null;
 
-// Extract resolved IP from the first line (e.g., "traceroute to google.com (172.253.63.100)")
+// Extract resolved IP from the first line (e.g., "traceroute to google.com (142.251.16.139)")
 if (preg_match('/traceroute to [^ ]+ \(([\d.]+)\)/', $output, $matches)) {
     $resolved_ip = $matches[1];
 }
@@ -43,11 +43,12 @@ if ($output) {
     $lines = explode("\n", $output);
     foreach ($lines as $line) {
         $line = trim($line);
-        // Match lines like "1  * * *" or "23  * 172.253.63.100 <syn,ack,...>  2.475 ms *"
-        if (preg_match('/^\s*(\d+)\s+([0-9.]+|\*)\s*(?:[0-9.]+|\*|<[^>]+>)?\s*([\d.]+)?\s*ms/', $line, $matches)) {
+        // Match lines like "26  * 142.251.16.139 <syn,ack,...>  2.259 ms  2.242 ms"
+        if (preg_match('/^\s*(\d+)\s+(?:[*]\s+){0,2}([0-9.]+)(?:\s+<[^>]+>)?\s+([\d.]+(?:\s+[\d.]+)?)\s*ms/', $line, $matches)) {
             $hopNumber = $matches[1];
-            $ip = $matches[2] === '*' ? 'N/A' : $matches[2];
-            $latency = isset($matches[3]) ? $matches[3] : 'N/A';
+            $ip = $matches[2];
+            $latencies = explode(' ', trim($matches[3]));
+            $latency = $latencies[0]; // Use the first latency value
             $hostname = ($ip !== 'N/A') ? (gethostbyaddr($ip) ?: 'Unknown') : 'N/A';
             $hops[] = [
                 'hop' => $hopNumber,
