@@ -41,6 +41,11 @@ share-description: "IP Cow is a free service that shows you the public IP addres
   button:hover {
     background-color: #0056b3;
   }
+  .available-message {
+    color: green;
+    font-weight: bold;
+    margin-top: 20px;
+  }
 </style>
 
 <form class="form-inline justify-content-center" method="GET" action="/api/whois.php">
@@ -73,19 +78,27 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         return;
       }
 
+      // Check if the domain is available
+      if (data.available) {
+        resultsDiv.innerHTML = `<div class="available-message">The domain "${domain}" is available and has not been registered.</div>`;
+        return; // Skip the rest of the formatting
+      }
+
       const whoisData = data.whois || {};
 
-      // Build the table
+      // Build the table for registered domains
       let formatted = '<table>';
       formatted += '<tr><th>Metric</th><th>Value</th></tr>';
       formatted += `<tr><td>Domain</td><td>${domain}</td></tr>`;
       formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
       formatted += '<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>';
 
-      // If whoisData is an object (parsed), display as key-value pairs
+      // Display WHOIS data as key-value pairs
       if (typeof whoisData === 'object' && !Array.isArray(whoisData)) {
         for (const [key, value] of Object.entries(whoisData)) {
-          formatted += `<tr><td>${key}</td><td>${value}</td></tr>`;
+          // Handle array values (like Name Server)
+          const displayValue = Array.isArray(value) ? value.join(', ') : value;
+          formatted += `<tr><td>${key}</td><td>${displayValue}</td></tr>`;
         }
       } else {
         // Fallback to raw text if not parsed
@@ -95,7 +108,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       formatted += '</table>';
       resultsDiv.innerHTML = whoisData ? formatted : 'No WHOIS data found for this domain.';
 
-      // Add export button
+      // Add export button for registered domains
       if (whoisData) {
         const exportBtn = document.createElement('button');
         exportBtn.textContent = 'Download JSON';
