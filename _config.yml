@@ -15,7 +15,7 @@ navbar-links:
     - Traceroute: "traceroute"
     - Whois: "whois"
 
-# avatar: "/assets/img/avatar-icon.png"
+avatar: "/assets/img/avatar-icon.png"
 round-avatar: true
 
 # If you want to have an image logo in the top-left corner instead of having the title of the website,
