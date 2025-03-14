@@ -17,7 +17,7 @@ if (!filter_var($target, FILTER_VALIDATE_IP) && !preg_match('/^[a-zA-Z0-9.-]+$/'
     exit;
 }
 
-// Prepare tcptraceroute command (use port 80 for TCP)
+// Try tcptraceroute with sudo wrapper on port 80
 $command = "sudo /usr/local/bin/tcptraceroute-wrapper.sh -n " . escapeshellarg($target) . " 80 2>&1";
 $output = shell_exec($command);
 
@@ -26,7 +26,7 @@ $logPath = '/var/www/html/traceroute_debug.log';
 file_put_contents($logPath, "Command: $command\nOutput:\n$output\n\n", FILE_APPEND);
 
 if ($output === null) {
-    $response['error'] = 'Unable to execute traceroute: shell_exec might be disabled or tcptraceroute failed.';
+    $response['error'] = 'Unable to execute traceroute: shell_exec failed or tcptraceroute unavailable.';
     echo json_encode($response);
     exit;
 }
@@ -51,7 +51,11 @@ if ($output) {
         }
     }
 
-    if (empty($hops)) {
+    // If no intermediate hops but target is reached, include it
+    if (!empty($hops) && end($hops)['ip'] === $target && count($hops) === 1) {
+        $response['success'] = true;
+        $response['data']['hops'] = $hops;
+    } elseif (empty($hops)) {
         $response['error'] = 'No hops detected. The target might be unreachable, or traceroute packets are being blocked by a firewall.';
     } else {
         $response['success'] = true;
