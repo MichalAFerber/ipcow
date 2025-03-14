@@ -26,28 +26,15 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.text();
+      const data = await response.json();
 
       // Check for error messages
-      if (data.trim() === 'Invalid domain.' || data.includes('No DNS records found')) {
-        document.getElementById('dns-results').innerHTML = data;
+      if (!data.success || data.error) {
+        document.getElementById('dns-results').innerHTML = data.error || 'No DNS records found.';
         return;
       }
 
-      // Parse the print_r output into a structured array
-      const records = [];
-      let currentRecord = {};
-      data.split('\n').forEach(line => {
-        line = line.trim();
-        if (line.startsWith('[') && line.includes('=> Array')) {
-          if (Object.keys(currentRecord).length > 0) records.push(currentRecord);
-          currentRecord = {};
-        } else if (line.includes('=>') && currentRecord) {
-          const [key, value] = line.split('=>').map(part => part.trim().replace(/\[|\]/g, ''));
-          if (key && value) currentRecord[key] = value;
-        }
-      });
-      if (Object.keys(currentRecord).length > 0) records.push(currentRecord);
+      const records = data.records || [];
 
       // Map numeric types to readable names and filter RFC8482
       const typeMap = {
