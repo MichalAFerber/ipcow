@@ -1,24 +1,30 @@
 ---
 layout: page
 title: IP Lookup
-subtitle: Lookup details for any IP address.
-share-description: "IP Cow is a free service that offers IP lookup, ping tests, and more network tools to explore your connection details."
+subtitle: Find details about any IP address or network.
+share-description: "IP Cow’s free IP Lookup tool gives you easy-to-understand details about any IP address or network, like location and provider info."
 full-width: true
 ---
-<form class="form-inline justify-content-center" method="GET" action="/api/ip-lookup.php">
-  <input type="text" class="form-control" id="ip" name="ip" placeholder="e.g., 8.8.8.8 or 2001:4860:4860::8888" required>
+<form class="form-inline justify-content-center" method="GET">
+  <input type="text" class="form-control" id="query" name="query" placeholder="e.g., 1.1.1.1 or AS15169" required>
   <button type="submit" class="btn btn-primary">Lookup</button>
 </form>
-<div id="ip-lookup-results"></div>
+<div id="ip-lookup-results" class="justify-content-center"></div>
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const ip = document.getElementById('ip').value;
+    const query = document.getElementById('query').value.trim();
     document.getElementById('ip-lookup-results').innerHTML = 'Looking up...';
 
     try {
       const startTime = performance.now();
-      const response = await fetch(`/api/ip-lookup.php?ip=${encodeURIComponent(ip)}`);
+      let url = `https://rdap.arin.net/registry/ip/${encodeURIComponent(query)}`;
+      if (query.toUpperCase().startsWith('AS')) {
+        const asn = query.replace(/[^0-9]/g, ''); // Extract number from AS prefix
+        url = `https://rdap.arin.net/registry/autnum/${encodeURIComponent(asn)}`;
+      }
+
+      const response = await fetch(url, { redirect: 'follow' });
       const endTime = performance.now();
       const latency = (endTime - startTime).toFixed(2);
 
@@ -28,39 +34,45 @@ full-width: true
 
       const data = await response.json();
 
-      // Check for error messages
-      if (!data.success || data.error) {
-        document.getElementById('ip-lookup-results').innerHTML = data.error || 'Lookup failed.';
-        return;
+      // Build the table with user-friendly labels
+      let formatted = '<table>';
+      formatted += '<tr><th>Detail</th><th>Value</th></tr>';
+      formatted += `<tr><td>Lookup</td><td>${query}</td></tr>`;
+      formatted += `<tr><td>Result</td><td>Found</td></tr>`;
+      formatted += `<tr><td>Response Time</td><td>${latency} ms</td></tr>`;
+
+      // IP or Network details
+      if (data.objectClassName === 'ip network') {
+        formatted += `<tr><td>Type</td><td>${data.ipVersion === 'v6' ? 'IPv6' : 'IPv4'}</td></tr>`;
+        formatted += `<tr><td>IP Range</td><td>${data.startAddress} - ${data.endAddress}</td></tr>`;
+        formatted += `<tr><td>Network Size</td><td>${data.cidr0_cidrs?.map(c => `${c.v4prefix || c.v6prefix}/${c.length}`).join(', ') || 'N/A'}</td></tr>`;
+        formatted += `<tr><td>Network Name</td><td>${data.name || 'Not available'}</td></tr>`;
+        formatted += `<tr><td>ID</td><td>${data.handle || 'Not available'}</td></tr>`;
+      } else if (data.objectClassName === 'autnum') {
+        formatted += `<tr><td>Network Number</td><td>${data.startAutnum || data.handle.replace('AS', '')}</td></tr>`;
+        formatted += `<tr><td>Network Name</td><td>${data.name || 'Not available'}</td></tr>`;
       }
 
-      // Build the table
-      let formatted = '<table>';
-      formatted += '<tr><th>Metric</th><th>Value</th></tr>';
-      formatted += `<tr><td>IP Address</td><td>${ip}</td></tr>`;
-      formatted += `<tr><td>Status</td><td>Success</td></tr>`;
-      formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
-      
-      if (data.hostname) {
-        formatted += `<tr><td>Hostname</td><td>${data.hostname}</td></tr>`;
+      // Registration info
+      if (data.events) {
+        const registration = data.events.find(e => e.eventAction === 'registration');
+        const lastChanged = data.events.find(e => e.eventAction === 'last changed');
+        if (registration) {
+          formatted += `<tr><td>Registered</td><td>${registration.eventDate.split('T')[0] || 'Not available'}</td></tr>`;
+        }
+        if (lastChanged) {
+          formatted += `<tr><td>Last Updated</td><td>${lastChanged.eventDate.split('T')[0] || 'Not available'}</td></tr>`;
+        }
       }
-      if (data.isp) {
-        formatted += `<tr><td>ISP</td><td>${data.isp}</td></tr>`;
-      }
-      if (data.country) {
-        formatted += `<tr><td>Country</td><td>${data.country}</td></tr>`;
-      }
-      if (data.region) {
-        formatted += `<tr><td>Region</td><td>${data.region}</td></tr>`;
-      }
-      if (data.city) {
-        formatted += `<tr><td>City</td><td>${data.city}</td></tr>`;
-      }
-      if (data.latitude && data.longitude) {
-        formatted += `<tr><td>Location</td><td>${data.latitude}, ${data.longitude}</td></tr>`;
-      }
-      if (data.timezone) {
-        formatted += `<tr><td>Timezone</td><td>${data.timezone}</td></tr>`;
+
+      // Provider info
+      if (data.entities && data.entities.length > 0) {
+        const registrant = data.entities.find(e => e.roles.includes('registrant'));
+        if (registrant && registrant.vcardArray) {
+          const vcard = registrant.vcardArray[1];
+          const orgName = vcard.find(entry => entry[0] === 'fn')?.[3] || 'Not available';
+          formatted += `<tr><td>Provider</td><td>${orgName}</td></tr>`;
+        }
       }
 
       formatted += '</table>';
@@ -68,7 +80,7 @@ full-width: true
 
     } catch (error) {
       console.error('Error in IP lookup:', error);
-      document.getElementById('ip-lookup-results').innerHTML = `Error: ${error.message}. Please check the IP address and try again.`;
+      document.getElementById('ip-lookup-results').innerHTML = `Error: ${error.message}. Please check the IP or network number and try again.`;
     }
   });
 </script>
