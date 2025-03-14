@@ -31,14 +31,12 @@ share-description: "IP Cow’s free Port Scanner lets you check if specific port
     background-color: #0056b3;
   }
 </style>
-
 <form class="form-inline justify-content-center" method="GET" action="/api/port-scanner.php">
   <input type="text" class="form-control" id="target" name="target" placeholder="google.com or 8.8.8.8" required>
   <input type="text" class="form-control" id="ports" name="ports" placeholder="80,443,21,22" required>
   <button type="submit" class="btn btn-primary">Scan Ports</button>
 </form>
 <div id="port-scan-results" class="center-results"></div>
-
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();

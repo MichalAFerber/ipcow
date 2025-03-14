@@ -6,54 +6,17 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 # full-width: true
 ---
 <style>
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-  }
-  th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-  th {
-    background-color: #f2f2f2;
-  }
-  pre {
-    white-space: pre-wrap; /* Allows text to wrap */
-    word-wrap: break-word; /* Breaks long words */
-    max-width: 100%; /* Prevents overflow */
-    overflow-x: auto; /* Adds horizontal scrollbar if needed */
-    margin: 0; /* Removes default margin */
-  }
-  .center-results {
-    max-width: 100%; /* Ensures container doesn’t constrain content */
-    overflow-x: auto; /* Adds scrollbar for wide content */
-  }
-  button {
-    margin-top: 10px;
-    padding: 8px 16px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
-  button:hover {
-    background-color: #0056b3;
-  }
   .available-message {
     color: green;
     font-weight: bold;
     margin-top: 20px;
   }
 </style>
-
 <form class="form-inline justify-content-center" method="GET" action="/api/whois.php">
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
-
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();

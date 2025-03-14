@@ -31,13 +31,11 @@ share-description: "IP Cow’s free IP Lookup tool gives you easy-to-understand 
     background-color: #0056b3;
   }
 </style>
-
 <form class="form-inline justify-content-center" method="GET">
   <input type="text" class="form-control" id="query" name="query" placeholder="e.g., 1.1.1.1 or AS15169" required>
   <button type="submit" class="btn btn-primary">Lookup</button>
 </form>
 <div id="ip-lookup-results" class="center-results"></div>
-
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
