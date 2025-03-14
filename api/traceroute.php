@@ -18,7 +18,7 @@ if (!filter_var($target, FILTER_VALIDATE_IP) && !preg_match('/^[a-zA-Z0-9.-]+$/'
 }
 
 // Prepare tcptraceroute command (use port 80 for TCP)
-$command = "/usr/sbin/tcptraceroute.db -n " . escapeshellarg($target) . " 80 2>&1";
+$command = "sudo /usr/local/bin/tcptraceroute-wrapper.sh -n " . escapeshellarg($target) . " 80 2>&1";
 $output = shell_exec($command);
 
 // Debug: Log the raw output
