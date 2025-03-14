@@ -17,7 +17,7 @@ if (!filter_var($target, FILTER_VALIDATE_IP) && !preg_match('/^[a-zA-Z0-9.-]+$/'
     exit;
 }
 
-// Try tcptraceroute with sudo wrapper on port 80
+// Prepare tcptraceroute command with sudo wrapper
 $command = "sudo /usr/local/bin/tcptraceroute-wrapper.sh -n " . escapeshellarg($target) . " 80 2>&1";
 $output = shell_exec($command);
 
@@ -32,12 +32,19 @@ if ($output === null) {
 }
 
 $hops = [];
+$resolved_ip = null;
+
+// Extract resolved IP from the first line (e.g., "traceroute to google.com (172.253.63.100)")
+if (preg_match('/traceroute to [^ ]+ \(([\d.]+)\)/', $output, $matches)) {
+    $resolved_ip = $matches[1];
+}
+
 if ($output) {
     $lines = explode("\n", $output);
     foreach ($lines as $line) {
         $line = trim($line);
-        // Match lines like "1  192.168.1.1  10.5 ms" or "1  *"
-        if (preg_match('/^\s*(\d+)\s+([0-9.]+|\*)\s*([\d.]+)?\s*ms/', $line, $matches)) {
+        // Match lines like "1  * * *" or "23  * 172.253.63.100 <syn,ack,...>  2.475 ms *"
+        if (preg_match('/^\s*(\d+)\s+([0-9.]+|\*)\s*(?:[0-9.]+|\*|<[^>]+>)?\s*([\d.]+)?\s*ms/', $line, $matches)) {
             $hopNumber = $matches[1];
             $ip = $matches[2] === '*' ? 'N/A' : $matches[2];
             $latency = isset($matches[3]) ? $matches[3] : 'N/A';
@@ -51,8 +58,9 @@ if ($output) {
         }
     }
 
-    // If no intermediate hops but target is reached, include it
-    if (!empty($hops) && end($hops)['ip'] === $target && count($hops) === 1) {
+    // Check if the target was reached (compare resolved IP or target)
+    $lastHop = end($hops);
+    if ($lastHop && ($lastHop['ip'] === $target || ($resolved_ip && $lastHop['ip'] === $resolved_ip))) {
         $response['success'] = true;
         $response['data']['hops'] = $hops;
     } elseif (empty($hops)) {
