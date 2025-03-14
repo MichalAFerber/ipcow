@@ -1,0 +1,62 @@
+---
+layout: page
+title: Traceroute
+subtitle: Trace the route to any IP or website.
+share-description: "IP Cow’s free Traceroute tool shows the path your connection takes to any IP address or website, helping you troubleshoot network issues."
+full-width: true
+---
+<form class="form-inline justify-content-center" method="GET" action="/api/traceroute.php">
+  <input type="text" class="form-control" id="target" name="target" placeholder="e.g., 8.8.8.8 or google.com" required>
+  <button type="submit" class="btn btn-primary">Trace Route</button>
+</form>
+<div id="traceroute-results" class="center-results"></div>
+<script>
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const target = document.getElementById('target').value.trim();
+    document.getElementById('traceroute-results').innerHTML = 'Tracing route...';
+
+    try {
+      const startTime = performance.now();
+      const response = await fetch(`/api/traceroute.php?target=${encodeURIComponent(target)}`);
+      const endTime = performance.now();
+      const latency = (endTime - startTime).toFixed(2);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Check for error messages
+      if (!data.success || data.error) {
+        document.getElementById('traceroute-results').innerHTML = data.error || 'Traceroute failed.';
+        return;
+      }
+
+      // Build the table
+      let formatted = '<table>';
+      formatted += '<tr><th>Detail</th><th>Value</th></tr>';
+      formatted += `<tr><td>Target</td><td>${target}</td></tr>`;
+      formatted += `<tr><td>Status</td><td>Completed</td></tr>`;
+      formatted += `<tr><td>Response Time</td><td>${latency} ms</td></tr>`;
+
+      // Traceroute hops
+      if (data.hops && data.hops.length > 0) {
+        formatted += '<tr><td colspan="2"><strong>Route Hops</strong></td></tr>';
+        data.hops.forEach((hop, index) => {
+          formatted += `<tr><td>Hop ${index + 1}</td><td>${hop.ip || 'N/A'} (${hop.hostname || 'Unknown'}) - ${hop.latency || 'N/A'} ms</td></tr>`;
+        });
+      } else {
+        formatted += `<tr><td>Result</td><td>No route data returned.</td></tr>`;
+      }
+
+      formatted += '</table>';
+      document.getElementById('traceroute-results').innerHTML = formatted;
+
+    } catch (error) {
+      console.error('Error in traceroute:', error);
+      document.getElementById('traceroute-results').innerHTML = `Error: ${error.message}. Please check the target and try again.`;
+    }
+  });
+</script>
