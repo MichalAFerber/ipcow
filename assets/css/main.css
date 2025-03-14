@@ -11,3 +11,9 @@ form {
   text-align: center;
   margin: 20px;
 }
+.center-results {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
