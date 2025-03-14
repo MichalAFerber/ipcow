@@ -6,7 +6,7 @@ async function loadInfo() {
   const errorMessage = document.getElementById('error-message');
 
   try {
-    // Fetch IPv4 from info.php
+    // Fetch IPv4 and geo from info.php
     const infoResponse = await fetch('/api/info.php');
     if (!infoResponse.ok) {
       throw new Error(`HTTP error! status: ${infoResponse.status} - ${infoResponse.statusText}`);
@@ -17,16 +17,25 @@ async function loadInfo() {
     }
     const data = serverData.data;
 
-    // Fetch IPv6 from checkip.ipcow.com?ip=v6
-    const checkIpResponse = await fetch('https://checkip.ipcow.com/?ip=v6', {
+    // Fetch IPv4 from checkip.ipcow.com (default connection)
+    const checkIpV4Response = await fetch('https://checkip.ipcow.com/', {
       cache: 'no-store'
     });
-    if (!checkIpResponse.ok) {
+    if (!checkIpV4Response.ok) {
+      throw new Error('Failed to fetch IPv4 from checkip.ipcow.com');
+    }
+    const ipv4FromCheckIp = await checkIpV4Response.text();
+
+    // Fetch IPv6 from checkip.ipcow.com?ip=v6
+    const checkIpV6Response = await fetch('https://checkip.ipcow.com/?ip=v6', {
+      cache: 'no-store'
+    });
+    if (!checkIpV6Response.ok) {
       throw new Error('Failed to fetch IPv6 from checkip.ipcow.com');
     }
-    let ipv6 = await checkIpResponse.text();
-    if (ipv6 === 'No IPv6 detected') {
-      ipv6 = 'Unavailable';
+    let ipv6FromCheckIp = await checkIpV6Response.text();
+    if (ipv6FromCheckIp === 'No IPv6 detected') {
+      ipv6FromCheckIp = 'Unavailable';
     }
 
     // Check query string for IP version
@@ -40,7 +49,7 @@ async function loadInfo() {
     };
 
     // Display IP based on query string
-    setText('ip-display', showIPv6 ? ipv6 : data.ipv4);
+    setText('ip-display', showIPv6 ? ipv6FromCheckIp : (ipv4FromCheckIp || data.ipv4));
     setText('hostname', data.hostname);
     setText('isp', data.isp);
     setText('country', data.country);
