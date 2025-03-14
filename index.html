@@ -5,11 +5,6 @@ subtitle: Your Current IP Adderess
 share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 # full-width: true
 ---
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    document.querySelector('.page-heading h1').innerHTML = '<span id="ipv4">Loading...</span>';
-  });
-</script>
 <section id="ip-display">
   <h2>Your IP Address</h2>
   <div><span id="ip-display">Loading...</span></div>
@@ -48,3 +43,10 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 <div id="error-message" style="display: none; color: red; text-align: center;">Error loading connection info.</div>
 <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1/dist/ua-parser.min.js"></script>
 <script src="{{ '/assets/js/connection-info.js' | relative_url }}"></script>
+
+
+<!-- <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('.page-heading h1').innerHTML = '<span id="ipv4">Loading...</span>';
+  });
+</script> -->
