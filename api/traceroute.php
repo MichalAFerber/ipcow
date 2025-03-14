@@ -11,7 +11,7 @@ if (!$target) {
 }
 
 // Validate target (IP or hostname)
-if (!filter_var($target, FILTER_VALIDATE_IP) && !preg_match('/^[a-zA.Z0-9.-]+$/', $target)) {
+if (!filter_var($target, FILTER_VALIDATE_IP) && !preg_match('/^[a-zA-Z0-9.-]+$/', $target)) {
     $response['error'] = 'Invalid target. Use an IP address or hostname.';
     echo json_encode($response);
     exit;
@@ -34,7 +34,7 @@ if ($output === null) {
 $hops = [];
 $resolved_ip = null;
 
-// Extract resolved IP from the first line (e.g., "traceroute to google.com (142.251.16.139)")
+// Extract resolved IP from the first line (e.g., "traceroute to google.com (142.251.111.101)")
 if (preg_match('/traceroute to [^ ]+ \(([\d.]+)\)/', $output, $matches)) {
     $resolved_ip = $matches[1];
 }
@@ -43,26 +43,27 @@ if ($output) {
     $lines = explode("\n", $output);
     foreach ($lines as $line) {
         $line = trim($line);
-        // Match lines like "1  * * *" or "26  * 172.253.63.139 <syn,ack,...>  2.128 ms  2.567 ms"
-        if (preg_match('/^\s*(\d+)\s+((?:[*]\s*){0,3}|([0-9.]+)(?:\s+<[^>]+>)?\s+([\d.]+(?:\s+[\d.]+)?)\s*ms)/', $line, $matches)) {
+        // Match lines like "1  * * *", "23  * 172.253.63.100 ...", or "25  * * 172.253.122.113 ..."
+        if (preg_match('/^\s*(\d+)\s+(?:[*]\s*){0,3}([0-9.]+)(?:\s+<[^>]+>)?\s+([\d.]+(?:\s+[\d.]+)?)\s*ms/', $line, $matches)) {
             $hopNumber = $matches[1];
-            if (isset($matches[3]) && isset($matches[4])) {
-                // Line with IP and latency (e.g., "26  * 172.253.63.139 ...")
-                $ip = $matches[3];
-                $latencies = explode(' ', trim($matches[4]));
-                $latency = $latencies[0]; // Use the first latency value
-                $hostname = ($ip !== 'N/A') ? (gethostbyaddr($ip) ?: 'Unknown') : 'N/A';
-            } else {
-                // Line with only * (e.g., "1  * * *")
-                $ip = '*';
-                $latency = 'N/A';
-                $hostname = 'N/A';
-            }
+            $ip = $matches[2];
+            $latencies = explode(' ', trim($matches[3]));
+            $latency = $latencies[0]; // Use the first latency value
+            $hostname = ($ip !== 'N/A') ? (gethostbyaddr($ip) ?: 'Unknown') : 'N/A';
             $hops[] = [
                 'hop' => $hopNumber,
                 'ip' => $ip,
                 'latency' => $latency,
                 'hostname' => $hostname
+            ];
+        } elseif (preg_match('/^\s*(\d+)\s+(?:[*]\s*){1,3}$/', $line)) {
+            // Match lines with only * (e.g., "1  * * *")
+            $hopNumber = $matches[1];
+            $hops[] = [
+                'hop' => $hopNumber,
+                'ip' => '*',
+                'latency' => 'N/A',
+                'hostname' => 'N/A'
             ];
         }
     }
