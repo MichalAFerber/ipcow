@@ -4,6 +4,9 @@ iframe {
   border-radius: 8px;
   overflow: hidden;
 }
+ul, li {
+  list-style: none;
+}
 .theme-toggle {
   position: fixed;
   bottom: 20px;

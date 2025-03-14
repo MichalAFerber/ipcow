@@ -5,35 +5,56 @@ subtitle: Ping any host or IP address.
 share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 # full-width: true
 ---
-<form id="ping-form" style="text-align: center; margin-top: 20px;">
+<form method="GET" action="/api/ping.php" style="text-align: center; margin-top: 20px;">
   <input type="text" id="host" name="host" placeholder="google.com or 8.8.8.8" required>
   <button type="submit">Ping</button>
 </form>
 <div id="ping-results"></div>
 <script>
-  document.getElementById('ping-form').addEventListener('submit', async (e) => {
+  document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const host = document.getElementById('host').value;
     document.getElementById('ping-results').innerHTML = 'Pinging...';
-try {
-  const startTime = performance.now();
-  const response = await fetch(`/api/ping.php?host=${encodeURIComponent(host)}`);
-  const endTime = performance.now();
-  const latency = (endTime - startTime).toFixed(2);
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  const data = await response.json();
-  document.getElementById('ping-results').innerHTML = `
-    <p>Ping to ${host}: ${data.success ? `${latency} ms` : 'Failed'}</p>
-    ${data.success ? `<p>Average RTT: ${data.average_rtt} ms</p>` : ''}
-    ${data.output ? `<pre>${data.output}</pre>` : ''}
-  `;
-} catch (error) {
-  console.error('Error in ping:', error);
-  document.getElementById('ping-results').innerHTML = `Error: ${error.message}. Please check the host and try again.`;
-}
+    try {
+      const startTime = performance.now();
+      const response = await fetch(`/api/ping.php?host=${encodeURIComponent(host)}`);
+      const endTime = performance.now();
+      const latency = (endTime - startTime).toFixed(2);
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Check for error messages
+      if (!data.success || data.error) {
+        document.getElementById('ping-results').innerHTML = data.error || 'Ping failed.';
+        return;
+      }
+
+      // Build the table
+      let formatted = '<table>';
+      formatted += '<tr><th>Metric</th><th>Value</th></tr>';
+      formatted += `<tr><td>Host</td><td>${host}</td></tr>`;
+      formatted += `<tr><td>Status</td><td>Success</td></tr>`;
+      formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
+      
+      if (data.average_rtt) {
+        formatted += `<tr><td>Average RTT</td><td>${data.average_rtt} ms</td></tr>`;
+      }
+      
+      if (data.output) {
+        formatted += `<tr><td>Details</td><td><pre>${data.output}</pre></td></tr>`;
+      }
+      
+      formatted += '</table>';
+      document.getElementById('ping-results').innerHTML = formatted;
+
+    } catch (error) {
+      console.error('Error in ping:', error);
+      document.getElementById('ping-results').innerHTML = `Error: ${error.message}. Please check the host and try again.`;
+    }
   });
 </script>

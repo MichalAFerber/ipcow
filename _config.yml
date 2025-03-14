@@ -126,6 +126,7 @@ footer-hover-col: "#0085A1"
 site-css:
 #  - "https://beautifuljekyll.com/pro/dark-mode.min.css"
 #  - "/assets/css/dark-mode.min.css"
+  - "assets/css/main.css"
 
 # If you have common JavaScript files that should be included in every page, list them here
 #site-js:
