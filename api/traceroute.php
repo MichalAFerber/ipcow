@@ -43,11 +43,11 @@ if ($output) {
     $lines = explode("\n", $output);
     foreach ($lines as $line) {
         $line = trim($line);
-        // Match lines like "1  * * *", "23  * 172.253.63.100 ...", or "25  * * 172.253.122.113 ..."
-        if (preg_match('/^\s*(\d+)\s+(?:[*]\s*){0,3}([0-9.]+)(?:\s+<[^>]+>)?\s+([\d.]+(?:\s+[\d.]+)?)\s*ms/', $line, $matches)) {
-            $hopNumber = $matches[1];
-            $ip = $matches[2];
-            $latencies = explode(' ', trim($matches[3]));
+        // Match lines with IP and latency (e.g., "17  75.176.140.18 ...")
+        if (preg_match('/^\s*(\d+)\s+(?:[*]\s*){0,3}([0-9.]+)(?:\s+<[^>]+>)?\s+([\d.]+(?:\s+[\d.]+)?)\s*ms/', $line, $ipMatches)) {
+            $hopNumber = $ipMatches[1];
+            $ip = $ipMatches[2];
+            $latencies = explode(' ', trim($ipMatches[3]));
             $latency = $latencies[0]; // Use the first latency value
             $hostname = ($ip !== 'N/A') ? (gethostbyaddr($ip) ?: 'Unknown') : 'N/A';
             $hops[] = [
@@ -56,9 +56,10 @@ if ($output) {
                 'latency' => $latency,
                 'hostname' => $hostname
             ];
-        } elseif (preg_match('/^\s*(\d+)\s+(?:[*]\s*){1,3}$/', $line)) {
-            // Match lines with only * (e.g., "1  * * *")
-            $hopNumber = $matches[1];
+        }
+        // Match lines with only * (e.g., "1  * * *")
+        elseif (preg_match('/^\s*(\d+)\s+(?:[*]\s*){1,3}$/', $line, $starMatches)) {
+            $hopNumber = $starMatches[1];
             $hops[] = [
                 'hop' => $hopNumber,
                 'ip' => '*',
