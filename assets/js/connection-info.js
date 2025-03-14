@@ -1,7 +1,7 @@
 console.log('Script loaded');
 
 async function loadInfo() {
-  const elements = document.querySelectorAll('#connection-info span, #ip-display');
+  const elements = document.querySelectorAll('#connection-info span, #ipv4-display, #ipv6-display');
   elements.forEach(el => el.textContent = 'Loading...');
   const errorMessage = document.getElementById('error-message');
 
@@ -31,18 +31,14 @@ async function loadInfo() {
       ipv6 = 'Unavailable';
     }
 
-    // Check query string for IP version
-    const urlParams = new URLSearchParams(window.location.search);
-    const ipVersion = urlParams.get('ip');
-    const showIPv6 = ipVersion === 'v6';
-
     const setText = (id, value) => {
       const element = document.getElementById(id);
       if (element) element.textContent = value || 'Unknown';
     };
 
-    // Display IP based on query string
-    setText('ip-display', showIPv6 ? ipv6 : data.ipv4);
+    // Display both IPs
+    setText('ipv4-display', data.ipv4);
+    setText('ipv6-display', ipv6);
     setText('hostname', data.hostname);
     setText('isp', data.isp);
     setText('country', data.country);
