@@ -33,9 +33,11 @@ $portString = implode(',', $portList);
 $command = "/usr/bin/nmap -Pn -p " . escapeshellarg($portString) . " " . escapeshellarg($target) . " 2>&1";
 $output = shell_exec($command);
 
-// Debug: Log the raw output
-$logPath = '/tmp/nmap_debug.log';
-file_put_contents($logPath, "Command: $command\nOutput: $output\n\n", FILE_APPEND);
+// Debug: Log the raw output to a different path
+$logPath = '/var/www/html/nmap_debug.log'; // Adjust to a writable path
+if (!file_put_contents($logPath, "Command: $command\nOutput: $output\n\n", FILE_APPEND)) {
+    error_log("Failed to write to $logPath");
+}
 
 // Check if shell_exec is disabled or failed
 if ($output === null) {
