@@ -10,6 +10,12 @@ full-width: true
   <button type="submit" class="btn btn-primary">Trace Route</button>
 </form>
 <div id="traceroute-results" class="center-results"></div>
+<style>
+  .target-hop {
+    font-weight: bold;
+    background-color: #f0f0f0;
+  }
+</style>
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -41,15 +47,17 @@ full-width: true
       formatted += `<tr><td>Target</td><td>${target}</td></tr>`;
       formatted += `<tr><td>Status</td><td>Completed</td></tr>`;
       formatted += `<tr><td>Response Time</td><td>${latency} ms</td></tr>`;
+      formatted += `<tr><td>Total Hops</td><td>${data.data.hops.length}</td></tr>`;
 
       // Traceroute hops (show all hops, including *)
       if (data.data && data.data.hops && data.data.hops.length > 0) {
         formatted += '<tr><td colspan="2"><strong>Route Hops</strong></td></tr>';
-        data.data.hops.forEach(hop => {
-          if (hop.ip === '*') {
+        data.data.hops.forEach((hop, index) => {
+          if (hop.ip === '*' || hop.ip === 'N/A') {
             formatted += `<tr><td>Hop ${hop.hop}</td><td>* (No response)</td></tr>`;
           } else {
-            formatted += `<tr><td>Hop ${hop.hop}</td><td>${hop.ip} (${hop.hostname}) - ${hop.latency} ms</td></tr>`;
+            const isTarget = hop.ip === target || (data.data.resolved_ip && hop.ip === data.data.resolved_ip);
+            formatted += `<tr class="${isTarget ? 'target-hop' : ''}"><td>Hop ${hop.hop}</td><td>${hop.ip} (${hop.hostname}) - ${hop.latency} ms</td></tr>`;
           }
         });
       } else {
