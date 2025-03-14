@@ -1,11 +1,12 @@
 ---
 layout: page
-title: My IP Address
-subtitle: Your Current IP Address
+title: IP Cow
+subtitle: IPV4 and IPV6 address of your device.
 share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 full-width: true
 ---
-<section id="connection-info">
+<div id="error-message">Error loading connection info.</div>
+<section style="margin: 20px;">
   <h2>Your Connection</h2>
   <ul>
     <li>Hostname: <span id="hostname">Loading...</span></li>
@@ -32,7 +33,6 @@ full-width: true
     <li>Language: <span id="language">Loading...</span></li>
   </ul>
 </section>
-<div id="error-message">Error loading connection info.</div>
 <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
 <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1/dist/ua-parser.min.js"></script>
 <script src="{{ '/assets/js/connection-info.js' | relative_url }}"></script>

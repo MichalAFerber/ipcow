@@ -1,16 +1,9 @@
-#error-message {
-  display: none;
-  color: red;
-  text-align: center;
-}
 ul, li {
   list-style: none;
 }
-#connection-info {
-  padding: 40px;
-}
-#connection-info ul {
-  list-style: none;
-  padding: 0;
+#error-message {
+  display: none;
+  color: red;
   margin-left: 20px;
+  margin-top: 20px;
 }
