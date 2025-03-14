@@ -34,21 +34,28 @@ $command = "/usr/bin/nmap -Pn -p " . escapeshellarg($portString) . " " . escapes
 $output = shell_exec($command);
 
 // Debug: Log the raw output
-file_put_contents('/tmp/nmap_debug.log', "Command: $command\nOutput: $output\n\n", FILE_APPEND);
+$logPath = '/tmp/nmap_debug.log';
+file_put_contents($logPath, "Command: $command\nOutput: $output\n\n", FILE_APPEND);
 
-// Check if shell_exec is disabled
+// Check if shell_exec is disabled or failed
 if ($output === null) {
-    $response['error'] = 'Unable to execute port scan: shell_exec might be disabled.';
+    $response['error'] = 'Unable to execute port scan: shell_exec might be disabled or nmap failed.';
     echo json_encode($response);
     exit;
 }
 
 // Parse nmap output
 $results = [];
-if ($output) {
+if ($output && strpos($output, 'Nmap scan report') !== false) {
     $lines = explode("\n", $output);
+    $inPortSection = false;
     foreach ($lines as $line) {
-        if (preg_match('/^(\d+)\/tcp\s+(open|closed|filtered)\s+(\S+)/i', trim($line), $matches)) {
+        $line = trim($line);
+        if (preg_match('/^Nmap scan report for/', $line)) {
+            $inPortSection = true;
+            continue;
+        }
+        if ($inPortSection && preg_match('/^(\d+)\/tcp\s+(open|closed|filtered)\s+(\S+)/i', $line, $matches)) {
             $port = $matches[1];
             $status = ucfirst(strtolower($matches[2]));
             $service = $matches[3];
@@ -66,7 +73,8 @@ if ($output) {
     $response['success'] = true;
     $response['data']['ports'] = $results;
 } else {
-    $response['error'] = 'Failed to execute port scan or no output received.';
+    $response['error'] = 'No valid port scan data received. Check target and server configuration.';
+    file_put_contents($logPath, "No valid output detected.\n", FILE_APPEND);
 }
 
 echo json_encode($response);
