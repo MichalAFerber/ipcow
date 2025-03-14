@@ -58,6 +58,9 @@ if ($output) {
         }
     }
 
+    // Log the parsed hops for debugging
+    file_put_contents($logPath, "Parsed Hops:\n" . print_r($hops, true) . "\n", FILE_APPEND);
+
     // Check if the target was reached (compare resolved IP or target)
     $lastHop = end($hops);
     if ($lastHop && ($lastHop['ip'] === $target || ($resolved_ip && $lastHop['ip'] === $resolved_ip))) {
@@ -73,6 +76,9 @@ if ($output) {
     $response['error'] = 'No traceroute data received. Check server configuration.';
     file_put_contents($logPath, "No valid output detected.\n", FILE_APPEND);
 }
+
+// Log the final response for debugging
+file_put_contents($logPath, "Final Response:\n" . json_encode($response) . "\n\n", FILE_APPEND);
 
 echo json_encode($response);
 ?>

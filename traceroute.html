@@ -3,7 +3,7 @@ layout: page
 title: Traceroute
 subtitle: Trace the route to any IP or website.
 share-description: "IP Cow’s free Traceroute tool shows the path your connection takes to any IP address or website, helping you troubleshoot network issues."
-# full-width: true
+full-width: true
 ---
 <form class="form-inline justify-content-center" method="GET" action="/api/traceroute.php">
   <input type="text" class="form-control" id="target" name="target" placeholder="e.g., 8.8.8.8 or google.com" required>
@@ -27,6 +27,7 @@ share-description: "IP Cow’s free Traceroute tool shows the path your connecti
       }
 
       const data = await response.json();
+      console.log('Response data:', data); // Debug: Log the full response
 
       // Check for error messages
       if (!data.success || data.error) {
@@ -41,12 +42,17 @@ share-description: "IP Cow’s free Traceroute tool shows the path your connecti
       formatted += `<tr><td>Status</td><td>Completed</td></tr>`;
       formatted += `<tr><td>Response Time</td><td>${latency} ms</td></tr>`;
 
-      // Traceroute hops
-      if (data.hops && data.hops.length > 0) {
-        formatted += '<tr><td colspan="2"><strong>Route Hops</strong></td></tr>';
-        data.hops.forEach((hop, index) => {
-          formatted += `<tr><td>Hop ${index + 1}</td><td>${hop.ip || 'N/A'} (${hop.hostname || 'Unknown'}) - ${hop.latency || 'N/A'} ms</td></tr>`;
-        });
+      // Traceroute hops (only show hops with actual IP data or the target)
+      if (data.data && data.data.hops && data.data.hops.length > 0) {
+        const visibleHops = data.data.hops.filter(hop => hop.ip !== 'N/A' || hop.ip === target || (data.data.resolved_ip && hop.ip === data.data.resolved_ip));
+        if (visibleHops.length > 0) {
+          formatted += '<tr><td colspan="2"><strong>Route Hops</strong></td></tr>';
+          visibleHops.forEach(hop => {
+            formatted += `<tr><td>Hop ${hop.hop}</td><td>${hop.ip} (${hop.hostname}) - ${hop.latency} ms</td></tr>`;
+          });
+        } else {
+          formatted += `<tr><td>Result</td><td>No intermediate hops detected. Target reached directly or packets blocked.</td></tr>`;
+        }
       } else {
         formatted += `<tr><td>Result</td><td>No route data returned.</td></tr>`;
       }
