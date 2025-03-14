@@ -4,6 +4,7 @@ author: TechGuyWithABeard&nbsp;&bull;&nbsp;a ThompsonBlack company
 navbar-links:
   Blog: "blog"
   Contact: "contact"
+  Services: "services"
   Tools:
     - DNS Checker: "dns-checker"
     - HTTP Header Analyzer: "http-header-analyzer"

@@ -5,22 +5,49 @@ subtitle: Trace the route to any IP or website.
 share-description: "IP Cow’s free Traceroute tool shows the path your connection takes to any IP address or website, helping you troubleshoot network issues."
 full-width: true
 ---
+<style>
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background-color: #f2f2f2;
+  }
+  .target-hop {
+    font-weight: bold;
+    background-color: #f0f0f0;
+  }
+  button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+</style>
+
 <form class="form-inline justify-content-center" method="GET" action="/api/traceroute.php">
   <input type="text" class="form-control" id="target" name="target" placeholder="e.g., 8.8.8.8 or google.com" required>
   <button type="submit" class="btn btn-primary">Trace Route</button>
 </form>
 <div id="traceroute-results" class="center-results"></div>
-<style>
-  .target-hop {
-    font-weight: bold;
-    background-color: #f0f0f0;
-  }
-</style>
+
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const target = document.getElementById('target').value.trim();
-    document.getElementById('traceroute-results').innerHTML = 'Tracing route...';
+    const resultsDiv = document.getElementById('traceroute-results');
+    resultsDiv.innerHTML = 'Tracing route...';
 
     try {
       const startTime = performance.now();
@@ -37,7 +64,7 @@ full-width: true
 
       // Check for error messages
       if (!data.success || data.error) {
-        document.getElementById('traceroute-results').innerHTML = data.error || 'Traceroute failed.';
+        resultsDiv.innerHTML = data.error || 'Traceroute failed.';
         return;
       }
 
@@ -65,11 +92,37 @@ full-width: true
       }
 
       formatted += '</table>';
-      document.getElementById('traceroute-results').innerHTML = formatted;
+      resultsDiv.innerHTML = formatted;
+
+      // Add export button if there are hops
+      if (data.data && data.data.hops && data.data.hops.length > 0) {
+        const exportBtn = document.createElement('button');
+        exportBtn.textContent = 'Download JSON';
+        exportBtn.style.marginTop = '20px';
+        exportBtn.className = 'btn btn-primary';
+        exportBtn.onclick = () => {
+          const exportData = {
+            target: target,
+            status: 'Completed',
+            response_time: `${latency} ms`,
+            total_hops: data.data.hops.length,
+            resolved_ip: data.data.resolved_ip || 'N/A',
+            hops: data.data.hops
+          };
+          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${target}_traceroute.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+        resultsDiv.appendChild(exportBtn);
+      }
 
     } catch (error) {
       console.error('Error in traceroute:', error);
-      document.getElementById('traceroute-results').innerHTML = `Error: ${error.message}. Please check the target and try again.`;
+      resultsDiv.innerHTML = `Error: ${error.message}. Please check the target and try again.`;
     }
   });
 </script>

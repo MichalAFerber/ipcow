@@ -5,18 +5,47 @@ subtitle: Check if ports are open on any IP or website.
 share-description: "IP Cow’s free Port Scanner lets you check if specific ports are open on an IP address or website, perfect for troubleshooting or security."
 # full-width: true
 ---
+<style>
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background-color: #f2f2f2;
+  }
+  button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+</style>
+
 <form class="form-inline justify-content-center" method="GET" action="/api/port-scanner.php">
   <input type="text" class="form-control" id="target" name="target" placeholder="google.com or 8.8.8.8" required>
   <input type="text" class="form-control" id="ports" name="ports" placeholder="80,443,21,22" required>
   <button type="submit" class="btn btn-primary">Scan Ports</button>
 </form>
 <div id="port-scan-results" class="center-results"></div>
+
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
     let target = document.getElementById('target').value.trim();
     let ports = document.getElementById('ports').value.trim();
-    document.getElementById('port-scan-results').innerHTML = 'Scanning ports...';
+    const resultsDiv = document.getElementById('port-scan-results');
+    resultsDiv.innerHTML = 'Scanning ports...';
 
     // Clean the target: remove http://, https://, and trailing /
     target = target.replace(/^https?:\/\//, '').replace(/\/+$/, '');
@@ -30,12 +59,12 @@ share-description: "IP Cow’s free Port Scanner lets you check if specific port
 
     try {
       const startTime = performance.now();
-      const response = await fetch(`/api/port-scanner.php?target=${encodeURIComponent(target)}&ports=${encodeURIComponent(ports)}`);
+      const response = await fetch('/api/port-scanner.php?target=${encodeURIComponent(target)}&ports=${encodeURIComponent(ports)}');
       const endTime = performance.now();
       const latency = (endTime - startTime).toFixed(2);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error('HTTP error! status: ${response.status}');
       }
 
       const data = await response.json();
@@ -43,35 +72,60 @@ share-description: "IP Cow’s free Port Scanner lets you check if specific port
 
       // Check for error messages
       if (!data.success || data.error) {
-        document.getElementById('port-scan-results').innerHTML = data.error || 'Port scan failed.';
+        resultsDiv.innerHTML = data.error || 'Port scan failed.';
         return;
       }
 
       // Build the table
       let formatted = '<table>';
       formatted += '<tr><th>Detail</th><th>Value</th></tr>';
-      formatted += `<tr><td>Target</td><td>${target}</td></tr>`;
-      formatted += `<tr><td>Ports Scanned</td><td>${ports}</td></tr>`;
-      formatted += `<tr><td>Status</td><td>Completed</td></tr>`;
-      formatted += `<tr><td>Response Time</td><td>${latency} ms</td></tr>`;
+      formatted += '<tr><td>Target</td><td>${target}</td></tr>';
+      formatted += '<tr><td>Ports Scanned</td><td>${ports}</td></tr>';
+      formatted += '<tr><td>Status</td><td>Completed</td></tr>';
+      formatted += '<tr><td>Response Time</td><td>${latency} ms</td></tr>';
 
       // Port results
       const portsData = data.data ? data.data.ports : null;
       if (portsData && Object.keys(portsData).length > 0) {
         formatted += '<tr><td colspan="2"><strong>Port Status</strong></td></tr>';
         for (const [port, status] of Object.entries(portsData)) {
-          formatted += `<tr><td>Port ${port}</td><td>${status}</td></tr>`;
+          formatted += '<tr><td>Port ${port}</td><td>${status}</td></tr>';
         }
       } else {
-        formatted += `<tr><td>Result</td><td>No port status returned.</td></tr>`;
+        formatted += '<tr><td>Result</td><td>No port status returned.</td></tr>';
       }
 
       formatted += '</table>';
-      document.getElementById('port-scan-results').innerHTML = formatted;
+      resultsDiv.innerHTML = formatted;
+
+      // Add export button if there are port results
+      if (portsData && Object.keys(portsData).length > 0) {
+        const exportBtn = document.createElement('button');
+        exportBtn.textContent = 'Download JSON';
+        exportBtn.style.marginTop = '20px';
+        exportBtn.className = 'btn btn-primary';
+        exportBtn.onclick = () => {
+          const exportData = {
+            target: target,
+            ports_scanned: ports,
+            status: 'Completed',
+            response_time: '${latency} ms',
+            ports: portsData
+          };
+          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = '${target}_port_scan.json';
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+        resultsDiv.appendChild(exportBtn);
+      }
 
     } catch (error) {
       console.error('Error in port scan:', error);
-      document.getElementById('port-scan-results').innerHTML = `Error: ${error.message}. Please check the target or ports and try again.`;
+      resultsDiv.innerHTML = 'Error: ${error.message}. Please check the target or ports and try again.';
     }
   });
 </script>

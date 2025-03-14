@@ -5,16 +5,45 @@ subtitle: Find details about any IP address or network.
 share-description: "IP Cow’s free IP Lookup tool gives you easy-to-understand details about any IP address or network, like location and provider info."
 # full-width: true
 ---
+<style>
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background-color: #f2f2f2;
+  }
+  button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+</style>
+
 <form class="form-inline justify-content-center" method="GET">
   <input type="text" class="form-control" id="query" name="query" placeholder="e.g., 1.1.1.1 or AS15169" required>
   <button type="submit" class="btn btn-primary">Lookup</button>
 </form>
 <div id="ip-lookup-results" class="center-results"></div>
+
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const query = document.getElementById('query').value.trim();
-    document.getElementById('ip-lookup-results').innerHTML = 'Looking up...';
+    const resultsDiv = document.getElementById('ip-lookup-results');
+    resultsDiv.innerHTML = 'Looking up...';
 
     try {
       const startTime = performance.now();
@@ -34,6 +63,13 @@ share-description: "IP Cow’s free IP Lookup tool gives you easy-to-understand 
 
       const data = await response.json();
 
+      // Prepare export data
+      const exportData = {
+        query: query,
+        result: 'Found',
+        response_time: `${latency} ms`
+      };
+
       // Build the table with user-friendly labels
       let formatted = '<table>';
       formatted += '<tr><th>Detail</th><th>Value</th></tr>';
@@ -48,9 +84,18 @@ share-description: "IP Cow’s free IP Lookup tool gives you easy-to-understand 
         formatted += `<tr><td>Network Size</td><td>${data.cidr0_cidrs?.map(c => `${c.v4prefix || c.v6prefix}/${c.length}`).join(', ') || 'N/A'}</td></tr>`;
         formatted += `<tr><td>Network Name</td><td>${data.name || 'Not available'}</td></tr>`;
         formatted += `<tr><td>ID</td><td>${data.handle || 'Not available'}</td></tr>`;
+
+        exportData.type = data.ipVersion === 'v6' ? 'IPv6' : 'IPv4';
+        exportData.ip_range = `${data.startAddress} - ${data.endAddress}`;
+        exportData.network_size = data.cidr0_cidrs?.map(c => `${c.v4prefix || c.v6prefix}/${c.length}`).join(', ') || 'N/A';
+        exportData.network_name = data.name || 'Not available';
+        exportData.id = data.handle || 'Not available';
       } else if (data.objectClassName === 'autnum') {
         formatted += `<tr><td>Network Number</td><td>${data.startAutnum || data.handle.replace('AS', '')}</td></tr>`;
         formatted += `<tr><td>Network Name</td><td>${data.name || 'Not available'}</td></tr>`;
+
+        exportData.network_number = data.startAutnum || data.handle.replace('AS', '');
+        exportData.network_name = data.name || 'Not available';
       }
 
       // Registration info
@@ -59,9 +104,11 @@ share-description: "IP Cow’s free IP Lookup tool gives you easy-to-understand 
         const lastChanged = data.events.find(e => e.eventAction === 'last changed');
         if (registration) {
           formatted += `<tr><td>Registered</td><td>${registration.eventDate.split('T')[0] || 'Not available'}</td></tr>`;
+          exportData.registered = registration.eventDate.split('T')[0] || 'Not available';
         }
         if (lastChanged) {
           formatted += `<tr><td>Last Updated</td><td>${lastChanged.eventDate.split('T')[0] || 'Not available'}</td></tr>`;
+          exportData.last_updated = lastChanged.eventDate.split('T')[0] || 'Not available';
         }
       }
 
@@ -72,15 +119,32 @@ share-description: "IP Cow’s free IP Lookup tool gives you easy-to-understand 
           const vcard = registrant.vcardArray[1];
           const orgName = vcard.find(entry => entry[0] === 'fn')?.[3] || 'Not available';
           formatted += `<tr><td>Provider</td><td>${orgName}</td></tr>`;
+          exportData.provider = orgName;
         }
       }
 
       formatted += '</table>';
-      document.getElementById('ip-lookup-results').innerHTML = formatted;
+      resultsDiv.innerHTML = formatted;
+
+      // Add export button
+      const exportBtn = document.createElement('button');
+      exportBtn.textContent = 'Download JSON';
+      exportBtn.style.marginTop = '20px';
+      exportBtn.className = 'btn btn-primary';
+      exportBtn.onclick = () => {
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${query}_ip_lookup.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+      resultsDiv.appendChild(exportBtn);
 
     } catch (error) {
       console.error('Error in IP lookup:', error);
-      document.getElementById('ip-lookup-results').innerHTML = `Error: ${error.message}. Please check the IP or network number and try again.`;
+      resultsDiv.innerHTML = `Error: ${error.message}. Please check the IP or network number and try again.`;
     }
   });
 </script>
