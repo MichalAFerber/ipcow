@@ -1,0 +1,74 @@
+---
+layout: page
+title: IP Lookup
+subtitle: Lookup details for any IP address.
+share-description: "IP Cow is a free service that offers IP lookup, ping tests, and more network tools to explore your connection details."
+full-width: true
+---
+<form class="form-inline justify-content-center" method="GET" action="/api/ip-lookup.php">
+  <input type="text" class="form-control" id="ip" name="ip" placeholder="e.g., 8.8.8.8 or 2001:4860:4860::8888" required>
+  <button type="submit" class="btn btn-primary">Lookup</button>
+</form>
+<div id="ip-lookup-results"></div>
+<script>
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const ip = document.getElementById('ip').value;
+    document.getElementById('ip-lookup-results').innerHTML = 'Looking up...';
+
+    try {
+      const startTime = performance.now();
+      const response = await fetch(`/api/ip-lookup.php?ip=${encodeURIComponent(ip)}`);
+      const endTime = performance.now();
+      const latency = (endTime - startTime).toFixed(2);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Check for error messages
+      if (!data.success || data.error) {
+        document.getElementById('ip-lookup-results').innerHTML = data.error || 'Lookup failed.';
+        return;
+      }
+
+      // Build the table
+      let formatted = '<table>';
+      formatted += '<tr><th>Metric</th><th>Value</th></tr>';
+      formatted += `<tr><td>IP Address</td><td>${ip}</td></tr>`;
+      formatted += `<tr><td>Status</td><td>Success</td></tr>`;
+      formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
+      
+      if (data.hostname) {
+        formatted += `<tr><td>Hostname</td><td>${data.hostname}</td></tr>`;
+      }
+      if (data.isp) {
+        formatted += `<tr><td>ISP</td><td>${data.isp}</td></tr>`;
+      }
+      if (data.country) {
+        formatted += `<tr><td>Country</td><td>${data.country}</td></tr>`;
+      }
+      if (data.region) {
+        formatted += `<tr><td>Region</td><td>${data.region}</td></tr>`;
+      }
+      if (data.city) {
+        formatted += `<tr><td>City</td><td>${data.city}</td></tr>`;
+      }
+      if (data.latitude && data.longitude) {
+        formatted += `<tr><td>Location</td><td>${data.latitude}, ${data.longitude}</td></tr>`;
+      }
+      if (data.timezone) {
+        formatted += `<tr><td>Timezone</td><td>${data.timezone}</td></tr>`;
+      }
+
+      formatted += '</table>';
+      document.getElementById('ip-lookup-results').innerHTML = formatted;
+
+    } catch (error) {
+      console.error('Error in IP lookup:', error);
+      document.getElementById('ip-lookup-results').innerHTML = `Error: ${error.message}. Please check the IP address and try again.`;
+    }
+  });
+</script>

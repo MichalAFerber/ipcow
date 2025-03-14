@@ -7,3 +7,7 @@ ul, li {
   margin-left: 20px;
   margin-top: 20px;
 }
+form {
+  text-align: center;
+  margin: 20px;
+}
