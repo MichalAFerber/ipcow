@@ -18,7 +18,7 @@ async function loadInfo() {
     const data = serverData.data;
 
     // Fetch IPv4 from checkip.ipcow.com
-    const checkIpV4Response = await fetch('https://checkip.ipcow.com/', {
+    const checkIpV4Response = await fetch('https://checkip.ipcow.com/?ip=v4', {
       cache: 'no-store'
     });
     if (!checkIpV4Response.ok) {
