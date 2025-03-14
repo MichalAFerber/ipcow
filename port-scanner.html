@@ -6,17 +6,27 @@ share-description: "IP Cow’s free Port Scanner lets you check if specific port
 full-width: true
 ---
 <form class="form-inline justify-content-center" method="GET" action="/api/port-scanner.php">
-  <input type="text" class="form-control" id="target" name="target" placeholder="e.g., 75.176.140.18 or google.com" required>
-  <input type="text" class="form-control" id="ports" name="ports" placeholder="e.g., 80, 443, 22" required>
+  <input type="text" class="form-control" id="target" name="target" placeholder="google.com or 8.8.8.8" required>
+  <input type="text" class="form-control" id="ports" name="ports" placeholder="80,443,21,22" required>
   <button type="submit" class="btn btn-primary">Scan Ports</button>
 </form>
 <div id="port-scan-results" class="center-results"></div>
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const target = document.getElementById('target').value.trim();
-    const ports = document.getElementById('ports').value.trim();
+    let target = document.getElementById('target').value.trim();
+    let ports = document.getElementById('ports').value.trim();
     document.getElementById('port-scan-results').innerHTML = 'Scanning ports...';
+
+    // Clean the target: remove http://, https://, and trailing /
+    target = target.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+
+    // Clean and normalize the ports: handle commas, spaces, or both
+    const portList = ports
+      .replace(/,/g, ' ') // Replace commas with spaces
+      .split(/\s+/)       // Split on any whitespace
+      .filter(port => port.trim() !== ''); // Remove empty entries
+    ports = portList.join(','); // Join back with commas for the API call
 
     try {
       const startTime = performance.now();
@@ -46,9 +56,10 @@ full-width: true
       formatted += `<tr><td>Response Time</td><td>${latency} ms</td></tr>`;
 
       // Port results
-      if (data.data && data.data.ports && Object.keys(data.data.ports).length > 0) {
+      const portsData = data.data ? data.data.ports : null;
+      if (portsData && Object.keys(portsData).length > 0) {
         formatted += '<tr><td colspan="2"><strong>Port Status</strong></td></tr>';
-        for (const [port, status] of Object.entries(data.data.ports)) {
+        for (const [port, status] of Object.entries(portsData)) {
           formatted += `<tr><td>Port ${port}</td><td>${status}</td></tr>`;
         }
       } else {
