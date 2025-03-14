@@ -12,6 +12,7 @@ navbar-links:
     - Port Scanner: "port-scanner"
     - Speedtest: "speedtest"
     - Traceroute: "traceroute"
+    - Whois: "whois"
 
 # avatar: "/assets/img/avatar-icon.png"
 round-avatar: true
