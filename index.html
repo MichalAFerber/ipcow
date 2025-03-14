@@ -10,13 +10,13 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     document.querySelector('.page-heading h1').innerHTML = '<span id="ipv4">Loading...</span>';
   });
 </script>
-<section id="ip-display">
-  <div><span id="ipv4">Loading...</span> <button id="toggle-ip">Show IPv6</button></div>
-</section>
+<p>
+  <a href="?ip=v4">Show IPv4</a> | 
+  <a href="?ip=v6">Show IPv6</a>
+</p>
 <section id="connection-info">
   <h2>Your Connection</h2>
   <ul>
-    <li>User Agent: <span id="user-agent">Loading...</span></li>
     <li>Hostname: <span id="hostname">Loading...</span></li>
     <li>ISP: <span id="isp">Loading...</span></li>
     <li>Country: <span id="country">Loading...</span></li>
@@ -25,6 +25,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     <li>Latitude: <span id="latitude">Loading...</span></li>
     <li>Longitude: <span id="longitude">Loading...</span></li>
     <li>Timezone: <span id="timezone">Loading...</span></li>
+    <li>User Agent: <span id="user-agent">Loading...</span></li>
     <li>Browser: <span id="browser">Loading...</span></li>
     <li>Browser Version: <span id="browser-version">Loading...</span></li>
     <li>Operating System: <span id="os">Loading...</span></li>

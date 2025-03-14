@@ -23,7 +23,12 @@ async function loadInfo() {
       if (element) element.textContent = value || 'Unknown';
     };
 
-    setText('ipv4', data.ipv4);
+    // Check query string for IP version
+    const urlParams = new URLSearchParams(window.location.search);
+    const ipVersion = urlParams.get('ip');
+    const showIPv6 = ipVersion === 'v6' && data.ipv6 !== 'Not available';
+    setText('ipv4', showIPv6 ? data.ipv6 : data.ipv4);
+
     setText('hostname', data.hostname);
     setText('isp', data.isp);
     setText('country', data.country);
@@ -41,28 +46,14 @@ async function loadInfo() {
     setText('os', uaParser.getOS().name);
     setText('os-version', uaParser.getOS().version);
     setText('device', uaParser.getDevice().type || 'desktop');
+    setText('device-vendor', uaParser.getDevice().vendor || 'Unknown');
+    setText('device-model', uaParser.getDevice().model || 'Unknown');
+    setText('cpu-architecture', uaParser.getCPU().architecture || 'Unknown');
     setText('screen-resolution', `${screen.width}x${screen.height}`);
     setText('viewport-size', `${window.innerWidth}x${window.innerHeight}`);
     setText('cookies-enabled', navigator.cookieEnabled ? 'true' : 'false');
     setText('javascript-enabled', 'true');
     setText('language', navigator.language);
-    setText('device-vendor', uaParser.getDevice().vendor || 'Unknown');
-    setText('device-model', uaParser.getDevice().model || 'Unknown');
-    setText('cpu-architecture', uaParser.getCPU().architecture || 'Unknown');
-
-    // IP toggle functionality
-    const toggleButton = document.getElementById('toggle-ip');
-    const ipDisplay = document.getElementById('ipv4');
-    let showingIPv6 = false;
-    if (data.ipv6 !== 'Not available') {
-      toggleButton.addEventListener('click', () => {
-        showingIPv6 = !showingIPv6;
-        ipDisplay.textContent = showingIPv6 ? data.ipv6 : data.ipv4;
-        toggleButton.textContent = showingIPv6 ? 'Show IPv4' : 'Show IPv6';
-      });
-    } else {
-      toggleButton.style.display = 'none';
-    }
 
     errorMessage.style.display = 'none';
   } catch (error) {
