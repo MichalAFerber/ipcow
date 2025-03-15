@@ -1,19 +1,27 @@
-ul, li {
-  list-style: none;
-}
-#error-message {
-  display: none;
-  color: red;
-  margin-left: 20px;
-  margin-top: 20px;
-}
 form {
   text-align: center;
   margin: 20px;
+}
+ul, li {
+  list-style: none;
+}
+.available-message {
+  color: green;
+  margin-top: 20px;
 }
 .center-results {
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
+}
+.error-message {
+  display: none;
+  color: red;
+  margin-left: 20px;
+  margin-top: 20px;
+}
+.target-hop {
+  font-weight: bold;
+  background-color: #f0f0f0;
 }

@@ -10,7 +10,6 @@ share-description: "IP Cow’s free HTTP Header Analyzer lets you review HTTP he
   <button type="submit" class="btn btn-primary">Analyze Headers</button>
 </form>
 <div id="header-results" class="center-results"></div>
-
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -60,6 +59,8 @@ share-description: "IP Cow’s free HTTP Header Analyzer lets you review HTTP he
       // Add export button
       const exportBtn = document.createElement('button');
       exportBtn.textContent = 'Download JSON';
+      exportBtn.style.marginTop = '20px';
+      exportBtn.className = 'btn btn-primary';
       exportBtn.onclick = () => {
         const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);

@@ -74,6 +74,8 @@ share-description: "IP Cow’s free Port Scanner lets you check if specific port
       if (portsData && Object.keys(portsData).length > 0) {
         const exportBtn = document.createElement('button');
         exportBtn.textContent = 'Download JSON';
+        exportBtn.style.marginTop = '20px';
+        exportBtn.className = 'btn btn-primary';
         exportBtn.onclick = () => {
           const exportData = {
             target: target,
