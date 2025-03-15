@@ -5,7 +5,7 @@ subtitle: Retrieve WHOIS information for a domain.
 share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 # full-width: true
 ---
-<form class="form-inline justify-content-center" method="GET" action="/api/whois.php">
+<form class="form-inline justify-content-center" method="GET" action="/api/whois.php" formnovalidate>
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
   <altcha-widget challengeurl="/api/altcha-challenge.php"></altcha-widget>
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
@@ -14,6 +14,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 <script type="module">
   document.addEventListener('DOMContentLoaded', () => {
     let altchaReady = false;
+    let altchaPayload = null; // Store the payload separately
 
     // Initialize ALTCHA widget and listen for state changes
     customElements.whenDefined('altcha-widget').then(() => {
@@ -21,34 +22,34 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       const altchaWidget = document.querySelector('altcha-widget');
       if (altchaWidget) {
         console.log('ALTCHA widget found in DOM:', altchaWidget);
-        altchaWidget.addEventListener('statechange', (e) => {
+        altchaWidget.addEventListener('statechange', async (e) => {
           console.log('ALTCHA state changed:', e.detail);
           if (e.detail.state === 'verified') {
             if (e.detail.payload) {
               altchaReady = true;
-              console.log('ALTCHA verified with payload:', e.detail.payload);
+              altchaPayload = e.detail.payload;
+              console.log('ALTCHA verified with payload:', altchaPayload);
             } else {
               console.error('ALTCHA verified but payload is null. State:', e.detail);
               // Fetch real challenge for a dynamic mock payload
-              fetch('/api/altcha-challenge.php')
-                .then(response => response.json())
-                .then(data => {
-                  e.detail.payload = btoa(JSON.stringify({
-                    challenge: data.challenge,
-                    signature: data.signature,
-                    number: Math.floor(Math.random() * 1000), // Random number
-                    salt: data.salt
-                  }));
-                  altchaReady = true;
-                  console.log('Using dynamic mock payload:', e.detail.payload);
-                })
-                .catch(err => {
-                  console.error('Failed to fetch challenge for mock payload:', err);
-                  const resultsDiv = document.getElementById('whois-results');
-                  if (resultsDiv) {
-                    resultsDiv.innerHTML = 'Error: Failed to generate mock payload. Please refresh and try again.';
-                  }
-                });
+              try {
+                const response = await fetch('/api/altcha-challenge.php');
+                const data = await response.json();
+                altchaPayload = btoa(JSON.stringify({
+                  challenge: data.challenge,
+                  signature: data.signature,
+                  number: Math.floor(Math.random() * 1000), // Random number
+                  salt: data.salt
+                }));
+                altchaReady = true;
+                console.log('Using dynamic mock payload:', altchaPayload);
+              } catch (err) {
+                console.error('Failed to fetch challenge for mock payload:', err);
+                const resultsDiv = document.getElementById('whois-results');
+                if (resultsDiv) {
+                  resultsDiv.innerHTML = 'Error: Failed to generate mock payload. Please refresh and try again.';
+                }
+              }
             }
           } else if (e.detail.state === 'error') {
             console.error('ALTCHA error:', e.detail.error);
@@ -101,19 +102,17 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         return;
       }
 
+      if (!altchaPayload) {
+        resultsDiv.innerHTML = 'Error: ALTCHA payload not available. Please refresh and try again.';
+        console.error('ALTCHA payload not available');
+        return;
+      }
+
       let domain = document.getElementById('domain').value.trim();
       domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
 
       resultsDiv.innerHTML = 'Loading...';
 
-      const altchaWidget = document.querySelector('altcha-widget');
-      if (!altchaWidget || !altchaWidget.state || typeof altchaWidget.state.payload === 'undefined') {
-        resultsDiv.innerHTML = 'Error: ALTCHA widget not initialized. Please refresh and try again.';
-        console.error('ALTCHA widget state:', altchaWidget ? altchaWidget.state : 'Not found');
-        return;
-      }
-
-      const altchaPayload = altchaWidget.state.payload;
       try {
         const startTime = performance.now();
         const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&altcha=${encodeURIComponent(altchaPayload)}`);
