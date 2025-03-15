@@ -11,30 +11,50 @@ share-description: "IP Cow is a free service that shows you the public IP addres
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
-<script>
+<script type="module" src="/assets/js/altcha.min.js" crossorigin="anonymous" defer></script>
+<script type="module">
+  let altchaReady = false;
+
+  // Wait for ALTCHA to initialize
+  setTimeout(() => {
+    const altchaWidget = document.querySelector('altcha-widget');
+    if (altchaWidget && altchaWidget.state && typeof altchaWidget.state.payload !== 'undefined') {
+      altchaReady = true;
+      console.log('ALTCHA ready with payload:', altchaWidget.state.payload);
+    } else {
+      console.error('ALTCHA not ready:', altchaWidget ? altchaWidget.state : 'Widget not found');
+    }
+  }, 1000); // 1-second delay to allow initialization
+
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    let domain = document.getElementById('domain').value.trim();
+    if (!altchaReady) {
+      e.target.querySelector('#whois-results').innerHTML = 'Please wait for ALTCHA to initialize...';
+      console.warn('ALTCHA not ready, delaying submission');
+      return;
+    }
 
-    // Clean the domain: remove protocols, ports, and slashes
-    domain = domain.replace(/^https?:\/\//, ''); // Remove http:// or https://
-    domain = domain.replace(/:[0-9]+$/, '');     // Remove ports (e.g., :80)
-    domain = domain.replace(/[\/]+$/, '');       // Remove trailing slashes
-    domain = domain.split('/')[0];              // Remove anything after the first slash (e.g., /path)
+    let domain = document.getElementById('domain').value.trim();
+    domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
 
     const resultsDiv = document.getElementById('whois-results');
     resultsDiv.innerHTML = 'Loading...';
 
+    const altchaWidget = document.querySelector('altcha-widget');
+    if (!altchaWidget || !altchaWidget.state || typeof altchaWidget.state.payload === 'undefined') {
+      resultsDiv.innerHTML = 'Error: ALTCHA widget not initialized. Please refresh and try again.';
+      console.error('ALTCHA widget state:', altchaWidget ? altchaWidget.state : 'Not found');
+      return;
+    }
+
+    const altchaPayload = altchaWidget.state.payload;
     try {
       const startTime = performance.now();
-      const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&altcha=${encodeURIComponent(document.querySelector('altcha-widget').state.payload)}`);
+      const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&altcha=${encodeURIComponent(altchaPayload)}`);
       const endTime = performance.now();
       const latency = (endTime - startTime).toFixed(2);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
 
       if (!data.success || data.error) {
@@ -42,48 +62,35 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         return;
       }
 
-      // Check if the domain is available
       if (data.available) {
         resultsDiv.innerHTML = `<div class="available-message">The domain "${domain}" is available and has not been registered.</div>`;
-        return; // Skip the rest of the formatting
+        return;
       }
 
       const whoisData = data.whois || {};
-
-      // Build the table for registered domains
-      let formatted = '<table>';
-      formatted += '<tr><th>Metric</th><th>Value</th></tr>';
+      let formatted = '<table><tr><th>Metric</th><th>Value</th></tr>';
       formatted += `<tr><td>Domain</td><td>${domain}</td></tr>`;
       formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
       formatted += '<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>';
 
-      // Display WHOIS data as key-value pairs
       if (typeof whoisData === 'object' && !Array.isArray(whoisData)) {
         for (const [key, value] of Object.entries(whoisData)) {
-          // Handle array values (like Name Server)
           const displayValue = Array.isArray(value) ? value.join(', ') : value;
           formatted += `<tr><td>${key}</td><td>${displayValue}</td></tr>`;
         }
       } else {
-        // Fallback to raw text if not parsed
         formatted += `<tr><td colspan="2"><pre>${whoisData}</pre></td></tr>`;
       }
-
       formatted += '</table>';
       resultsDiv.innerHTML = whoisData ? formatted : 'No WHOIS data found for this domain.';
 
-      // Add export button for registered domains
       if (whoisData) {
         const exportBtn = document.createElement('button');
         exportBtn.textContent = 'Download JSON';
         exportBtn.style.marginTop = '20px';
         exportBtn.className = 'btn btn-primary';
         exportBtn.onclick = () => {
-          const exportData = {
-            domain: domain,
-            latency: `${latency} ms`,
-            whois: whoisData
-          };
+          const exportData = { domain, latency: `${latency} ms`, whois: whoisData };
           const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -94,7 +101,6 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         };
         resultsDiv.appendChild(exportBtn);
       }
-
     } catch (error) {
       console.error('Error in WHOIS lookup:', error);
       resultsDiv.innerHTML = `Error: ${error.message}. Please check the domain and try again.`;
