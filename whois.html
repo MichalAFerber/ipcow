@@ -11,20 +11,32 @@ share-description: "IP Cow is a free service that shows you the public IP addres
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
-<script type="module" src="/assets/js/altcha.min.js" crossorigin="anonymous" defer></script>
+<script type="module" src="https://eu.altcha.org/js/0.6.1/altcha.min.js" crossorigin="anonymous" defer onload="console.log('ALTCHA script loaded')"></script>
 <script type="module">
   let altchaReady = false;
 
-  // Wait for ALTCHA to initialize
-  setTimeout(() => {
+  // Wait for the altcha-widget custom element to be defined
+  customElements.whenDefined('altcha-widget').then(() => {
+    console.log('ALTCHA widget element defined');
     const altchaWidget = document.querySelector('altcha-widget');
-    if (altchaWidget && altchaWidget.state && typeof altchaWidget.state.payload !== 'undefined') {
-      altchaReady = true;
-      console.log('ALTCHA ready with payload:', altchaWidget.state.payload);
+    if (altchaWidget) {
+      // Wait for the widget to complete its challenge
+      const checkPayload = () => {
+        if (altchaWidget.state && typeof altchaWidget.state.payload !== 'undefined') {
+          altchaReady = true;
+          console.log('ALTCHA ready with payload:', altchaWidget.state.payload);
+        } else {
+          console.log('ALTCHA payload not ready, retrying...');
+          setTimeout(checkPayload, 500); // Retry every 500ms
+        }
+      };
+      checkPayload();
     } else {
-      console.error('ALTCHA not ready:', altchaWidget ? altchaWidget.state : 'Widget not found');
+      console.error('ALTCHA widget not found in DOM');
     }
-  }, 1000); // 1-second delay to allow initialization
+  }).catch(err => {
+    console.error('Failed to define ALTCHA widget:', err);
+  });
 
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
