@@ -25,7 +25,7 @@ if (!$payload || !isset($payload['challenge'], $payload['signature'], $payload['
 }
 
 $challengeStart = microtime(true);
-$challengeData = json_decode(file_get_contents('http://localhost/api/altcha-challenge.php'), true);
+$challengeData = json_decode(file_get_contents('/api/altcha-challenge.php'), true);
 $challengeEnd = microtime(true);
 file_put_contents($logPath, "[$startTime] Challenge fetch time: " . (($challengeEnd - $challengeStart) * 1000) . " ms\n", FILE_APPEND);
 
