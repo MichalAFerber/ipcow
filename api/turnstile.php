@@ -1,5 +1,5 @@
 <?php
-require_once '/var/www/config/config.php';
+define('TURNSTILE_SECRET_KEY', '0x4AAAAAABA3-DPXYNDK4_atcc5DCeuNFQ8');
 
 function validateTurnstile($turnstileResponse, $secretKey = TURNSTILE_SECRET_KEY) {
   $url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';

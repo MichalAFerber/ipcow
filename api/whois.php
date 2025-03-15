@@ -1,6 +1,5 @@
 <?php
-require_once '/var/www/config/config.php';
-require_once __DIR__ . '/turnstile.php';
+require_once '/api/turnstile.php';
 
 header('Content-Type: application/json');
 $response = ['success' => false, 'whois' => [], 'error' => '', 'available' => false];
