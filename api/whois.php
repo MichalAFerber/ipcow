@@ -3,6 +3,11 @@ header('Content-Type: application/json');
 $response = ['success' => false, 'whois' => [], 'error' => '', 'available' => false];
 
 $domain = $_GET['domain'] ?? '';
+
+// Debug: Log the received domain
+$logPath = '/var/www/html/whois_debug.log';
+file_put_contents($logPath, "Received domain: $domain\n", FILE_APPEND);
+
 if ($domain && filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
     // Execute the WHOIS command
     $whoisOutput = shell_exec("whois " . escapeshellarg($domain));

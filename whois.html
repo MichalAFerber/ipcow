@@ -13,7 +13,14 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const domain = document.getElementById('domain').value.trim();
+    let domain = document.getElementById('domain').value.trim();
+
+    // Clean the domain: remove protocols, ports, and slashes
+    domain = domain.replace(/^https?:\/\//, ''); // Remove http:// or https://
+    domain = domain.replace(/:[0-9]+$/, '');     // Remove ports (e.g., :80)
+    domain = domain.replace(/[\/]+$/, '');       // Remove trailing slashes
+    domain = domain.split('/')[0];              // Remove anything after the first slash (e.g., /path)
+
     const resultsDiv = document.getElementById('whois-results');
     resultsDiv.innerHTML = 'Loading...';
 
