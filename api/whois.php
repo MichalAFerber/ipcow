@@ -24,22 +24,24 @@ if (!$payload || !isset($payload['challenge'], $payload['signature'], $payload['
   exit;
 }
 
+// Verify the signature using the challenge and salt from the payload
+$expectedSignature = hash_hmac('sha256', $payload['challenge'] . $payload['salt'], ALTCHA_SECRET_KEY);
+if ($payload['signature'] !== $expectedSignature) {
+  $response['error'] = 'ALTCHA verification failed: Invalid signature.';
+  file_put_contents($logPath, "[$startTime] Error: Invalid ALTCHA signature. Expected: $expectedSignature, Got: " . $payload['signature'] . "\n", FILE_APPEND);
+  echo json_encode($response);
+  exit;
+}
+
+// Fetch the challenge to get the complexity for proof-of-work
 $challengeStart = microtime(true);
 $challengeData = json_decode(file_get_contents('https://dev.ipcow.com/api/altcha-challenge.php'), true);
 $challengeEnd = microtime(true);
 file_put_contents($logPath, "[$startTime] Challenge fetch time: " . (($challengeEnd - $challengeStart) * 1000) . " ms\n", FILE_APPEND);
 
-if (!$challengeData || !isset($challengeData['challenge'], $challengeData['signature'])) {
-  $response['error'] = 'Failed to fetch ALTCHA challenge.';
+if (!$challengeData || !isset($challengeData['complexity'])) {
+  $response['error'] = 'Failed to fetch ALTCHA challenge complexity.';
   file_put_contents($logPath, "[$startTime] Error: Failed to fetch ALTCHA challenge: " . json_encode($challengeData) . "\n", FILE_APPEND);
-  echo json_encode($response);
-  exit;
-}
-
-$expectedSignature = hash_hmac('sha256', $payload['challenge'] . $payload['salt'], ALTCHA_SECRET_KEY);
-if ($payload['signature'] !== $expectedSignature) {
-  $response['error'] = 'ALTCHA verification failed: Invalid signature.';
-  file_put_contents($logPath, "[$startTime] Error: Invalid ALTCHA signature. Expected: $expectedSignature, Got: " . $payload['signature'] . "\n", FILE_APPEND);
   echo json_encode($response);
   exit;
 }

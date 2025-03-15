@@ -14,7 +14,13 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 <script type="module">
   document.addEventListener('DOMContentLoaded', () => {
     let altchaReady = false;
-    let altchaPayload = null; // Store the payload separately
+    let altchaPayload = null;
+    let altchaPromiseResolve = null;
+    let altchaPromiseReject = null;
+    const altchaReadyPromise = new Promise((resolve, reject) => {
+      altchaPromiseResolve = resolve;
+      altchaPromiseReject = reject;
+    });
 
     // Initialize ALTCHA widget and listen for state changes
     customElements.whenDefined('altcha-widget').then(() => {
@@ -37,29 +43,49 @@ share-description: "IP Cow is a free service that shows you the public IP addres
               altchaReady = true;
               altchaPayload = e.detail.payload;
               console.log('ALTCHA verified with payload:', altchaPayload);
+              altchaPromiseResolve();
             } else {
               console.error('ALTCHA verified but payload is null. State:', e.detail);
-              // Fetch real challenge for a dynamic mock payload
               try {
                 const response = await fetch('/api/altcha-challenge.php');
-                if (!response.ok) {
-                  throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const challengeData = await response.json();
+                console.log('Fetched challenge data:', challengeData);
+
+                // Perform client-side proof-of-work
+                let number = 0;
+                const requiredZeros = Math.ceil(challengeData.complexity / 4);
+                let hash = '';
+                while (number < 1000000) { // Limit to avoid infinite loop
+                  hash = await hash('SHA-256', challengeData.challenge + challengeData.salt + number.toString());
+                  let leadingZeros = 0;
+                  for (let i = 0; i < hash.length; i++) {
+                    if (hash[i] !== '0') break;
+                    leadingZeros++;
+                  }
+                  console.log(`Proof-of-work: number=${number}, hash=${hash}, leadingZeros=${leadingZeros}, requiredZeros=${requiredZeros}`);
+                  if (leadingZeros >= requiredZeros) break;
+                  number++;
                 }
-                const data = await response.json();
+                if (number >= 1000000) throw new Error('Proof-of-work failed: Could not find valid number');
+
+                // Use the challenge's signature (server will verify it)
                 altchaPayload = btoa(JSON.stringify({
-                  challenge: data.challenge,
-                  signature: data.signature,
-                  number: Math.floor(Math.random() * 1000), // Random number
-                  salt: data.salt
+                  challenge: challengeData.challenge,
+                  signature: challengeData.signature,
+                  number: number,
+                  salt: challengeData.salt
                 }));
                 altchaReady = true;
-                console.log('Using dynamic mock payload:', altchaPayload);
+                console.log('Using computed mock payload:', altchaPayload);
+                altchaPromiseResolve();
               } catch (err) {
-                console.error('Failed to fetch challenge for mock payload:', err);
+                console.error('Failed to fetch challenge or compute payload:', err);
                 const resultsDiv = document.getElementById('whois-results');
                 if (resultsDiv) {
                   resultsDiv.innerHTML = 'Error: Failed to generate mock payload. Please refresh and try again.';
                 }
+                altchaPromiseReject(err);
               }
             }
           } else if (e.detail.state === 'error') {
@@ -68,10 +94,12 @@ share-description: "IP Cow is a free service that shows you the public IP addres
             if (resultsDiv) {
               resultsDiv.innerHTML = `Error: ALTCHA verification failed (${e.detail.error}). Please refresh and try again.`;
             }
+            altchaPromiseReject(new Error(e.detail.error));
           }
         });
       } else {
         console.error('ALTCHA widget not found in DOM');
+        altchaPromiseReject(new Error('ALTCHA widget not found'));
       }
     }).catch(err => {
       console.error('Failed to define ALTCHA widget:', err);
@@ -79,18 +107,29 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       if (resultsDiv) {
         resultsDiv.innerHTML = 'Error: Failed to load ALTCHA widget. Please refresh and try again.';
       }
+      altchaPromiseReject(err);
     });
 
-    // Timeout for ALTCHA verification
+    // Timeout for ALTCHA verification (increased to 20 seconds)
     setTimeout(() => {
       if (!altchaReady) {
         const resultsDiv = document.getElementById('whois-results');
         if (resultsDiv) {
           resultsDiv.innerHTML = 'Error: ALTCHA verification timed out. Please refresh and try again.';
         }
-        console.error('ALTCHA verification timed out after 10 seconds');
+        console.error('ALTCHA verification timed out after 20 seconds');
+        altchaPromiseReject(new Error('ALTCHA verification timed out'));
       }
-    }, 10000); // 10 seconds
+    }, 20000); // 20 seconds
+
+    // Hash function for proof-of-work
+    async function hash(algorithm, data) {
+      const encoder = new TextEncoder();
+      const dataUint8 = encoder.encode(data);
+      const hashBuffer = await crypto.subtle.digest(algorithm, dataUint8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
     // Form submission handling
     const form = document.querySelector('form');
@@ -107,9 +146,12 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         return;
       }
 
-      if (!altchaReady) {
-        resultsDiv.innerHTML = 'Please wait for ALTCHA to initialize...';
-        console.warn('ALTCHA not ready, delaying submission');
+      resultsDiv.innerHTML = 'Please wait for ALTCHA to initialize...';
+      try {
+        await altchaReadyPromise; // Wait for ALTCHA to be ready
+      } catch (err) {
+        console.error('ALTCHA readiness failed:', err);
+        resultsDiv.innerHTML = 'Error: ALTCHA initialization failed. Please refresh and try again.';
         return;
       }
 
