@@ -5,7 +5,7 @@ subtitle: Retrieve WHOIS information for a domain.
 share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 # full-width: true
 ---
-<form class="form-inline justify-content-center" method="GET" action="/api/whois.php" formnovalidate>
+<form class="form-inline justify-content-center" method="GET" action="/api/whois.php" novalidate>
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
   <altcha-widget challengeurl="/api/altcha-challenge.php"></altcha-widget>
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
@@ -22,6 +22,14 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       const altchaWidget = document.querySelector('altcha-widget');
       if (altchaWidget) {
         console.log('ALTCHA widget found in DOM:', altchaWidget);
+
+        // Remove the required attribute from the hidden checkbox to avoid validation issues
+        const checkbox = altchaWidget.querySelector('#altcha_checkbox');
+        if (checkbox) {
+          checkbox.removeAttribute('required');
+          console.log('Removed required attribute from ALTCHA checkbox');
+        }
+
         altchaWidget.addEventListener('statechange', async (e) => {
           console.log('ALTCHA state changed:', e.detail);
           if (e.detail.state === 'verified') {
@@ -34,6 +42,9 @@ share-description: "IP Cow is a free service that shows you the public IP addres
               // Fetch real challenge for a dynamic mock payload
               try {
                 const response = await fetch('/api/altcha-challenge.php');
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const data = await response.json();
                 altchaPayload = btoa(JSON.stringify({
                   challenge: data.challenge,
@@ -112,6 +123,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
 
       resultsDiv.innerHTML = 'Loading...';
+      console.log('Submitting form with domain:', domain, 'and payload:', altchaPayload);
 
       try {
         const startTime = performance.now();
@@ -125,6 +137,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        console.log('Received WHOIS response:', data);
 
         if (!data.success || data.error) {
           resultsDiv.innerHTML = data.error || 'No WHOIS data found.';
