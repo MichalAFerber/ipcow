@@ -23,9 +23,23 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         console.log('ALTCHA widget found in DOM:', altchaWidget);
         altchaWidget.addEventListener('statechange', (e) => {
           console.log('ALTCHA state changed:', e.detail);
-          if (e.detail.state === 'verified' && e.detail.payload) {
-            altchaReady = true;
-            console.log('ALTCHA verified with payload:', e.detail.payload);
+          if (e.detail.state === 'verified') {
+            if (e.detail.payload) {
+              altchaReady = true;
+              console.log('ALTCHA verified with payload:', e.detail.payload);
+            } else {
+              console.error('ALTCHA verified but payload is null. State:', e.detail);
+              const resultsDiv = document.getElementById('whois-results');
+              if (resultsDiv) {
+                resultsDiv.innerHTML = 'Error: ALTCHA verification failed (no payload). Please refresh and try again.';
+              }
+            }
+          } else if (e.detail.state === 'error') {
+            console.error('ALTCHA error:', e.detail.error);
+            const resultsDiv = document.getElementById('whois-results');
+            if (resultsDiv) {
+              resultsDiv.innerHTML = `Error: ALTCHA verification failed (${e.detail.error}). Please refresh and try again.`;
+            }
           }
         });
       } else {
@@ -33,7 +47,22 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       }
     }).catch(err => {
       console.error('Failed to define ALTCHA widget:', err);
+      const resultsDiv = document.getElementById('whois-results');
+      if (resultsDiv) {
+        resultsDiv.innerHTML = 'Error: Failed to load ALTCHA widget. Please refresh and try again.';
+      }
     });
+
+    // Timeout for ALTCHA verification
+    setTimeout(() => {
+      if (!altchaReady) {
+        const resultsDiv = document.getElementById('whois-results');
+        if (resultsDiv) {
+          resultsDiv.innerHTML = 'Error: ALTCHA verification timed out. Please refresh and try again.';
+        }
+        console.error('ALTCHA verification timed out after 10 seconds');
+      }
+    }, 10000); // 10 seconds
 
     // Form submission handling
     const form = document.querySelector('form');
