@@ -35,7 +35,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
   console.error('Failed to define ALTCHA widget:', err);
 });
 
-  document.querySelector('form').addEventListener('submit', async (e) => {
+document.querySelector('form').addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!altchaReady) {
     e.target.querySelector('#whois-results').innerHTML = 'Please wait for ALTCHA to initialize...';
