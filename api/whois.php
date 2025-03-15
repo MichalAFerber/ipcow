@@ -17,6 +17,7 @@ if (empty($altchaPayload)) {
 
 file_put_contents($logPath, "[$startTime] Received ALTCHA payload: $altchaPayload\n", FILE_APPEND);
 $payload = json_decode(base64_decode($altchaPayload), true);
+file_put_contents($logPath, "[$startTime] Decoded payload: " . json_encode($payload) . "\n", FILE_APPEND);
 if (!$payload || !isset($payload['challenge'], $payload['signature'], $payload['number'], $payload['salt'])) {
   $response['error'] = 'Invalid ALTCHA payload.';
   file_put_contents($logPath, "[$startTime] Error: Invalid ALTCHA payload: " . json_encode($payload) . "\n", FILE_APPEND);
@@ -33,9 +34,6 @@ if ($payload['signature'] !== $expectedSignature) {
   exit;
 }
 
-// Use a default complexity or fetch it once if needed (commented out for now)
-// $challengeData = json_decode(file_get_contents('https://dev.ipcow.com/api/altcha-challenge.php'), true);
-// $requiredZeros = ceil($challengeData['complexity'] / 4);
 $requiredZeros = 2; // Default complexity (adjust based on your ALTCHA setup)
 
 $hash = hash('sha256', $payload['challenge'] . $payload['salt'] . $payload['number']);
