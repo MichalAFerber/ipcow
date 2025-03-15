@@ -1,4 +1,4 @@
-title: IP Cow
+title: IP Cow [What is my IP Address? Free IP tools!]
 author: TechGuyWithABeard&nbsp;&bull;&nbsp;a ThompsonBlack company
 
 navbar-links:
@@ -6,7 +6,7 @@ navbar-links:
   Contact: "contact"
   Services: "services"
   Tools:
-    - DNS Checker: "dns-checker"
+    - DNS Lookup: "dns-lookup"
     - HTTP Header Analyzer: "http-header-analyzer"
     - IP Lookup: "ip-lookup"
     - Ping Test: "ping"
@@ -23,11 +23,11 @@ round-avatar: true
 #title-img: /path/to/image
 
 social-network-links:
-#  email: "support@ipcow.com"
+  email: "support@ipcow.com"
 #  rss: true  # remove this line if you don't want to show an RSS link at the bottom
 #  facebook: deanattali
-#  github: MichalAFerber
-#  twitter: michalaferber
+  github: github.com/MichalAFerber/ipcow
+  twitter: MichalAFerber
 #  patreon: DeanAttali
 #  youtube: "@daattali"
 #  whatsapp: 15551212
@@ -49,7 +49,7 @@ social-network-links:
 #  bluesky: yourname
 #  ORCID: your ORCID ID
 #  google-scholar: your google scholar
-#  discord: "invite_code" or "users/userid" or "invite/invite_code"
+  discord: "ZnsJMBQCmw"
 #  kaggle: yourname
 #  hackerrank: yourname
 #  gitlab: yourname
@@ -95,7 +95,7 @@ post_search: true
 navbar-var-length: true
 
 # The keywords to associate with your website, for SEO purposes
-keywords: "my,list,of,keywords"
+keywords: "what is my ip, ip lookup, whats my ip, whatismyip, ip address lookup, find ip, find your ip address, ipaddress, ipconfig, address, remote, remote access, whois, speedtest, speed test, vpn, admin, dns lookup, dns checker, dns, tcp, udp, port scanner, port scan, portscan, telnet, ping, traceroute, http header, lan, wan, network, router, gateway, ssl, tls, ssh, openssh, linux, ipv6, ipv4"
 
 ######################################
 # --- Colours / background image --- #
@@ -127,7 +127,6 @@ footer-hover-col: "#0085A1"
 # For any extra visual customization, you can include additional CSS files in every page on your site. List any custom CSS files here
 site-css:
 #  - "https://beautifuljekyll.com/pro/dark-mode.min.css"
-#  - "/assets/css/dark-mode.min.css"
   - "assets/css/main.css"
 
 # If you have common JavaScript files that should be included in every page, list them here

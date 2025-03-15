@@ -13,8 +13,16 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const host = document.getElementById('host').value;
-    document.getElementById('ping-results').innerHTML = 'Pinging...';
+    let host = document.getElementById('host').value.trim();
+
+    // Clean the host: remove protocols, ports, and slashes
+    host = host.replace(/^https?:\/\//, ''); // Remove http:// or https://
+    host = host.replace(/:[0-9]+$/, '');     // Remove ports (e.g., :80)
+    host = host.replace(/[\/]+$/, '');       // Remove trailing slashes
+    host = host.split('/')[0];               // Remove anything after the first slash (e.g., /path)
+
+    const resultsDiv = document.getElementById('ping-results');
+    resultsDiv.innerHTML = 'Pinging...';
 
     try {
       const startTime = performance.now();
@@ -30,7 +38,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
       // Check for error messages
       if (!data.success || data.error) {
-        document.getElementById('ping-results').innerHTML = data.error || 'Ping failed.';
+        resultsDiv.innerHTML = data.error || 'Ping failed.';
         return;
       }
 
@@ -50,11 +58,11 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       }
       
       formatted += '</table>';
-      document.getElementById('ping-results').innerHTML = formatted;
+      resultsDiv.innerHTML = formatted;
 
     } catch (error) {
       console.error('Error in ping:', error);
-      document.getElementById('ping-results').innerHTML = `Error: ${error.message}. Please check the host and try again.`;
+      resultsDiv.innerHTML = `Error: ${error.message}. Please check the host and try again.`;
     }
   });
 </script>

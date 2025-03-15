@@ -7,6 +7,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 ---
 <form class="form-inline justify-content-center" method="GET" action="/api/whois.php">
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
+  <div class="cf-turnstile" data-sitekey="0x4AAAAAABA3-ChutnXxBJHT"></div>  
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
@@ -100,3 +101,4 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     }
   });
 </script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>

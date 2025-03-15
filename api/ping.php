@@ -3,6 +3,11 @@ header('Content-Type: application/json');
 $response = ['success' => false, 'output' => '', 'average_rtt' => 'N/A', 'error' => ''];
 
 $host = $_GET['host'] ?? '';
+
+// Debug: Log the received host
+$logPath = '/var/www/html/ping_debug.log';
+file_put_contents($logPath, "Received host: $host\n", FILE_APPEND);
+
 if ($host && (filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) || filter_var($host, FILTER_VALIDATE_IP))) {
     // Sanitize host to prevent command injection
     $host = escapeshellarg($host);

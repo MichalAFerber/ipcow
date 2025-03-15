@@ -1,6 +1,24 @@
 <?php
+require_once '/var/www/config/config.php';
+require_once '/api/turnstile.php';
+
 header('Content-Type: application/json');
 $response = ['success' => false, 'whois' => [], 'error' => '', 'available' => false];
+
+$turnstileResponse = $_GET['cf-turnstile-response'] ?? '';
+
+if (empty($turnstileResponse)) {
+    $response['error'] = 'Turnstile response missing.';
+    echo json_encode($response);
+    exit;
+  }
+  
+$turnstileResult = validateTurnstile($turnstileResponse);
+if (!$turnstileResult['success']) {
+    $response['error'] = 'Turnstile verification failed: ' . implode(', ', $turnstileResult['error-codes']);
+    echo json_encode($response);
+    exit;
+ }
 
 $domain = $_GET['domain'] ?? '';
 
