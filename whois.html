@@ -22,6 +22,15 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       altchaPromiseReject = reject;
     });
 
+    // Hash function for proof-of-work (defined first to avoid scope issues)
+    async function hash(algorithm, data) {
+      const encoder = new TextEncoder();
+      const dataUint8 = encoder.encode(data);
+      const hashBuffer = await crypto.subtle.digest(algorithm, dataUint8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
     // Initialize ALTCHA widget and listen for state changes
     customElements.whenDefined('altcha-widget').then(() => {
       console.log('ALTCHA widget element defined');
@@ -47,16 +56,18 @@ share-description: "IP Cow is a free service that shows you the public IP addres
             } else {
               console.error('ALTCHA verified but payload is null. State:', e.detail);
               try {
-                const response = await fetch('/api/altcha-challenge.php');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const challengeData = await response.json();
-                console.log('Fetched challenge data:', challengeData);
+                // Use the widget's challenge data (rely on altcha.js for consistency)
+                const challengeData = altchaWidget.getChallengeData ? await altchaWidget.getChallengeData() : null;
+                if (!challengeData || !challengeData.challenge || !challengeData.salt || !challengeData.signature) {
+                  throw new Error('Failed to get challenge data from widget');
+                }
+                console.log('Using widget challenge data:', challengeData);
 
                 // Perform client-side proof-of-work
                 let number = 0;
                 const requiredZeros = Math.ceil(challengeData.complexity / 4);
                 let hash = '';
-                while (number < 1000000) { // Limit to avoid infinite loop
+                while (number < 1000000) {
                   hash = await hash('SHA-256', challengeData.challenge + challengeData.salt + number.toString());
                   let leadingZeros = 0;
                   for (let i = 0; i < hash.length; i++) {
@@ -69,7 +80,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
                 }
                 if (number >= 1000000) throw new Error('Proof-of-work failed: Could not find valid number');
 
-                // Use the challenge's signature (server will verify it)
+                // Use the widget's signature
                 altchaPayload = btoa(JSON.stringify({
                   challenge: challengeData.challenge,
                   signature: challengeData.signature,
@@ -80,7 +91,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
                 console.log('Using computed mock payload:', altchaPayload);
                 altchaPromiseResolve();
               } catch (err) {
-                console.error('Failed to fetch challenge or compute payload:', err);
+                console.error('Failed to compute payload:', err);
                 const resultsDiv = document.getElementById('whois-results');
                 if (resultsDiv) {
                   resultsDiv.innerHTML = 'Error: Failed to generate mock payload. Please refresh and try again.';
@@ -92,7 +103,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
             console.error('ALTCHA error:', e.detail.error);
             const resultsDiv = document.getElementById('whois-results');
             if (resultsDiv) {
-              resultsDiv.innerHTML = `Error: ALTCHA verification failed (${e.detail.error}). Please refresh and try again.`;
+              resultsDiv.innerHTML = 'Error: ALTCHA verification failed (${e.detail.error}). Please refresh and try again.';
             }
             altchaPromiseReject(new Error(e.detail.error));
           }
@@ -110,26 +121,17 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       altchaPromiseReject(err);
     });
 
-    // Timeout for ALTCHA verification (increased to 20 seconds)
+    // Timeout for ALTCHA verification (increased to 30 seconds)
     setTimeout(() => {
       if (!altchaReady) {
         const resultsDiv = document.getElementById('whois-results');
         if (resultsDiv) {
           resultsDiv.innerHTML = 'Error: ALTCHA verification timed out. Please refresh and try again.';
         }
-        console.error('ALTCHA verification timed out after 20 seconds');
+        console.error('ALTCHA verification timed out after 30 seconds');
         altchaPromiseReject(new Error('ALTCHA verification timed out'));
       }
-    }, 20000); // 20 seconds
-
-    // Hash function for proof-of-work
-    async function hash(algorithm, data) {
-      const encoder = new TextEncoder();
-      const dataUint8 = encoder.encode(data);
-      const hashBuffer = await crypto.subtle.digest(algorithm, dataUint8);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
+    }, 30000); // 30 seconds
 
     // Form submission handling
     const form = document.querySelector('form');
@@ -192,10 +194,10 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         }
 
         const whoisData = data.whois || {};
-        let formatted = '<table><tr><th>Metric</th><th>Value</th></tr>';
+        let formatted = '<table><tr><th>Metric</th><th>Value</th></tr>`;
         formatted += `<tr><td>Domain</td><td>${domain}</td></tr>`;
         formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
-        formatted += '<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>';
+        formatted += `<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>`;
 
         if (typeof whoisData === 'object' && !Array.isArray(whoisData)) {
           for (const [key, value] of Object.entries(whoisData)) {
@@ -227,7 +229,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         }
       } catch (error) {
         console.error('Error in WHOIS lookup:', error);
-        resultsDiv.innerHTML = `Error: ${error.message}. Please check the domain and try again.`;
+        resultsDiv.innerHTML = 'Error: ${error.message}. Please check the domain and try again.';
       }
     });
   });

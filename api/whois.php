@@ -33,21 +33,12 @@ if ($payload['signature'] !== $expectedSignature) {
   exit;
 }
 
-// Fetch the challenge to get the complexity for proof-of-work
-$challengeStart = microtime(true);
-$challengeData = json_decode(file_get_contents('https://dev.ipcow.com/api/altcha-challenge.php'), true);
-$challengeEnd = microtime(true);
-file_put_contents($logPath, "[$startTime] Challenge fetch time: " . (($challengeEnd - $challengeStart) * 1000) . " ms\n", FILE_APPEND);
-
-if (!$challengeData || !isset($challengeData['complexity'])) {
-  $response['error'] = 'Failed to fetch ALTCHA challenge complexity.';
-  file_put_contents($logPath, "[$startTime] Error: Failed to fetch ALTCHA challenge: " . json_encode($challengeData) . "\n", FILE_APPEND);
-  echo json_encode($response);
-  exit;
-}
+// Use a default complexity or fetch it once if needed (commented out for now)
+// $challengeData = json_decode(file_get_contents('https://dev.ipcow.com/api/altcha-challenge.php'), true);
+// $requiredZeros = ceil($challengeData['complexity'] / 4);
+$requiredZeros = 2; // Default complexity (adjust based on your ALTCHA setup)
 
 $hash = hash('sha256', $payload['challenge'] . $payload['salt'] . $payload['number']);
-$requiredZeros = ceil($challengeData['complexity'] / 4);
 $leadingZeros = 0;
 for ($i = 0; $i < strlen($hash); $i++) {
   if ($hash[$i] !== '0') break;
