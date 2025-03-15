@@ -1,26 +1,8 @@
 <?php
-require_once '/api/turnstile.php';
-
 header('Content-Type: application/json');
 $response = ['success' => false, 'whois' => [], 'error' => '', 'available' => false];
 
 $logPath = '/var/www/html/whois_debug.log';
-$turnstileResponse = $_GET['cf-turnstile-response'] ?? '';
-
-if (empty($turnstileResponse)) {
-    $response['error'] = 'Turnstile response missing.';
-    echo json_encode($response);
-    exit;
-}
-  
-$turnstileResult = validateTurnstile($turnstileResponse);
-file_put_contents($logPath, "Turnstile result: " . json_encode($turnstileResult) . "\n", FILE_APPEND);
-if (!$turnstileResult['success']) {
-    $response['error'] = 'Turnstile verification failed: ' . implode(', ', $turnstileResult['error-codes']);
-    echo json_encode($response);
-    exit;
-}
-
 $domain = $_GET['domain'] ?? '';
 file_put_contents($logPath, "Received domain: $domain\n", FILE_APPEND);
 

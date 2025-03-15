@@ -182,7 +182,6 @@ include:
   - api/ping.php
   - api/port-scanner.php
   - api/traceroute.php
-  - api/turnstile.php
   - api/whois.php
   - favicon.ico
   - .htaccess
