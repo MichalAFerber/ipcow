@@ -29,15 +29,26 @@ share-description: "IP Cow is a free service that shows you the public IP addres
               console.log('ALTCHA verified with payload:', e.detail.payload);
             } else {
               console.error('ALTCHA verified but payload is null. State:', e.detail);
-              // Mock payload for testing (remove after fixing)
-              e.detail.payload = btoa(JSON.stringify({
-                challenge: 'test-challenge',
-                signature: 'test-signature',
-                number: 123,
-                salt: 'test-salt'
-              }));
-              altchaReady = true;
-              console.log('Using mock payload:', e.detail.payload);
+              // Fetch real challenge for a dynamic mock payload
+              fetch('/api/altcha-challenge.php')
+                .then(response => response.json())
+                .then(data => {
+                  e.detail.payload = btoa(JSON.stringify({
+                    challenge: data.challenge,
+                    signature: data.signature,
+                    number: Math.floor(Math.random() * 1000), // Random number
+                    salt: data.salt
+                  }));
+                  altchaReady = true;
+                  console.log('Using dynamic mock payload:', e.detail.payload);
+                })
+                .catch(err => {
+                  console.error('Failed to fetch challenge for mock payload:', err);
+                  const resultsDiv = document.getElementById('whois-results');
+                  if (resultsDiv) {
+                    resultsDiv.innerHTML = 'Error: Failed to generate mock payload. Please refresh and try again.';
+                  }
+                });
             }
           } else if (e.detail.state === 'error') {
             console.error('ALTCHA error:', e.detail.error);
