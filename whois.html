@@ -11,111 +11,107 @@ share-description: "IP Cow is a free service that shows you the public IP addres
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
-<script type="module" src="https://eu.altcha.org/js/0.6.1/altcha.min.js" crossorigin="anonymous" defer onload="console.log('ALTCHA script loaded')"></script>
 <script type="module">
   let altchaReady = false;
 
-  // Wait for the altcha-widget custom element to be defined
   customElements.whenDefined('altcha-widget').then(() => {
-    console.log('ALTCHA widget element defined');
-    const altchaWidget = document.querySelector('altcha-widget');
-    if (altchaWidget) {
-      // Wait for the widget to complete its challenge
-      const checkPayload = () => {
-        if (altchaWidget.state && typeof altchaWidget.state.payload !== 'undefined') {
-          altchaReady = true;
-          console.log('ALTCHA ready with payload:', altchaWidget.state.payload);
-        } else {
-          console.log('ALTCHA payload not ready, retrying...');
-          setTimeout(checkPayload, 500); // Retry every 500ms
-        }
-      };
-      checkPayload();
-    } else {
-      console.error('ALTCHA widget not found in DOM');
-    }
-  }).catch(err => {
-    console.error('Failed to define ALTCHA widget:', err);
-  });
+  console.log('ALTCHA widget element defined');
+  const altchaWidget = document.querySelector('altcha-widget');
+  if (altchaWidget) {
+    const checkPayload = () => {
+      if (altchaWidget.state && typeof altchaWidget.state.payload !== 'undefined') {
+        altchaReady = true;
+        console.log('ALTCHA ready with payload:', altchaWidget.state.payload);
+      } else {
+        console.log('ALTCHA payload not ready, retrying...');
+        setTimeout(checkPayload, 500); // Retry every 500ms
+      }
+    };
+    checkPayload();
+  } else {
+    console.error('ALTCHA widget not found in DOM');
+  }
+}).catch(err => {
+  console.error('Failed to define ALTCHA widget:', err);
+});
 
   document.querySelector('form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!altchaReady) {
-      e.target.querySelector('#whois-results').innerHTML = 'Please wait for ALTCHA to initialize...';
-      console.warn('ALTCHA not ready, delaying submission');
+  e.preventDefault();
+  if (!altchaReady) {
+    e.target.querySelector('#whois-results').innerHTML = 'Please wait for ALTCHA to initialize...';
+    console.warn('ALTCHA not ready, delaying submission');
+    return;
+  }
+
+  let domain = document.getElementById('domain').value.trim();
+  domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
+
+  const resultsDiv = document.getElementById('whois-results');
+  resultsDiv.innerHTML = 'Loading...';
+
+  const altchaWidget = document.querySelector('altcha-widget');
+  if (!altchaWidget || !altchaWidget.state || typeof altchaWidget.state.payload === 'undefined') {
+    resultsDiv.innerHTML = 'Error: ALTCHA widget not initialized. Please refresh and try again.';
+    console.error('ALTCHA widget state:', altchaWidget ? altchaWidget.state : 'Not found');
+    return;
+  }
+
+  const altchaPayload = altchaWidget.state.payload;
+  try {
+    const startTime = performance.now();
+    const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&altcha=${encodeURIComponent(altchaPayload)}`);
+    const endTime = performance.now();
+    const latency = (endTime - startTime).toFixed(2);
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+
+    if (!data.success || data.error) {
+      resultsDiv.innerHTML = data.error || 'No WHOIS data found.';
       return;
     }
 
-    let domain = document.getElementById('domain').value.trim();
-    domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
-
-    const resultsDiv = document.getElementById('whois-results');
-    resultsDiv.innerHTML = 'Loading...';
-
-    const altchaWidget = document.querySelector('altcha-widget');
-    if (!altchaWidget || !altchaWidget.state || typeof altchaWidget.state.payload === 'undefined') {
-      resultsDiv.innerHTML = 'Error: ALTCHA widget not initialized. Please refresh and try again.';
-      console.error('ALTCHA widget state:', altchaWidget ? altchaWidget.state : 'Not found');
+    if (data.available) {
+      resultsDiv.innerHTML = `<div class="available-message">The domain "${domain}" is available and has not been registered.</div>`;
       return;
     }
 
-    const altchaPayload = altchaWidget.state.payload;
-    try {
-      const startTime = performance.now();
-      const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&altcha=${encodeURIComponent(altchaPayload)}`);
-      const endTime = performance.now();
-      const latency = (endTime - startTime).toFixed(2);
+    const whoisData = data.whois || {};
+    let formatted = '<table><tr><th>Metric</th><th>Value</th></tr>';
+    formatted += `<tr><td>Domain</td><td>${domain}</td></tr>`;
+    formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
+    formatted += '<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>';
 
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
-
-      if (!data.success || data.error) {
-        resultsDiv.innerHTML = data.error || 'No WHOIS data found.';
-        return;
+    if (typeof whoisData === 'object' && !Array.isArray(whoisData)) {
+      for (const [key, value] of Object.entries(whoisData)) {
+        const displayValue = Array.isArray(value) ? value.join(', ') : value;
+        formatted += `<tr><td>${key}</td><td>${displayValue}</td></tr>`;
       }
-
-      if (data.available) {
-        resultsDiv.innerHTML = `<div class="available-message">The domain "${domain}" is available and has not been registered.</div>`;
-        return;
-      }
-
-      const whoisData = data.whois || {};
-      let formatted = '<table><tr><th>Metric</th><th>Value</th></tr>';
-      formatted += `<tr><td>Domain</td><td>${domain}</td></tr>`;
-      formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
-      formatted += '<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>';
-
-      if (typeof whoisData === 'object' && !Array.isArray(whoisData)) {
-        for (const [key, value] of Object.entries(whoisData)) {
-          const displayValue = Array.isArray(value) ? value.join(', ') : value;
-          formatted += `<tr><td>${key}</td><td>${displayValue}</td></tr>`;
-        }
-      } else {
-        formatted += `<tr><td colspan="2"><pre>${whoisData}</pre></td></tr>`;
-      }
-      formatted += '</table>';
-      resultsDiv.innerHTML = whoisData ? formatted : 'No WHOIS data found for this domain.';
-
-      if (whoisData) {
-        const exportBtn = document.createElement('button');
-        exportBtn.textContent = 'Download JSON';
-        exportBtn.style.marginTop = '20px';
-        exportBtn.className = 'btn btn-primary';
-        exportBtn.onclick = () => {
-          const exportData = { domain, latency: `${latency} ms`, whois: whoisData };
-          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${domain}_whois.json`;
-          a.click();
-          URL.revokeObjectURL(url);
-        };
-        resultsDiv.appendChild(exportBtn);
-      }
-    } catch (error) {
-      console.error('Error in WHOIS lookup:', error);
-      resultsDiv.innerHTML = `Error: ${error.message}. Please check the domain and try again.`;
+    } else {
+      formatted += `<tr><td colspan="2"><pre>${whoisData}</pre></td></tr>`;
     }
-  });
-</script>
+    formatted += '</table>';
+    resultsDiv.innerHTML = whoisData ? formatted : 'No WHOIS data found for this domain.';
+
+    if (whoisData) {
+      const exportBtn = document.createElement('button');
+      exportBtn.textContent = 'Download JSON';
+      exportBtn.style.marginTop = '20px';
+      exportBtn.className = 'btn btn-primary';
+      exportBtn.onclick = () => {
+        const exportData = { domain, latency: `${latency} ms`, whois: whoisData };
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${domain}_whois.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+      resultsDiv.appendChild(exportBtn);
+    }
+  } catch (error) {
+    console.error('Error in WHOIS lookup:', error);
+    resultsDiv.innerHTML = `Error: ${error.message}. Please check the domain and try again.`;
+  }
+});
