@@ -1,5 +1,4 @@
 <?php
-require_once '/var/www/config/config.php';
 require_once '/api/turnstile.php';
 
 header('Content-Type: application/json');
