@@ -7,6 +7,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 ---
 <form class="form-inline justify-content-center" method="GET" action="/api/whois.php">
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
+  <altcha-widget challengeurl="/api/altcha-challenge.php" auto="submit"></altcha-widget>
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
@@ -26,7 +27,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
     try {
       const startTime = performance.now();
-      const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}`);
+      const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&altcha=${encodeURIComponent(document.querySelector('altcha-widget').state.payload)}`);
       const endTime = performance.now();
       const latency = (endTime - startTime).toFixed(2);
 
