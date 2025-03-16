@@ -7,51 +7,47 @@ $response = ['success' => false, 'whois' => [], 'error' => '', 'available' => fa
 $logPath = '/var/www/html/whois_debug.log';
 $startTime = microtime(true);
 
-$altchaPayload = $_GET['altcha'] ?? '';
-if (empty($altchaPayload)) {
-  $response['error'] = 'ALTCHA payload missing.';
-  file_put_contents($logPath, "[$startTime] Error: ALTCHA payload missing\n", FILE_APPEND);
+// Get hCaptcha response
+$hcaptchaResponse = $_GET['h-captcha-response'] ?? '';
+if (empty($hcaptchaResponse)) {
+  $response['error'] = 'hCaptcha response missing.';
+  file_put_contents($logPath, "[$startTime] Error: hCaptcha response missing\n", FILE_APPEND);
   echo json_encode($response);
   exit;
 }
 
-file_put_contents($logPath, "[$startTime] Received ALTCHA payload: $altchaPayload\n", FILE_APPEND);
-$payload = json_decode(base64_decode($altchaPayload), true);
-file_put_contents($logPath, "[$startTime] Decoded payload: " . json_encode($payload) . "\n", FILE_APPEND);
-if (!$payload || !isset($payload['challenge'], $payload['signature'], $payload['number'], $payload['salt'])) {
-  $response['error'] = 'Invalid ALTCHA payload.';
-  file_put_contents($logPath, "[$startTime] Error: Invalid ALTCHA payload: " . json_encode($payload) . "\n", FILE_APPEND);
+// Validate hCaptcha response
+$secretKey = defined('HCAPTCHA_SECRET_KEY') ? HCAPTCHA_SECRET_KEY : 'your-hcaptcha-secret-key-here'; // Replace with your secret key if not defined
+$verifyUrl = 'https://hcaptcha.com/siteverify';
+$verifyData = [
+  'secret' => $secretKey,
+  'response' => $hcaptchaResponse,
+  'remoteip' => $_SERVER['REMOTE_ADDR'] // Optional: Include the user's IP address
+];
+
+$options = [
+  'http' => [
+    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+    'method'  => 'POST',
+    'content' => http_build_query($verifyData),
+  ],
+];
+$context  = stream_context_create($options);
+$verifyResult = file_get_contents($verifyUrl, false, $context);
+$verifyResult = json_decode($verifyResult, true);
+
+file_put_contents($logPath, "[$startTime] hCaptcha verification result: " . json_encode($verifyResult) . "\n", FILE_APPEND);
+
+if (!$verifyResult || !$verifyResult['success']) {
+  $response['error'] = 'hCaptcha verification failed.';
+  file_put_contents($logPath, "[$startTime] Error: hCaptcha verification failed\n", FILE_APPEND);
   echo json_encode($response);
   exit;
 }
 
-// Verify the signature using the challenge and salt from the payload
-$expectedSignature = hash_hmac('sha256', $payload['challenge'] . $payload['salt'], ALTCHA_SECRET_KEY);
-if ($payload['signature'] !== $expectedSignature) {
-  $response['error'] = 'ALTCHA verification failed: Invalid signature.';
-  file_put_contents($logPath, "[$startTime] Error: Invalid ALTCHA signature. Expected: $expectedSignature, Got: " . $payload['signature'] . "\n", FILE_APPEND);
-  echo json_encode($response);
-  exit;
-}
+file_put_contents($logPath, "[$startTime] hCaptcha verification successful\n", FILE_APPEND);
 
-$requiredZeros = 2; // Default complexity (adjust based on your ALTCHA setup)
-
-$hash = hash('sha256', $payload['challenge'] . $payload['salt'] . $payload['number']);
-$leadingZeros = 0;
-for ($i = 0; $i < strlen($hash); $i++) {
-  if ($hash[$i] !== '0') break;
-  $leadingZeros++;
-}
-
-if ($leadingZeros < $requiredZeros) {
-  $response['error'] = 'ALTCHA verification failed: Insufficient proof-of-work.';
-  file_put_contents($logPath, "[$startTime] Error: Insufficient proof-of-work (Leading zeros: $leadingZeros, Required: $requiredZeros)\n", FILE_APPEND);
-  echo json_encode($response);
-  exit;
-}
-
-file_put_contents($logPath, "[$startTime] ALTCHA verification successful\n", FILE_APPEND);
-
+// Process the domain lookup
 $domain = $_GET['domain'] ?? '';
 file_put_contents($logPath, "[$startTime] Received domain: $domain\n", FILE_APPEND);
 

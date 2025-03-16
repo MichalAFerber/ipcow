@@ -7,154 +7,53 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 ---
 <form class="form-inline justify-content-center" method="GET" action="/api/whois.php" novalidate>
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
-  <altcha-widget challengeurl="/api/altcha-challenge.php"></altcha-widget>
+  <!-- hCaptcha Widget -->
+  <div class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"></div>
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
+
+<!-- Load hCaptcha JavaScript -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+
 <script type="module">
   document.addEventListener('DOMContentLoaded', () => {
-    let altchaReady = false;
-    let altchaPayload = null;
-    let altchaPromiseResolve = null;
-    let altchaPromiseReject = null;
-    const altchaReadyPromise = new Promise((resolve, reject) => {
-      altchaPromiseResolve = resolve;
-      altchaPromiseReject = reject;
+    let hcaptchaReady = false;
+    let hcaptchaResponse = null;
+    let hcaptchaPromiseResolve = null;
+    let hcaptchaPromiseReject = null;
+    const hcaptchaReadyPromise = new Promise((resolve, reject) => {
+      hcaptchaPromiseResolve = resolve;
+      hcaptchaPromiseReject = reject;
     });
 
-    // Hash function for proof-of-work
-    async function hash(algorithm, data) {
-      const encoder = new TextEncoder();
-      const dataUint8 = encoder.encode(data);
-      const hashBuffer = await crypto.subtle.digest(algorithm, dataUint8);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
+    // Callback when hCaptcha is completed
+    window.hcaptchaOnloadCallback = function() {
+      console.log('hCaptcha script loaded');
+    };
 
-    // Initialize ALTCHA widget and listen for state changes
-    customElements.whenDefined('altcha-widget').then(() => {
-      console.log('ALTCHA widget element defined');
-      const altchaWidget = document.querySelector('altcha-widget');
-      if (altchaWidget) {
-        console.log('ALTCHA widget found in DOM:', altchaWidget);
+    // Callback when hCaptcha is verified
+    window.hcaptchaVerifiedCallback = function(response) {
+      console.log('hCaptcha verified with response:', response);
+      hcaptchaResponse = response;
+      hcaptchaReady = true;
+      hcaptchaPromiseResolve();
+    };
 
-        // Remove the required attribute from the hidden checkbox to avoid validation issues
-        const checkbox = altchaWidget.querySelector('#altcha_checkbox');
-        if (checkbox) {
-          checkbox.removeAttribute('required');
-          console.log('Removed required attribute from ALTCHA checkbox');
-        }
+    // Add the verified callback to the global scope for hCaptcha
+    window.hcaptchaVerifiedCallback = window.hcaptchaVerifiedCallback;
 
-        altchaWidget.addEventListener('statechange', async (e) => {
-          console.log('ALTCHA state changed:', e.detail);
-          if (e.detail.state === 'verified') {
-            if (e.detail.payload) {
-              altchaReady = true;
-              let payload = JSON.parse(atob(e.detail.payload));
-              console.log('ALTCHA verified with payload:', payload);
-              // Perform proof-of-work with the widget's challenge data
-              let number = 0;
-              const requiredZeros = 2; // Default complexity (adjust based on your setup)
-              let hash = '';
-              while (number < 1000000) {
-                hash = await hash('SHA-256', payload.challenge + payload.salt + number.toString());
-                let leadingZeros = 0;
-                for (let i = 0; i < hash.length; i++) {
-                  if (hash[i] !== '0') break;
-                  leadingZeros++;
-                }
-                console.log(`Proof-of-work: number=${number}, hash=${hash}, leadingZeros=${leadingZeros}, requiredZeros=${requiredZeros}`);
-                if (leadingZeros >= requiredZeros) break;
-                number++;
-              }
-              if (number >= 1000000) throw new Error('Proof-of-work failed: Could not find valid number');
-
-              // Extend the payload with the computed number
-              altchaPayload = btoa(JSON.stringify({
-                challenge: payload.challenge,
-                signature: payload.signature,
-                number: number,
-                salt: payload.salt
-              }));
-              console.log('Using computed mock payload:', altchaPayload);
-              altchaPromiseResolve();
-            } else {
-              console.error('ALTCHA verified but payload is null. State:', e.detail);
-              try {
-                const response = await fetch('/api/altcha-challenge.php');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const challengeData = await response.json();
-                console.log('Fetched challenge data:', challengeData);
-
-                // Perform client-side proof-of-work
-                let number = 0;
-                const requiredZeros = Math.ceil(challengeData.complexity / 4);
-                let hash = '';
-                while (number < 1000000) {
-                  hash = await hash('SHA-256', challengeData.challenge + challengeData.salt + number.toString());
-                  let leadingZeros = 0;
-                  for (let i = 0; i < hash.length; i++) {
-                    if (hash[i] !== '0') break;
-                    leadingZeros++;
-                  }
-                  console.log(`Proof-of-work: number=${number}, hash=${hash}, leadingZeros=${leadingZeros}, requiredZeros=${requiredZeros}`);
-                  if (leadingZeros >= requiredZeros) break;
-                  number++;
-                }
-                if (number >= 1000000) throw new Error('Proof-of-work failed: Could not find valid number');
-
-                // Use the fetched challenge data
-                altchaPayload = btoa(JSON.stringify({
-                  challenge: challengeData.challenge,
-                  signature: challengeData.signature,
-                  number: number,
-                  salt: challengeData.salt
-                }));
-                altchaReady = true;
-                console.log('Using computed mock payload:', altchaPayload);
-                altchaPromiseResolve();
-              } catch (err) {
-                console.error('Failed to fetch challenge or compute payload:', err);
-                const resultsDiv = document.getElementById('whois-results');
-                if (resultsDiv) {
-                  resultsDiv.innerHTML = 'Error: Failed to generate mock payload. Please refresh and try again.';
-                }
-                altchaPromiseReject(err);
-              }
-            }
-          } else if (e.detail.state === 'error') {
-            console.error('ALTCHA error:', e.detail.error);
-            const resultsDiv = document.getElementById('whois-results');
-            if (resultsDiv) {
-              resultsDiv.innerHTML = `Error: ALTCHA verification failed (${e.detail.error}). Please refresh and try again.`;
-            }
-            altchaPromiseReject(new Error(e.detail.error));
-          }
-        });
-      } else {
-        console.error('ALTCHA widget not found in DOM');
-        altchaPromiseReject(new Error('ALTCHA widget not found'));
-      }
-    }).catch(err => {
-      console.error('Failed to define ALTCHA widget:', err);
-      const resultsDiv = document.getElementById('whois-results');
-      if (resultsDiv) {
-        resultsDiv.innerHTML = 'Error: Failed to load ALTCHA widget. Please refresh and try again.';
-      }
-      altchaPromiseReject(err);
-    });
-
-    // Timeout for ALTCHA verification
+    // Timeout for hCaptcha verification (30 seconds)
     setTimeout(() => {
-      if (!altchaReady) {
+      if (!hcaptchaReady) {
         const resultsDiv = document.getElementById('whois-results');
         if (resultsDiv) {
-          resultsDiv.innerHTML = 'Error: ALTCHA verification timed out. Please refresh and try again.';
+          resultsDiv.innerHTML = 'Error: hCaptcha verification timed out. Please refresh and try again.';
         }
-        console.error('ALTCHA verification timed out after 30 seconds');
-        altchaPromiseReject(new Error('ALTCHA verification timed out'));
+        console.error('hCaptcha verification timed out after 30 seconds');
+        hcaptchaPromiseReject(new Error('hCaptcha verification timed out'));
       }
-    }, 30000); // 30 seconds
+    }, 30000);
 
     // Form submission handling
     const form = document.querySelector('form');
@@ -171,19 +70,19 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         return;
       }
 
-      resultsDiv.innerHTML = 'Please wait for ALTCHA to initialize...';
+      resultsDiv.innerHTML = 'Please complete the hCaptcha challenge...';
       try {
-        await altchaReadyPromise; // Wait for ALTCHA to be ready
-        console.log('ALTCHA ready, proceeding with submission');
+        await hcaptchaReadyPromise; // Wait for hCaptcha to be verified
+        console.log('hCaptcha ready, proceeding with submission');
       } catch (err) {
-        console.error('ALTCHA readiness failed:', err);
-        resultsDiv.innerHTML = 'Error: ALTCHA initialization failed. Please refresh and try again.';
+        console.error('hCaptcha readiness failed:', err);
+        resultsDiv.innerHTML = 'Error: hCaptcha verification failed. Please refresh and try again.';
         return;
       }
 
-      if (!altchaPayload) {
-        resultsDiv.innerHTML = 'Error: ALTCHA payload not available. Please refresh and try again.';
-        console.error('ALTCHA payload not available');
+      if (!hcaptchaResponse) {
+        resultsDiv.innerHTML = 'Error: hCaptcha response not available. Please complete the challenge and try again.';
+        console.error('hCaptcha response not available');
         return;
       }
 
@@ -191,11 +90,11 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
 
       resultsDiv.innerHTML = 'Loading...';
-      console.log('Submitting form with domain:', domain, 'and payload:', altchaPayload);
+      console.log('Submitting form with domain:', domain, 'and hCaptcha response:', hcaptchaResponse);
 
       try {
         const startTime = performance.now();
-        const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&altcha=${encodeURIComponent(altchaPayload)}`);
+        const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaResponse)}`);
         const endTime = performance.now();
         const latency = (endTime - startTime).toFixed(2);
 
@@ -218,10 +117,10 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         }
 
         const whoisData = data.whois || {};
-        let formatted = `<table><tr><th>Metric</th><th>Value</th></tr>`;
+        let formatted = '<table><tr><th>Metric</th><th>Value</th></tr>';
         formatted += `<tr><td>Domain</td><td>${domain}</td></tr>`;
         formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
-        formatted += `<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>`;
+        formatted += '<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>';
 
         if (typeof whoisData === 'object' && !Array.isArray(whoisData)) {
           for (const [key, value] of Object.entries(whoisData)) {
