@@ -14,7 +14,7 @@ function validateHcaptcha($hcaptchaResponse) {
     @file_put_contents($logPath, "[$startTime] Received hCaptcha response: $hcaptchaResponse\n", FILE_APPEND | LOCK_EX);
 
     $secretKey = defined('HCAPTCHA_SECRET_KEY') ? HCAPTCHA_SECRET_KEY : die('HCAPTCHA_SECRET_KEY not defined in config.php');
-    $verifyUrl = 'https://hcaptcha.com/siteverify';
+    $verifyUrl = 'https://api.hcaptcha.com/siteverify';
     $verifyData = [
         'secret' => $secretKey,
         'response' => $hcaptchaResponse,

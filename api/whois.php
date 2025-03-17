@@ -23,14 +23,15 @@ if (!file_exists('/var/www/config/config.php')) {
 }
 require_once '/var/www/config/config.php';
 
-if (!file_exists('/var/www/api/hcaptcha-utils.php')) {
-    $error = "hCaptcha utils file not found: /var/www/api/hcaptcha-utils.php";
+$hcaptchaUtilsPath = '/api/hcaptcha-utils.php';
+if (!file_exists($hcaptchaUtilsPath)) {
+    $error = "hCaptcha utils file not found: $hcaptchaUtilsPath";
     @file_put_contents($debugLog, "[$startTime] Error: $error\n", FILE_APPEND | LOCK_EX);
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $error]);
     exit;
 }
-require_once '/api/hcaptcha-utils.php';
+require_once $hcaptchaUtilsPath;
 
 header('Content-Type: application/json');
 $response = ['success' => false, 'whois' => [], 'error' => '', 'available' => false];
