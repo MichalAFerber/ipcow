@@ -7,50 +7,22 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 ---
 <form class="form-inline justify-content-center" method="GET" action="/api/whois.php" novalidate>
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
-  <!-- hCaptcha Invisible Widget -->
   <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752" data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
 
-<!-- Load hCaptcha JavaScript -->
+<!-- Load hCaptcha and custom module -->
 <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script src="/assets/js/hcaptcha-module.js" defer></script>
 
 <script type="module">
   document.addEventListener('DOMContentLoaded', () => {
-    let hcaptchaResponse = null;
-    let hcaptchaPromiseResolve = null;
-    let hcaptchaPromiseReject = null;
-    const hcaptchaReadyPromise = new Promise((resolve, reject) => {
-      hcaptchaPromiseResolve = resolve;
-      hcaptchaPromiseReject = reject;
+    const hcaptchaManager = new HcaptchaManager({
+      formSelector: 'form',
+      resultsId: 'whois-results'
     });
 
-    // Callback when hCaptcha is loaded
-    window.hcaptchaOnloadCallback = function() {
-      console.log('hCaptcha script loaded');
-    };
-
-    // Callback when hCaptcha is verified
-    window.hcaptchaVerifyCallback = function(response) {
-      console.log('hCaptcha verified with response:', response);
-      hcaptchaResponse = response;
-      hcaptchaPromiseResolve();
-    };
-
-    // Timeout for hCaptcha verification (60 seconds)
-    setTimeout(() => {
-      if (!hcaptchaResponse) {
-        const resultsDiv = document.getElementById('whois-results');
-        if (resultsDiv) {
-          resultsDiv.innerHTML = 'Error: hCaptcha verification timed out. Please try again.';
-        }
-        console.error('hCaptcha verification timed out after 60 seconds');
-        hcaptchaPromiseReject(new Error('hCaptcha verification timed out'));
-      }
-    }, 60000);
-
-    // Form submission handling
     const form = document.querySelector('form');
     if (!form) {
       console.error('Form not found');
@@ -59,42 +31,20 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const resultsDiv = document.getElementById('whois-results');
-      if (!resultsDiv) {
-        console.error('Results div not found');
-        return;
-      }
 
-      resultsDiv.innerHTML = 'Verifying hCaptcha...';
-      console.log('Executing invisible hCaptcha challenge');
-
-      // Execute the invisible hCaptcha challenge
-      try {
-        hcaptcha.execute(); // No widgetId needed since there's only one hCaptcha widget
-      } catch (err) {
-        console.error('hCaptcha execution failed:', err);
-        resultsDiv.innerHTML = 'Error: Failed to execute hCaptcha. Please refresh and try again.';
-        return;
-      }
-
-      try {
-        await hcaptchaReadyPromise; // Wait for hCaptcha response
-        console.log('hCaptcha ready, proceeding with submission');
-      } catch (err) {
-        console.error('hCaptcha readiness failed:', err);
-        resultsDiv.innerHTML = 'Error: hCaptcha verification timed out. Please try again.';
-        return;
-      }
+      const success = await hcaptchaManager.executeHcaptcha();
+      if (!success) return;
 
       let domain = document.getElementById('domain').value.trim();
       domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
 
+      const resultsDiv = document.getElementById('whois-results');
       resultsDiv.innerHTML = 'Loading...';
-      console.log('Submitting form with domain:', domain, 'and hCaptcha response:', hcaptchaResponse);
+      console.log('Submitting form with domain:', domain, 'and hCaptcha response:', hcaptchaManager.getHcaptchaResponse());
 
       try {
         const startTime = performance.now();
-        const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaResponse)}`);
+        const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaManager.getHcaptchaResponse())}`);
         const endTime = performance.now();
         const latency = (endTime - startTime).toFixed(2);
 
