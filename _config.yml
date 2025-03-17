@@ -128,12 +128,18 @@ footer-hover-col: "#0085A1"
 
 # For any extra visual customization, you can include additional CSS files in every page on your site. List any custom CSS files here
 site-css:
+  - "/assets/css/bootstrap-social.css"
+  - "/assets/css/beautifuljekyll.css"
 #  - "https://beautifuljekyll.com/pro/dark-mode.min.css"
-  - "assets/css/main.css"
+  - "/assets/css/main.css"
 
 # If you have common JavaScript files that should be included in every page, list them here
 site-js:
 #  - "/assets/js/custom-script.js"
+  - "/assets/js/beautifuljekyll.js"
+  - "https://code.jquery.com/jquery-3.5.1.slim.min.js"
+  - "https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+  - "https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
 
 # Ruby Date Format to show dates of posts
 date_format: "%B %-d, %Y"
