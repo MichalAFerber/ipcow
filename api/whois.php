@@ -58,6 +58,7 @@ debugLog("Total time: " . number_format($totalTime, 2) . " ms");
 // Return response
 header('Content-Type: application/json');
 echo json_encode([
+    'success' => true,
     'domain' => $domain,
     'whois' => $whoisData,
     'whois_time_ms' => $whoisTime,
