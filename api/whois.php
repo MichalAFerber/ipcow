@@ -40,6 +40,7 @@ if (!$hCaptchaResult['success']) {
 }
 
 $whoisStart = microtime(true);
+debugLog("About to run WHOIS for '$domain'");
 $whoisOutput = shell_exec("whois '$domain' 2>/dev/null");
 $whoisTime = (microtime(true) - $whoisStart) * 1000;
 
