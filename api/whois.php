@@ -17,6 +17,7 @@ header('Content-Type: application/json');
 
 $hCaptchaResponse = $_GET['h-captcha-response'] ?? '';
 $domain = $_GET['domain'] ?? '';
+debugLog("GET parameters received");
 
 if (empty($domain)) {
     debugLog("Error: No domain provided");
@@ -29,6 +30,7 @@ debugLog("Received domain: $domain");
 debugLog("Received hCaptcha response: " . substr($hCaptchaResponse, 0, 50) . "...");
 
 $startTime = microtime(true);
+debugLog("Calling validateHcaptcha");
 $hCaptchaResult = validateHcaptcha($hCaptchaResponse);
 debugLog("hCaptcha validation result: " . json_encode($hCaptchaResult));
 
