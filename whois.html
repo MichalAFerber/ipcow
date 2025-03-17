@@ -32,6 +32,9 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      // Reset hCaptcha before each submission
+      hcaptchaManager.resetHcaptcha();
+
       const success = await hcaptchaManager.executeHcaptcha();
       if (!success) return;
 
@@ -56,14 +59,12 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         const data = await response.json();
         console.log('Received WHOIS response:', data);
 
-        // Check if whois data exists
         const whoisData = data.whois || '';
         if (!whoisData || whoisData.trim() === '') {
           resultsDiv.innerHTML = 'No WHOIS data found for this domain.';
           return;
         }
 
-        // Format the response
         let formatted = '<table><tr><th>Metric</th><th>Value</th></tr>';
         formatted += `<tr><td>Domain</td><td>${domain}</td></tr>`;
         formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
@@ -75,7 +76,6 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
         resultsDiv.innerHTML = formatted;
 
-        // Add export button
         const exportBtn = document.createElement('button');
         exportBtn.textContent = 'Download JSON';
         exportBtn.style.marginTop = '20px';
