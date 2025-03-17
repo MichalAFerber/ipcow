@@ -7,8 +7,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 ---
 <form class="form-inline justify-content-center" method="GET" action="/api/whois.php" novalidate>
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
-  <!-- hCaptcha Widget with callback -->
-  <div class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752" data-callback="hcaptchaVerifiedCallback" data-size="invisible"></div>
+  <!-- hCaptcha Invisible Widget -->
+  <div class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752" data-size="invisible"></div>
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
@@ -18,7 +18,6 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
 <script type="module">
   document.addEventListener('DOMContentLoaded', () => {
-    let hcaptchaReady = false;
     let hcaptchaResponse = null;
     let hcaptchaPromiseResolve = null;
     let hcaptchaPromiseReject = null;
@@ -32,20 +31,19 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       console.log('hCaptcha script loaded');
     };
 
-    // Callback when hCaptcha is verified
-    window.hcaptchaVerifiedCallback = function(response) {
+    // Callback when hCaptcha is verified (for invisible mode)
+    window.hcaptchaVerifyCallback = function(response) {
       console.log('hCaptcha verified with response:', response);
       hcaptchaResponse = response;
-      hcaptchaReady = true;
       hcaptchaPromiseResolve();
     };
 
-    // Timeout for hCaptcha verification (increased to 60 seconds)
+    // Timeout for hCaptcha verification (60 seconds)
     setTimeout(() => {
-      if (!hcaptchaReady) {
+      if (!hcaptchaResponse) {
         const resultsDiv = document.getElementById('whois-results');
         if (resultsDiv) {
-          resultsDiv.innerHTML = 'Error: hCaptcha verification timed out. Please complete the challenge and try again.';
+          resultsDiv.innerHTML = 'Error: hCaptcha verification timed out. Please try again.';
         }
         console.error('hCaptcha verification timed out after 60 seconds');
         hcaptchaPromiseReject(new Error('hCaptcha verification timed out'));
@@ -67,20 +65,26 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         return;
       }
 
-      // Manual check for hCaptcha response before proceeding
-      if (!hcaptchaResponse) {
-        resultsDiv.innerHTML = 'Please complete the hCaptcha challenge before submitting.';
-        console.warn('hCaptcha challenge not completed yet');
+      resultsDiv.innerHTML = 'Verifying hCaptcha...';
+      console.log('Executing invisible hCaptcha challenge');
+
+      // Execute the invisible hCaptcha challenge
+      try {
+        hcaptcha.execute(document.querySelector('.h-captcha'), {
+          callback: 'hcaptchaVerifyCallback'
+        });
+      } catch (err) {
+        console.error('hCaptcha execution failed:', err);
+        resultsDiv.innerHTML = 'Error: Failed to execute hCaptcha. Please refresh and try again.';
         return;
       }
 
-      resultsDiv.innerHTML = 'Verifying hCaptcha...';
       try {
-        await hcaptchaReadyPromise; // Wait for hCaptcha to be verified
+        await hcaptchaReadyPromise; // Wait for hCaptcha response
         console.log('hCaptcha ready, proceeding with submission');
       } catch (err) {
         console.error('hCaptcha readiness failed:', err);
-        resultsDiv.innerHTML = 'Error: hCaptcha verification failed. Please refresh and try again.';
+        resultsDiv.innerHTML = 'Error: hCaptcha verification timed out. Please try again.';
         return;
       }
 
