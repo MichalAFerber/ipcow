@@ -7,7 +7,7 @@
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
   <div class="collapse navbar-collapse" id="main-navbar">
     <ul class="navbar-nav ml-auto">
-      {%- for link in site.navbar-links -%}
+<!--       {%- for link in site.navbar-links -%}
         {%- if link[1].first %}
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{ link[0] }}</a>
@@ -25,7 +25,7 @@
           </li>
         {%- endif -%}
       {%- endfor -%}
-      {% if site.post_search %}
+ -->      {% if site.post_search %}
           <li class="nav-item">
             <a class="nav-link" id="nav-search-link" href="#" title="Search">
               <span id="nav-search-icon" class="fa fa-search"></span>
