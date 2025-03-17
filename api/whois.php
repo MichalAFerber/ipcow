@@ -26,7 +26,7 @@ $hCaptchaResponse = $_GET['h-captcha-response'];
 debugLog("GET parameters received: domain=$domain, hCaptcha response length=" . strlen($hCaptchaResponse));
 
 // Include hCaptcha utility functions
-require_once '/home/appleseed/ipcow/core-dev/_site/api/hcaptcha-utils.php';
+require_once '/api/hcaptcha-utils.php';
 
 debugLog("Calling validateHcaptcha");
 if (!validateHcaptcha($hCaptchaResponse)) {
