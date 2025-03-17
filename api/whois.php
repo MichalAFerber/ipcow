@@ -1,14 +1,5 @@
 <?php
-// Define log file location
-$logFile = '/var/www/html/whois_debug.log';
-
-// Debug logging function
-function debugLog($message) {
-    global $logFile;
-    $timestamp = microtime(true);
-    $formattedMessage = "[$timestamp] $message\n";
-    file_put_contents($logFile, $formattedMessage, FILE_APPEND);
-}
+require_once __DIR__ . '/utils.php'; // Include utils.php for debugLog()
 
 // Start script
 debugLog("Script started");
@@ -26,7 +17,7 @@ $hCaptchaResponse = $_GET['h-captcha-response'];
 debugLog("GET parameters received: domain=$domain, hCaptcha response length=" . strlen($hCaptchaResponse));
 
 // Include hCaptcha utility functions
-require_once '/api/hcaptcha-utils.php';
+require_once __DIR__ . '/hcaptcha-utils.php'; // Fixed from /api/
 
 debugLog("Calling validateHcaptcha");
 if (!validateHcaptcha($hCaptchaResponse)) {
@@ -37,7 +28,7 @@ if (!validateHcaptcha($hCaptchaResponse)) {
 }
 debugLog("hCaptcha validation result: success");
 
-// Perform WHOIS lookup (simplified example using a WHOIS server)
+// Perform WHOIS lookup
 $whoisServer = "whois.verisign-grs.com"; // Example for .com domains
 $port = 43;
 $fp = fsockopen($whoisServer, $port, $errno, $errstr, 10);
@@ -58,7 +49,7 @@ fclose($fp);
 $whoisTime = (microtime(true) - $startTime) * 1000; // Time in milliseconds
 
 debugLog("WHOIS time: " . number_format($whoisTime, 2) . " ms");
-debugLog("WHOIS data received: " . substr($whoisData, 0, 100) . "..."); // Log first 100 chars
+debugLog("WHOIS data received: " . substr($whoisData, 0, 100) . "...");
 
 // Calculate total time
 $totalTime = (microtime(true) - $startTime) * 1000;

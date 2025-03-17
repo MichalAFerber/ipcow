@@ -1,19 +1,10 @@
 <?php
-// Define log file location
-$logFile = '/var/www/html/whois_debug.log';
-
-// Debug logging function
-function debugLog($message) {
-    global $logFile;
-    $timestamp = microtime(true);
-    $formattedMessage = "[$timestamp] $message\n";
-    file_put_contents($logFile, $formattedMessage, FILE_APPEND);
-}
+require_once __DIR__ . '/utils.php'; // Include utils.php for debugLog()
 
 // hCaptcha validation function
 function validateHcaptcha($response) {
-    global $logFile;
-    debugLog("validateHcaptcha called with response: $response");
+    global $logFile; // Still needed if you want to reference it directly
+    debugLog("validateHcaptcha called with response: " . substr($response, 0, 50) . "...");
     
     // Include config file with secret key
     require_once '/var/www/config/config.php';
