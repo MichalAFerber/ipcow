@@ -14,7 +14,6 @@ class HcaptchaManager {
         });
 
         window.hcaptchaVerifyCallback = (response) => {
-            //console.log('hCaptcha verified with response:', response);
             this.hcaptchaResponse = response;
             this.hcaptchaPromiseResolve();
         };
@@ -42,12 +41,10 @@ class HcaptchaManager {
         }
 
         resultsDiv.innerHTML = 'Verifying hCaptcha...';
-        console.log('Executing invisible hCaptcha challenge');
 
         try {
             hcaptcha.execute();
             await this.hcaptchaReadyPromise;
-            console.log('hCaptcha ready, proceeding with submission');
             return true;
         } catch (err) {
             console.error('hCaptcha execution failed:', err);
