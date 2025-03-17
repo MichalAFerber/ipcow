@@ -6,19 +6,19 @@ function validateHcaptcha($response) {
     debugLog("validateHcaptcha called with response: " . substr($response, 0, 50) . "...");
     
     require_once '/var/www/config/config.php';
-    if (!isset($hcaptchaSecretKey)) {
-        debugLog("Error: hCaptcha secret key not found in config.php");
+    if (!defined('HCAPTCHA_SECRET_KEY')) { // Check for constant
+        debugLog("Error: hCaptcha secret key constant not defined in config.php");
         return false;
     }
     debugLog("Secret key loaded from config.php");
     
-    $secretKey = $hcaptchaSecretKey;
+    $secretKey = HCAPTCHA_SECRET_KEY; // Use the constant
     $url = "https://hcaptcha.com/siteverify";
     $data = array(
         'secret' => $secretKey,
         'response' => $response
     );
-    debugLog("Preparing POST data: secret=" . substr($secretKey, 0, 5) . "..."); // Log partial key for safety
+    debugLog("Preparing POST data: secret=" . substr($secretKey, 0, 5) . "...");
     
     $options = array(
         'http' => array(
