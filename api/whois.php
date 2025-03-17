@@ -1,111 +1,98 @@
 <?php
-// Enable error reporting and logging
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', '/var/www/html/php_errors.log');
-error_reporting(E_ALL);
+// /home/appleseed/ipcow/core-dev/api/whois.php
 
-// Define log paths
-$phpErrorLog = '/var/www/html/php_errors.log';
-$debugLog = '/var/www/html/whois_debug.log';
-$logPath = $debugLog;
-$validationResult = validateHcaptcha($hcaptchaResponse, $logPath);
+// Include the hCaptcha utilities
+require_once __DIR__ . '/hcaptcha-utils.php';
 
-// Start debugging
+// Debug log function
+function debugLog($message) {
+    $logFile = '/var/www/html/whois_debug.log';
+    $timestamp = microtime(true);
+    $date = date('Y-m-d H:i:s', (int)$timestamp);
+    $micro = sprintf("%06d", ($timestamp - floor($timestamp)) * 1000000);
+    @file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND | LOCK_EX);
+}
+
+// Start script
 $startTime = microtime(true);
-@file_put_contents($debugLog, "[$startTime] Script started\n", FILE_APPEND | LOCK_EX);
+debugLog("Script started");
 
-// Include files with error checking
-if (!file_exists('/var/www/config/config.php')) {
-  $error = "Config file not found: /var/www/config/config.php";
-  @file_put_contents($debugLog, "[$startTime] Error: $error\n", FILE_APPEND | LOCK_EX);
-  http_response_code(500);
-  echo json_encode(['success' => false, 'error' => $error]);
-  exit;
-}
-require_once '/var/www/config/config.php';
-
+// Check if hcaptcha-utils.php exists
 $hcaptchaUtilsPath = __DIR__ . '/hcaptcha-utils.php';
-@file_put_contents($debugLog, "[$startTime] Checking hCaptcha utils path: $hcaptchaUtilsPath\n", FILE_APPEND | LOCK_EX);
-@file_put_contents($debugLog, "[$startTime] File exists: " . (file_exists($hcaptchaUtilsPath) ? 'Yes' : 'No') . "\n", FILE_APPEND | LOCK_EX);
+debugLog("Checking hCaptcha utils path: $hcaptchaUtilsPath");
 if (!file_exists($hcaptchaUtilsPath)) {
-  $error = "hCaptcha utils file not found: " . $hcaptchaUtilsPath;
-  @file_put_contents($debugLog, "[$startTime] Error: $error\n", FILE_APPEND | LOCK_EX);
-  http_response_code(500);
-  echo json_encode(['success' => false, 'error' => $error]);
-  exit;
-}
-require_once $hcaptchaUtilsPath;
-@file_put_contents($debugLog, "[$startTime] Successfully included hcaptcha-utils.php\n", FILE_APPEND | LOCK_EX);
-
-header('Content-Type: application/json');
-$response = ['success' => false, 'whois' => [], 'error' => '', 'available' => false];
-
-$hcaptchaResponse = $_GET['h-captcha-response'] ?? '';
-@file_put_contents($debugLog, "[$startTime] Received hCaptcha response: $hcaptchaResponse\n", FILE_APPEND | LOCK_EX);
-$validationResult = validateHcaptcha($hcaptchaResponse);
-if (!$validationResult['success']) {
-    $response['error'] = $validationResult['error'];
-    @file_put_contents($debugLog, "[$startTime] hCaptcha validation error: " . $response['error'] . "\n", FILE_APPEND | LOCK_EX);
-    echo json_encode($response);
+    debugLog("Error: hCaptcha utils file not found: $hcaptchaUtilsPath");
+    http_response_code(500);
+    echo json_encode(['error' => 'Internal server error']);
     exit;
 }
+debugLog("File exists: Yes");
 
-$domain = $_GET['domain'] ?? '';
-@file_put_contents($debugLog, "[$startTime] Received domain: $domain\n", FILE_APPEND | LOCK_EX);
+// Process WHOIS request
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['domain']) && isset($_GET['h-captcha-response'])) {
+    $domain = trim($_GET['domain']);
+    $captchaResponse = $_GET['h-captcha-response'];
 
-if ($domain && filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
-    $whoisStart = microtime(true);
-    $whoisOutput = @shell_exec("whois " . escapeshellarg($domain));
-    $whoisEnd = microtime(true);
-    @file_put_contents($debugLog, "[$startTime] WHOIS time: " . (($whoisEnd - $whoisStart) * 1000) . " ms\n", FILE_APPEND | LOCK_EX);
+    debugLog("Received domain: $domain");
+    debugLog("Received hCaptcha response: $captchaResponse");
 
-    if ($whoisOutput === null || trim($whoisOutput) === '') {
-        $response['error'] = "No WHOIS data found for $domain or query failed.";
-        @file_put_contents($debugLog, "[$startTime] Error: " . $response['error'] . "\n", FILE_APPEND | LOCK_EX);
-    } else {
-        $whoisOutputLower = strtolower($whoisOutput);
-        if (strpos($whoisOutputLower, 'no match') !== false || 
-            strpos($whoisOutputLower, 'not found') !== false || 
-            strpos($whoisOutputLower, 'no entries found') !== false) {
-            $response['success'] = true;
-            $response['available'] = true;
-        } else {
-            $whoisData = [];
-            $lines = explode("\n", trim($whoisOutput));
-            foreach ($lines as $line) {
-                if (empty($line) || str_starts_with($line, '#') || str_starts_with($line, '%') || str_starts_with($line, '>>>') || str_starts_with($line, 'NOTICE:')) {
-                    continue;
-                }
-                $parts = explode(':', $line, 2);
-                if (count($parts) === 2) {
-                    $key = trim($parts[0]);
-                    $value = trim($parts[1]);
-                    if (!empty($key) && !empty($value)) {
-                        if (isset($whoisData[$key])) {
-                            if (!is_array($whoisData[$key])) {
-                                $whoisData[$key] = [$whoisData[$key]];
-                            }
-                            $whoisData[$key][] = $value;
-                        } else {
-                            $whoisData[$key] = $value;
-                        }
-                    }
-                }
-            }
-            if (!empty($whoisData)) {
-                $response['success'] = true;
-                $response['whois'] = $whoisData;
-            } else {
-                $response['error'] = "Could not parse WHOIS data for $domain.";
-            }
+    if (empty($domain) || empty($captchaResponse)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Missing domain or captcha response']);
+        exit;
+    }
+
+    // Validate hCaptcha
+    $validationResult = validateHcaptcha($captchaResponse);
+    debugLog("hCaptcha validation result: " . json_encode($validationResult));
+
+    if (!$validationResult['success']) {
+        http_response_code(400);
+        echo json_encode(['error' => $validationResult['error']]);
+        exit;
+    }
+
+    // Perform WHOIS lookup
+    $whoisStartTime = microtime(true);
+    $whoisCommand = "whois $domain 2>/dev/null";
+    $whoisOutput = shell_exec($whoisCommand);
+    $whoisTime = (microtime(true) - $whoisStartTime) * 1000; // Convert to milliseconds
+
+    if ($whoisOutput === null) {
+        http_response_code(500);
+        echo json_encode(['error' => 'WHOIS lookup failed']);
+        exit;
+    }
+
+    // Parse WHOIS output into an array
+    $whoisData = [];
+    $lines = explode("\n", trim($whoisOutput));
+    foreach ($lines as $line) {
+        if (preg_match('/^([^:]+):[ \t]*(.+)$/', $line, $matches)) {
+            $key = trim($matches[1]);
+            $value = trim($matches[2]);
+            $whoisData[$key] = $value;
         }
     }
-} else {
-    $response['error'] = "Invalid domain.";
-}
 
-$totalTime = (microtime(true) - $startTime) * 1000;
-@file_put_contents($debugLog, "[$startTime] Total time: $totalTime ms\n", FILE_APPEND | LOCK_EX);
-echo json_encode($response);
-?>
+    // Calculate total time
+    $totalTime = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
+    debugLog("WHOIS time: $whoisTime ms");
+    debugLog("Total time: $totalTime ms");
+
+    // Return WHOIS data as JSON
+    header('Content-Type: application/json');
+    echo json_encode([
+        'domain' => $domain,
+        'whois' => $whoisData,
+        'execution_time' => [
+            'whois' => $whoisTime,
+            'total' => $totalTime
+        ]
+    ]);
+    exit;
+} else {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid request method or parameters']);
+    exit;
+}
