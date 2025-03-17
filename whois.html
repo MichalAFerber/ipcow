@@ -29,12 +29,64 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       return;
     }
 
+    // Function to parse raw WHOIS string into structured data
+    function parseWhoisData(rawWhois) {
+      const lines = rawWhois.split('\r\n').map(line => line.trim());
+      const whoisData = {
+        registrar: {},
+        dates: {},
+        status: [],
+        name_servers: []
+      };
+      let lastKey = '';
+
+      // Stop parsing at boilerplate
+      const stopMarker = '>>> Last update of whois database:';
+      for (const line of lines) {
+        if (line.startsWith(stopMarker)) {
+          whoisData.last_updated = line.split(stopMarker)[1].trim();
+          break;
+        }
+        if (!line || line.startsWith('#')) continue;
+
+        const [keyPart, ...valueParts] = line.split(':');
+        if (!valueParts.length) continue; // Skip lines without values
+        const key = keyPart.trim().toLowerCase().replace(/\s+/g, '_');
+        const value = valueParts.join(':').trim();
+
+        if (key === 'domain_name') whoisData.domain_name = value;
+        else if (key === 'registry_domain_id') whoisData.registry_domain_id = value;
+        else if (key.includes('registrar')) {
+          if (key === 'registrar') whoisData.registrar.name = value;
+          else if (key === 'registrar_whois_server') whoisData.registrar.whois_server = value;
+          else if (key === 'registrar_url') whoisData.registrar.url = value;
+          else if (key === 'registrar_iana_id') whoisData.registrar.iana_id = value;
+          else if (key === 'registrar_abuse_contact_email') whoisData.registrar.abuse_contact_email = value;
+          else if (key === 'registrar_abuse_contact_phone') whoisData.registrar.abuse_contact_phone = value;
+        } else if (key.includes('date')) {
+          if (key === 'updated_date') whoisData.dates.updated = value;
+          else if (key === 'creation_date') whoisData.dates.created = value;
+          else if (key === 'registry_expiry_date') whoisData.dates.expiry = value;
+        } else if (key === 'domain_status') whoisData.status.push(value);
+        else if (key === 'name_server') whoisData.name_servers.push(value);
+        else if (key === 'dnssec') whoisData.dnssec = value;
+
+        lastKey = key; // Track last key for multi-line values (if any)
+      }
+
+      // Remove empty nested objects
+      if (!Object.keys(whoisData.registrar).length) delete whoisData.registrar;
+      if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
+      if (!whoisData.status.length) delete whoisData.status;
+      if (!whoisData.name_servers.length) delete whoisData.name_servers;
+
+      return whoisData;
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Reset hCaptcha before each submission
       hcaptchaManager.resetHcaptcha();
-
       const success = await hcaptchaManager.executeHcaptcha();
       if (!success) return;
 
@@ -80,7 +132,16 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         exportBtn.style.marginTop = '20px';
         exportBtn.className = 'btn btn-primary';
         exportBtn.onclick = () => {
-          const exportData = { domain, latency: `${latency} ms`, whois: whoisData, whois_time_ms: data.whois_time_ms, total_time_ms: data.total_time_ms };
+          const parsedWhois = parseWhoisData(whoisData);
+          const exportData = {
+            domain: domain,
+            latency_ms: parseFloat(latency),
+            whois: parsedWhois,
+            timings: {
+              whois_ms: parseFloat(data.whois_time_ms.toFixed(2)),
+              total_ms: parseFloat(data.total_time_ms.toFixed(2))
+            }
+          };
           const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
