@@ -16,8 +16,10 @@ if (empty($hcaptchaResponse)) {
   exit;
 }
 
+file_put_contents($logPath, "[$startTime] Received hCaptcha response: $hcaptchaResponse\n", FILE_APPEND);
+
 // Validate hCaptcha response
-$secretKey = defined('HCAPTCHA_SECRET_KEY') ? HCAPTCHA_SECRET_KEY : 'your-hcaptcha-secret-key-here'; // Replace with your secret key if not defined
+$secretKey = defined('HCAPTCHA_SECRET_KEY') ? HCAPTCHA_SECRET_KEY : die('HCAPTCHA_SECRET_KEY not defined in config.php');
 $verifyUrl = 'https://hcaptcha.com/siteverify';
 $verifyData = [
   'secret' => $secretKey,
@@ -34,13 +36,19 @@ $options = [
 ];
 $context  = stream_context_create($options);
 $verifyResult = file_get_contents($verifyUrl, false, $context);
-$verifyResult = json_decode($verifyResult, true);
+if ($verifyResult === false) {
+  $response['error'] = 'Failed to connect to hCaptcha verification server.';
+  file_put_contents($logPath, "[$startTime] Error: Failed to connect to hCaptcha verification server\n", FILE_APPEND);
+  echo json_encode($response);
+  exit;
+}
 
+$verifyResult = json_decode($verifyResult, true);
 file_put_contents($logPath, "[$startTime] hCaptcha verification result: " . json_encode($verifyResult) . "\n", FILE_APPEND);
 
 if (!$verifyResult || !$verifyResult['success']) {
-  $response['error'] = 'hCaptcha verification failed.';
-  file_put_contents($logPath, "[$startTime] Error: hCaptcha verification failed\n", FILE_APPEND);
+  $response['error'] = 'hCaptcha verification failed: ' . ($verifyResult['error-codes'][0] ?? 'Unknown error');
+  file_put_contents($logPath, "[$startTime] Error: hCaptcha verification failed: " . ($verifyResult['error-codes'][0] ?? 'Unknown error') . "\n", FILE_APPEND);
   echo json_encode($response);
   exit;
 }
