@@ -8,6 +8,8 @@ error_reporting(E_ALL);
 // Define log paths
 $phpErrorLog = '/var/www/html/php_errors.log';
 $debugLog = '/var/www/html/whois_debug.log';
+$logPath = $debugLog;
+$validationResult = validateHcaptcha($hcaptchaResponse, $logPath);
 
 // Start debugging
 $startTime = microtime(true);
@@ -34,6 +36,7 @@ if (!file_exists($hcaptchaUtilsPath)) {
   exit;
 }
 require_once $hcaptchaUtilsPath;
+@file_put_contents($debugLog, "[$startTime] Successfully included hcaptcha-utils.php\n", FILE_APPEND | LOCK_EX);
 
 header('Content-Type: application/json');
 $response = ['success' => false, 'whois' => [], 'error' => '', 'available' => false];

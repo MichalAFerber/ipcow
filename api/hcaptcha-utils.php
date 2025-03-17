@@ -1,8 +1,7 @@
 <?php
 require_once '/var/www/config/config.php';
 
-function validateHcaptcha($hcaptchaResponse) {
-    global $logPath;
+function validateHcaptcha($hcaptchaResponse, $logPath) {
     $startTime = microtime(true);
 
     if (empty($hcaptchaResponse)) {
