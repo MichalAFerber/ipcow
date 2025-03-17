@@ -211,7 +211,11 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
       hcaptchaManager.resetHcaptcha();
       const success = await hcaptchaManager.executeHcaptcha();
-      if (!success) return;
+      if (!success) {
+        const resultsDiv = document.getElementById('whois-results');
+        resultsDiv.innerHTML = 'hCaptcha verification failed. Please try again.';
+        return;
+      }
 
       let domain = document.getElementById('domain').value.trim();
       domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
