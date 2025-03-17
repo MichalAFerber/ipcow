@@ -29,7 +29,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       return;
     }
 
-    // Function to parse raw WHOIS string into structured data
+    // Function to parse raw WHOIS string into structured data (unchanged)
     function parseWhoisData(rawWhois) {
       const lines = rawWhois.split('\r\n').map(line => line.trim());
       const whoisData = {
@@ -40,8 +40,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       };
       let lastKey = '';
 
-      // Stop parsing at boilerplate
-      const stopMarker = '>>> Last update of whois database:';
+      const stopMarker = '>>> Last update of WHOIS database:';
       for (const line of lines) {
         if (line.startsWith(stopMarker)) {
           whoisData.last_updated = line.split(stopMarker)[1].trim();
@@ -50,7 +49,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         if (!line || line.startsWith('#')) continue;
 
         const [keyPart, ...valueParts] = line.split(':');
-        if (!valueParts.length) continue; // Skip lines without values
+        if (!valueParts.length) continue;
         const key = keyPart.trim().toLowerCase().replace(/\s+/g, '_');
         const value = valueParts.join(':').trim();
 
@@ -71,10 +70,9 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         else if (key === 'name_server') whoisData.name_servers.push(value);
         else if (key === 'dnssec') whoisData.dnssec = value;
 
-        lastKey = key; // Track last key for multi-line values (if any)
+        lastKey = key;
       }
 
-      // Remove empty nested objects
       if (!Object.keys(whoisData.registrar).length) delete whoisData.registrar;
       if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
       if (!whoisData.status.length) delete whoisData.status;
@@ -95,6 +93,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
       const resultsDiv = document.getElementById('whois-results');
       resultsDiv.innerHTML = 'Loading...';
+      console.log('Submitting form with domain:', domain, 'and hCaptcha response:', hcaptchaManager.getHcaptchaResponse());
 
       try {
         const startTime = performance.now();
@@ -116,14 +115,15 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           return;
         }
 
-        let formatted = '<table><tr><th>Metric</th><th>Value</th></tr>';
+        // Format the response into a table
+        let formatted = '<table class="table table-striped"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>';
         formatted += `<tr><td>Domain</td><td>${domain}</td></tr>`;
         formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
         formatted += `<tr><td>WHOIS Time</td><td>${data.whois_time_ms.toFixed(2)} ms</td></tr>`;
         formatted += `<tr><td>Total Time</td><td>${data.total_time_ms.toFixed(2)} ms</td></tr>`;
         formatted += '<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>';
         formatted += `<tr><td colspan="2"><pre>${whoisData.trim()}</pre></td></tr>`;
-        formatted += '</table>';
+        formatted += '</tbody></table>';
 
         resultsDiv.innerHTML = formatted;
 
