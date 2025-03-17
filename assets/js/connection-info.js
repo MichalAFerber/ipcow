@@ -1,5 +1,4 @@
-console.log('Script loaded');
-
+//console.log('Script loaded');
 async function loadInfo() {
   const elements = document.querySelectorAll('#connection-info span, #ipv4-display, #ipv6-display');
   elements.forEach(el => el.textContent = 'Loading...');
@@ -16,7 +15,7 @@ async function loadInfo() {
       throw new Error(serverData.error || 'Failed to load server data.');
     }
     const data = serverData.data;
-    console.log('IPv4 from info.php:', data.ipv4);
+    console.log('IPv4:', data.ipv4);
 
     // Fetch IPv6 from checkipv6.ipcow.com
     const checkIpV6Response = await fetch('https://checkipv6.ipcow.com/', {
@@ -26,7 +25,7 @@ async function loadInfo() {
       throw new Error('Failed to fetch IPv6 from checkipv6.ipcow.com');
     }
     let ipv6 = await checkIpV6Response.text();
-    console.log('IPv6 from checkipv6:', ipv6);
+    console.log('IPv6:', ipv6);
     if (ipv6 === 'No IPv6 detected') {
       ipv6 = 'Unavailable';
     }
@@ -74,6 +73,6 @@ async function loadInfo() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM fully loaded, calling loadInfo');
+  //console.log('DOM fully loaded, calling loadInfo');
   loadInfo();
 });
