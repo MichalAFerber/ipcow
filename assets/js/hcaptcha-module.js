@@ -45,7 +45,7 @@ class HcaptchaManager {
         }
 
         for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
-            resultsDiv.innerHTML = `Verifying hCaptcha... (Attempt ${attempt} of ${this.config.maxRetries})`;
+            //resultsDiv.innerHTML = `Verifying hCaptcha... (Attempt ${attempt} of ${this.config.maxRetries})`;
 
             try {
                 // Reset the promise for each attempt
