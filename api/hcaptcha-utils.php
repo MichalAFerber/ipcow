@@ -1,12 +1,10 @@
 <?php
-require_once __DIR__ . '/utils.php'; // Include utils.php for debugLog()
+require_once __DIR__ . '/utils.php';
 
-// hCaptcha validation function
 function validateHcaptcha($response) {
-    global $logFile; // Still needed if you want to reference it directly
+    global $logFile;
     debugLog("validateHcaptcha called with response: " . substr($response, 0, 50) . "...");
     
-    // Include config file with secret key
     require_once '/var/www/config/config.php';
     if (!isset($hcaptchaSecretKey)) {
         debugLog("Error: hCaptcha secret key not found in config.php");
@@ -20,7 +18,7 @@ function validateHcaptcha($response) {
         'secret' => $secretKey,
         'response' => $response
     );
-    debugLog("Preparing POST data");
+    debugLog("Preparing POST data: secret=" . substr($secretKey, 0, 5) . "..."); // Log partial key for safety
     
     $options = array(
         'http' => array(
@@ -32,12 +30,13 @@ function validateHcaptcha($response) {
     debugLog("Sending HTTP request to $url");
     
     $context = stream_context_create($options);
-    $result = @file_get_contents($url, false, $context); // @ suppresses warnings
+    $result = @file_get_contents($url, false, $context);
     if ($result === false) {
-        debugLog("Error: Failed to get response from hCaptcha API");
+        $error = error_get_last();
+        debugLog("Error: Failed to get response from hCaptcha API - " . ($error['message'] ?? 'Unknown error'));
         return false;
     }
-    debugLog("HTTP response received");
+    debugLog("HTTP response received: " . substr($result, 0, 100) . "...");
     
     $responseData = json_decode($result, true);
     if (json_last_error() !== JSON_ERROR_NONE) {
@@ -45,6 +44,9 @@ function validateHcaptcha($response) {
         return false;
     }
     debugLog("JSON decoded: " . json_encode($responseData));
+    if (isset($responseData['error-codes'])) {
+        debugLog("hCaptcha error codes: " . implode(', ', $responseData['error-codes']));
+    }
     
     return $responseData['success'] ?? false;
 }
