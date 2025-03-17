@@ -1,0 +1,28 @@
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>https://ipcow.com</loc>
+        <lastmod>2025-02-10</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <!-- Pages --> 
+    @foreach (var page in Model.Pages) 
+    {
+        <url>
+            <loc>@page.Url</loc>
+            <lastmod>@page.LastModified.ToString("yyyy-MM-dd")</lastmod>
+            <changefreq>@page.ChangeFrequency.ToString().ToLower()</changefreq>
+            <priority>@page.Priority.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)</priority>
+        </url>
+    }
+    <!-- Posts --> 
+    @foreach (var post in Model.Posts) 
+    { 
+        <url>
+            <loc>@post.Url</loc>
+            <lastmod>@post.LastModified.ToString("yyyy-MM-dd")</lastmod>
+            <changefreq>@post.ChangeFrequency.ToString().ToLower()</changefreq>
+            <priority>@post.Priority.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)</priority>
+        </url>
+    }
+</urlset>
