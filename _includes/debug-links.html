@@ -1,0 +1,12 @@
+{% for link in site.html_pages %}
+  {% assign doc = link.content | strip %}
+  {% if doc contains '<a' %}
+    {% assign nodes = doc | split: '<a' %}
+    {% for node in nodes %}
+      {% if node contains 'href="' %}
+        {% assign href = node | split: 'href="' | last | split: '"' | first %}
+        <p>Debug: {{ link.path }} - href: {{ href | inspect }}</p>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endfor %}
