@@ -8,7 +8,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 <form class="form-inline justify-content-center" method="GET" action="/api/whois.php" novalidate>
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
   <!-- hCaptcha Invisible Widget -->
-  <div class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752" data-size="invisible"></div>
+  <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752" data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 <div id="whois-results" class="center-results"></div>
@@ -31,7 +31,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       console.log('hCaptcha script loaded');
     };
 
-    // Callback when hCaptcha is verified (for invisible mode)
+    // Callback when hCaptcha is verified
     window.hcaptchaVerifyCallback = function(response) {
       console.log('hCaptcha verified with response:', response);
       hcaptchaResponse = response;
@@ -70,9 +70,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
       // Execute the invisible hCaptcha challenge
       try {
-        hcaptcha.execute(document.querySelector('.h-captcha'), {
-          callback: 'hcaptchaVerifyCallback'
-        });
+        hcaptcha.execute(); // No widgetId needed since there's only one hCaptcha widget
       } catch (err) {
         console.error('hCaptcha execution failed:', err);
         resultsDiv.innerHTML = 'Error: Failed to execute hCaptcha. Please refresh and try again.';
