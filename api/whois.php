@@ -1,111 +1,140 @@
 <?php
-require_once __DIR__ . '/utils.php'; // Include utils.php for debugLog()
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET');
+header('Access-Control-Allow-Headers: Content-Type');
 
-// Start script
-$scriptStartTime = microtime(true);
-debugLog("Script started");
+// Configuration
+const DEFAULT_WHOIS_SERVER = 'whois.iana.org';
+const DEFAULT_PORT = 43;
+const MAX_REFERRAL_DEPTH = 3; // Prevent infinite loops
+const TIMEOUT = 10; // Socket timeout in seconds
 
-// Check for GET parameters
-if (!isset($_GET['domain']) || !isset($_GET['h-captcha-response'])) {
-    debugLog("Error: Missing domain or hCaptcha response");
-    http_response_code(400);
-    echo json_encode(['error' => 'Missing domain or hCaptcha response']);
+// Validate domain
+$domain = isset($_GET['domain']) ? trim($_GET['domain']) : '';
+if (empty($domain) || !preg_match('/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', $domain)) {
+    echo json_encode(['success' => false, 'error' => 'Invalid domain']);
     exit;
 }
 
-$domain = htmlspecialchars($_GET['domain']);
-$hCaptchaResponse = $_GET['h-captcha-response'];
-debugLog("GET parameters received: domain=$domain, hCaptcha response length=" . strlen($hCaptchaResponse));
-
-// Include hCaptcha utility functions
-require_once __DIR__ . '/hcaptcha-utils.php';
-
-debugLog("Calling validateHcaptcha");
-if (!validateHcaptcha($hCaptchaResponse)) {
-    debugLog("Error: hCaptcha validation failed");
-    http_response_code(403);
-    echo json_encode(['error' => 'hCaptcha validation failed']);
+// Validate hCaptcha response
+$hcaptcha_response = isset($_GET['h-captcha-response']) ? $_GET['h-captcha-response'] : '';
+$secret_key = 'YOUR_HCAPTCHA_SECRET_KEY'; // Replace with your hCaptcha secret key
+if (empty($hcaptcha_response)) {
+    echo json_encode(['success' => false, 'error' => 'hCaptcha response missing']);
     exit;
 }
-debugLog("hCaptcha validation result: success");
 
-// Function to get WHOIS server based on TLD
-function getWhoisServer($domain) {
-    $tld = strtolower(substr(strrchr($domain, '.'), 1));
-    $whoisServers = [
-        'com' => 'whois.verisign-grs.com',
-        'net' => 'whois.verisign-grs.com',
-        'edu' => 'whois.verisign-grs.com',
-        'org' => 'whois.pir.org',
-        'me' => 'whois.nic.me',
-        'co' => 'whois.nic.co',
-        'io' => 'whois.nic.io',
-        // Add more TLDs as needed
-        'default' => 'whois.iana.org' // Fallback for unknown TLDs
-    ];
-    return $whoisServers[$tld] ?? $whoisServers['default'];
+$hcaptcha_verify_url = 'https://hcaptcha.com/siteverify';
+$hcaptcha_data = [
+    'secret' => $secret_key,
+    'response' => $hcaptcha_response,
+    'remoteip' => $_SERVER['REMOTE_ADDR']
+];
+
+$hcaptcha_response = file_get_contents($hcaptcha_verify_url . '?' . http_build_query($hcaptcha_data));
+$hcaptcha_result = json_decode($hcaptcha_response, true);
+
+if (!$hcaptcha_result['success']) {
+    echo json_encode(['success' => false, 'error' => 'hCaptcha verification failed']);
+    exit;
 }
 
-// Function to perform WHOIS lookup
-function performWhoisLookup($domain, $server, &$whoisTime) {
-    $port = 43;
-    $fp = @fsockopen($server, $port, $errno, $errstr, 10);
-    if (!$fp) {
-        debugLog("Error: WHOIS connection failed to $server - $errstr ($errno)");
-        return false;
+// Function to perform a WHOIS query
+function queryWhois($domain, $server, $port = DEFAULT_PORT) {
+    $start_time = microtime(true);
+
+    $socket = @fsockopen($server, $port, $errno, $errstr, TIMEOUT);
+    if (!$socket) {
+        return ['success' => false, 'error' => "Cannot connect to WHOIS server $server: $errstr ($errno)"];
     }
 
-    fputs($fp, "$domain\r\n");
-    $whoisData = '';
-    $startTime = microtime(true);
-    while (!feof($fp)) {
-        $whoisData .= fgets($fp, 128);
+    // Send the WHOIS query
+    fwrite($socket, "$domain\r\n");
+
+    // Read the response
+    $response = '';
+    while (!feof($socket)) {
+        $response .= fgets($socket, 128);
     }
-    fclose($fp);
-    $whoisTime = (microtime(true) - $startTime) * 1000;
+    fclose($socket);
 
-    debugLog("WHOIS time for $server: " . number_format($whoisTime, 2) . " ms");
-    debugLog("WHOIS data received from $server: " . substr($whoisData, 0, 100) . "...");
-    return $whoisData;
+    $end_time = microtime(true);
+    $duration_ms = ($end_time - $start_time) * 1000;
+
+    return ['success' => true, 'data' => $response, 'time_ms' => $duration_ms];
 }
 
-// Perform initial WHOIS lookup
-$whoisServer = getWhoisServer($domain);
-debugLog("Initial WHOIS server: $whoisServer");
-$whoisData = performWhoisLookup($domain, $whoisServer, $whoisTime);
-
-if ($whoisData === false) {
-    http_response_code(500);
-    echo json_encode(['error' => "WHOIS lookup failed for server: $whoisServer"]);
-    exit;
-}
-
-// Check for referral to registrar's WHOIS server
-if (preg_match('/Registrar WHOIS Server: (.+)/i', $whoisData, $match)) {
-    $registrarWhois = trim($match[1]);
-    if ($registrarWhois && $registrarWhois !== $whoisServer) {
-        debugLog("Referral detected, querying: $registrarWhois");
-        $referralData = performWhoisLookup($domain, $registrarWhois, $referralTime);
-        if ($referralData !== false) {
-            $whoisData = $referralData; // Use referral data if successful
-            $whoisTime = $referralTime; // Update time to reflect referral lookup
-        } else {
-            debugLog("Referral lookup failed, sticking with initial data");
+// Function to parse WHOIS response for a refer field
+function parseRefer($whois_data) {
+    $lines = explode("\n", $whois_data);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (preg_match('/^refer:\s*([^\s]+)/i', $line, $matches)) {
+            return $matches[1];
         }
     }
+    return null;
 }
 
-// Calculate total time
-$totalTime = (microtime(true) - $scriptStartTime) * 1000;
-debugLog("Total time: " . number_format($totalTime, 2) . " ms");
+// Recursive WHOIS lookup function
+function recursiveWhois($domain, $server = DEFAULT_WHOIS_SERVER, $depth = 0) {
+    if ($depth > MAX_REFERRAL_DEPTH) {
+        return ['success' => false, 'error' => 'Maximum referral depth reached', 'time_ms' => 0];
+    }
 
-// Return response
-header('Content-Type: application/json');
+    // Query the current WHOIS server
+    $result = queryWhois($domain, $server);
+    if (!$result['success']) {
+        return $result;
+    }
+
+    $whois_data = $result['data'];
+    $current_time_ms = $result['time_ms'];
+
+    // Look for a refer field in the response
+    $refer_server = parseRefer($whois_data);
+    if ($refer_server) {
+        // Follow the referral
+        $refer_result = recursiveWhois($domain, $refer_server, $depth + 1);
+        if ($refer_result['success']) {
+            // Combine the timing from the current query and the referred query
+            $refer_result['time_ms'] += $current_time_ms;
+            return $refer_result;
+        } else {
+            // If the referral fails, return the current WHOIS data as a fallback
+            return ['success' => true, 'data' => $whois_data, 'time_ms' => $current_time_ms];
+        }
+    }
+
+    // No referral found, return the current WHOIS data
+    return ['success' => true, 'data' => $whois_data, 'time_ms' => $current_time_ms];
+}
+
+// Main execution
+$total_start_time = microtime(true);
+
+// Perform the recursive WHOIS lookup
+$result = recursiveWhois($domain);
+
+$total_end_time = microtime(true);
+$total_time_ms = ($total_end_time - $total_start_time) * 1000;
+
+if (!$result['success']) {
+    echo json_encode([
+        'success' => false,
+        'error' => $result['error'],
+        'total_time_ms' => $total_time_ms
+    ]);
+    exit;
+}
+
+// Return the final WHOIS data
 echo json_encode([
     'success' => true,
     'domain' => $domain,
-    'whois' => trim($whoisData),
-    'whois_time_ms' => $whoisTime,
-    'total_time_ms' => $totalTime
+    'whois' => $result['data'],
+    'whois_time_ms' => $result['time_ms'],
+    'total_time_ms' => $total_time_ms
 ]);
 ?>
