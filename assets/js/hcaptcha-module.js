@@ -1,24 +1,17 @@
 class HcaptchaManager {
     constructor(config) {
       this.config = {
-        siteKey: '1eb25e26-63d0-476a-bcb6-ae62a2b04752',
+        siteKey: config.siteKey || '1eb25e26-63d0-476a-bcb6-ae62a2b04752',
         formSelector: config.formSelector || 'form',
         resultsId: config.resultsId || 'whois-results',
         timeout: config.timeout || 60000,
         ...config
       };
       this.hcaptchaResponse = null;
-      this.hcaptchaPromiseResolve = null;
-      this.hcaptchaPromiseReject = null;
       this.hcaptchaReadyPromise = new Promise((resolve, reject) => {
         this.hcaptchaPromiseResolve = resolve;
         this.hcaptchaPromiseReject = reject;
       });
-  
-      // Set up hCaptcha callbacks
-      window.hcaptchaOnloadCallback = () => {
-        console.log('hCaptcha script loaded');
-      };
   
       window.hcaptchaVerifyCallback = (response) => {
         console.log('hCaptcha verified with response:', response);
@@ -33,11 +26,10 @@ class HcaptchaManager {
       setTimeout(() => {
         if (!this.hcaptchaResponse) {
           const resultsDiv = document.getElementById(this.config.resultsId);
-          if (resultsDiv) {
-            resultsDiv.innerHTML = 'Error: hCaptcha verification timed out. Please try again.';
-          }
+          if (resultsDiv) resultsDiv.innerHTML = 'Error: hCaptcha verification timed out. Please try again.';
           console.error('hCaptcha verification timed out after', this.config.timeout / 1000, 'seconds');
           this.hcaptchaPromiseReject(new Error('hCaptcha verification timed out'));
+          hcaptcha.reset();
         }
       }, this.config.timeout);
     }
@@ -67,11 +59,16 @@ class HcaptchaManager {
     getHcaptchaResponse() {
       return this.hcaptchaResponse;
     }
+  
+    reset() {
+      this.hcaptchaResponse = null;
+      this.hcaptchaReadyPromise = new Promise((resolve, reject) => {
+        this.hcaptchaPromiseResolve = resolve;
+        this.hcaptchaPromiseReject = reject;
+      });
+      hcaptcha.reset();
+      this.setupTimeout();
+    }
   }
   
-  // Export for use with module systems or make globally available
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = HcaptchaManager;
-  } else {
-    window.HcaptchaManager = HcaptchaManager;
-  }
+  window.HcaptchaManager = HcaptchaManager;
