@@ -4,7 +4,7 @@ source "https://rubygems.org"
 gem "jekyll", "~> 4.4.1"
 gem "jekyll-remote-theme"
 gem 'jekyll-sass-converter'
-#gem 'jekyll-target-blank'
+gem 'jekyll-target-blank'
 gem "bigdecimal"
 
 group :jekyll_plugins do

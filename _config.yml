@@ -129,20 +129,10 @@ footer-hover-col: "#0085A1"
 # For any extra visual customization, you can include additional CSS files in every page on your site. List any custom CSS files here
 site-css:
 #  - "https://beautifuljekyll.com/pro/dark-mode.min.css"
-  - "https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
-  - "https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic"
-  - "https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800"
-  - "/assets/css/bootstrap-social.css"
-  - "/assets/css/beautifuljekyll.css"
-  - "/assets/css/main.css"
 
 # If you have common JavaScript files that should be included in every page, list them here
 site-js:
 #  - "/assets/js/custom-script.js"
-  - "/assets/js/beautifuljekyll.js"
-  - "https://code.jquery.com/jquery-3.5.1.slim.min.js"
-  - "https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
-  - "https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
 
 # Ruby Date Format to show dates of posts
 date_format: "%B %-d, %Y"
@@ -201,7 +191,7 @@ plugins:
   - jekyll-paginate
   - jekyll-sitemap
   - jekyll-feed
-#  - jekyll-target-blank
+  - jekyll-target-blank
 
 # Beautiful Jekyll / Dean Attali
 # 2fc73a3a967e97599c9763d05e564189
