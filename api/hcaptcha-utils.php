@@ -4,12 +4,21 @@
 // Include the configuration file
 require_once '/var/www/config/config.php';
 
+// Debug log function (shared with whois.php)
+function debugLog($message) {
+    $logFile = '/var/www/html/whois_debug.log';
+    $timestamp = microtime(true);
+    $date = date('Y-m-d H:i:s', (int)$timestamp);
+    $micro = sprintf("%06d", ($timestamp - floor($timestamp)) * 1000000);
+    @file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND | LOCK_EX);
+}
+
 // Function to validate hCaptcha response
 function validateHcaptcha($response) {
     $startTime = microtime(true);
 
     if (empty($response)) {
-        error_log("[$startTime] Error: hCaptcha response missing.");
+        debugLog("[$startTime] Error: hCaptcha response missing.");
         return ['success' => false, 'error' => 'hCaptcha response missing.'];
     }
 
@@ -34,19 +43,19 @@ function validateHcaptcha($response) {
 
     if ($verifyResult === false) {
         $error = 'Failed to connect to hCaptcha verification server.';
-        error_log("[$startTime] Error: $error");
+        debugLog("[$startTime] Error: $error");
         return ['success' => false, 'error' => $error];
     }
 
     $verifyResult = json_decode($verifyResult, true);
-    error_log("[$startTime] hCaptcha verification result: " . json_encode($verifyResult));
+    debugLog("[$startTime] hCaptcha verification result: " . json_encode($verifyResult));
 
     if (!$verifyResult || !$verifyResult['success']) {
         $error = 'hCaptcha verification failed: ' . ($verifyResult['error-codes'][0] ?? 'Unknown error');
-        error_log("[$startTime] Error: $error");
+        debugLog("[$startTime] Error: $error");
         return ['success' => false, 'error' => $error];
     }
 
-    error_log("[$startTime] hCaptcha verification successful");
+    debugLog("[$startTime] hCaptcha verification successful");
     return ['success' => true];
 }

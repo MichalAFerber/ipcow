@@ -47,12 +47,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['domain']) && isset($_GE
     debugLog("hCaptcha validation result: " . json_encode($validationResult));
 
     if (!$validationResult['success']) {
-        http_response_code(400);
-        echo json_encode(['error' => $validationResult['error']]);
+        if (isset($validationResult['error']) && $validationResult['error'] === 'hCaptcha verification failed: already-seen-response') {
+            debugLog("[$startTime] Warning: hCaptcha response reused, prompting new challenge.");
+            http_response_code(400);
+            echo json_encode(['error' => 'Please complete a new hCaptcha challenge.']);
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => $validationResult['error']]);
+        }
         exit;
     }
 
-    // Perform WHOIS lookup
+    // Sanitize domain to prevent command injection
+    $domain = escapeshellarg($domain);
     $whoisStartTime = microtime(true);
     $whoisCommand = "whois $domain 2>/dev/null";
     $whoisOutput = shell_exec($whoisCommand);
