@@ -65,7 +65,6 @@ async function loadInfo() {
     setText('javascript-enabled', 'true');
     setText('language', navigator.language);
 
-    //errorMessage.style.display = 'none';
   } catch (error) {
     console.error('Error in loadInfo:', error);
     errorMessage.textContent = `Error: ${error.message}`;
