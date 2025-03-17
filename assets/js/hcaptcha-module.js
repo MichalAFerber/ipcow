@@ -14,7 +14,7 @@ class HcaptchaManager {
         });
 
         window.hcaptchaVerifyCallback = (response) => {
-            console.log('hCaptcha verified with response:', response);
+            //console.log('hCaptcha verified with response:', response);
             this.hcaptchaResponse = response;
             this.hcaptchaPromiseResolve();
         };
