@@ -50,14 +50,23 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       let currentContactType = null; // Track the current contact type (administrative, technical, etc.)
       let inContactSection = false; // Track if we are in a contact section
 
-      const stopMarker = '>>> Last update of WHOIS database:';
+      const stopMarkers = [
+        '>>> Last update of WHOIS database:',
+        '>>>_last_update_of_whois_database'
+      ];
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (line.startsWith(stopMarker)) {
-          whoisData.last_updated = line.split(stopMarker)[1].trim();
-          console.log('Found stop marker, last_updated:', whoisData.last_updated); // Debug
-          break;
+        let stopMarkerFound = false;
+        for (const marker of stopMarkers) {
+          if (line.startsWith(marker)) {
+            whoisData.last_updated = line.split(marker)[1].trim();
+            console.log('Found stop marker, last_updated:', whoisData.last_updated); // Debug
+            stopMarkerFound = true;
+            break;
+          }
         }
+        if (stopMarkerFound) break;
+
         if (!line || line.startsWith('#') || line.startsWith('%')) continue;
 
         // Split on the first colon
@@ -213,7 +222,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       const success = await hcaptchaManager.executeHcaptcha();
       if (!success) {
         const resultsDiv = document.getElementById('whois-results');
-        resultsDiv.innerHTML = 'hCaptcha verification failed. Please try again.';
+        resultsDiv.innerHTML = 'hCaptcha verification failed. Please try again or check your network connection.';
         return;
       }
 
