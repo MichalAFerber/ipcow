@@ -39,7 +39,9 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         name_servers: [],
         registrant: {},
         admin: {},
-        tech: {}
+        tech: {},
+        billing: {},
+        raw: {} // Store unmapped fields
       };
 
       console.log('Parsing WHOIS data, total lines:', lines.length); // Debug
@@ -52,7 +54,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           console.log('Found stop marker, last_updated:', whoisData.last_updated); // Debug
           break;
         }
-        if (!line || line.startsWith('#')) continue;
+        if (!line || line.startsWith('#') || line.startsWith('%')) continue;
 
         // Split on the first colon
         const match = line.match(/([^:]+):(.+)/);
@@ -61,41 +63,86 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           continue;
         }
         const key = match[1].trim().toLowerCase().replace(/\s+/g, '_');
-        const value = match[2].trim();
-        console.log(`Parsed line - key: ${key}, value: ${value}`); // Debug
+        let value = match[2].trim();
+
+        // Map alternative keys
+        let mappedKey = key;
+        if (key === 'nserver') mappedKey = 'name_server';
+        else if (key === 'fax-no') mappedKey = 'fax';
+
+        console.log(`Parsed line - key: ${key}, mappedKey: ${mappedKey}, value: ${value}`); // Debug
 
         // Handle specific keys
-        if (key === 'domain_name') whoisData.domain_name = value;
-        else if (key === 'registry_domain_id') whoisData.registry_domain_id = value;
-        else if (key.startsWith('registrar')) {
-          if (key === 'registrar') whoisData.registrar.name = value;
-          else if (key === 'registrar_whois_server') whoisData.registrar.whois_server = value;
-          else if (key === 'registrar_url') whoisData.registrar.url = value;
-          else if (key === 'registrar_iana_id') whoisData.registrar.iana_id = value;
-          else if (key === 'registrar_abuse_contact_email') whoisData.registrar.abuse_contact_email = value;
-          else if (key === 'registrar_abuse_contact_phone') whoisData.registrar.abuse_contact_phone = value;
-        } else if (key === 'updated_date' || key === 'creation_date' || key === 'registrar_registration_expiration_date') {
-          if (key === 'updated_date') whoisData.dates.updated = value;
-          else if (key === 'creation_date') whoisData.dates.created = value;
-          else if (key === 'registrar_registration_expiration_date') whoisData.dates.expiry = value;
-        } else if (key === 'domain_status') whoisData.status.push(value);
-        else if (key === 'name_server') whoisData.name_servers.push(value);
-        else if (key === 'dnssec') whoisData.dnssec = value;
-        else if (key.startsWith('registrant')) {
-          if (key === 'registrant_organization') whoisData.registrant.organization = value;
-          else if (key === 'registrant_state/province') whoisData.registrant.state_province = value;
-          else if (key === 'registrant_country') whoisData.registrant.country = value;
-          else if (key === 'registrant_email') whoisData.registrant.email = value;
-        } else if (key.startsWith('admin')) {
-          if (key === 'admin_organization') whoisData.admin.organization = value;
-          else if (key === 'admin_state/province') whoisData.admin.state_province = value;
-          else if (key === 'admin_country') whoisData.admin.country = value;
-          else if (key === 'admin_email') whoisData.admin.email = value;
-        } else if (key.startsWith('tech')) {
-          if (key === 'tech_organization') whoisData.tech.organization = value;
-          else if (key === 'tech_state/province') whoisData.tech.state_province = value;
-          else if (key === 'tech_country') whoisData.tech.country = value;
-          else if (key === 'tech_email') whoisData.tech.email = value;
+        if (mappedKey === 'domain_name') whoisData.domain_name = value;
+        else if (mappedKey === 'registry_domain_id') whoisData.registry_domain_id = value;
+        else if (mappedKey.startsWith('registrar')) {
+          if (mappedKey === 'registrar') whoisData.registrar.name = value;
+          else if (mappedKey === 'registrar_whois_server') whoisData.registrar.whois_server = value;
+          else if (mappedKey === 'registrar_url') whoisData.registrar.url = value;
+          else if (mappedKey === 'registrar_iana_id') whoisData.registrar.iana_id = value;
+          else if (mappedKey === 'registrar_abuse_contact_email') whoisData.registrar.abuse_contact_email = value;
+          else if (mappedKey === 'registrar_abuse_contact_phone') whoisData.registrar.abuse_contact_phone = value;
+        } else if (mappedKey === 'updated_date' || mappedKey === 'creation_date' || mappedKey === 'registrar_registration_expiration_date' || mappedKey === 'registry_expiry_date' || mappedKey === 'changed') {
+          if (mappedKey === 'updated_date' || mappedKey === 'changed') whoisData.dates.updated = value;
+          else if (mappedKey === 'creation_date') whoisData.dates.created = value;
+          else if (mappedKey === 'registrar_registration_expiration_date' || mappedKey === 'registry_expiry_date') whoisData.dates.expiry = value;
+        } else if (mappedKey === 'domain_status' || mappedKey === 'status') whoisData.status.push(value);
+        else if (mappedKey === 'name_server') whoisData.name_servers.push(value);
+        else if (mappedKey === 'dnssec') whoisData.dnssec = value;
+        else if (mappedKey.startsWith('registrant')) {
+          if (mappedKey === 'registrant_name') whoisData.registrant.name = value;
+          else if (mappedKey === 'registrant_organization') whoisData.registrant.organization = value;
+          else if (mappedKey === 'registrant_street') whoisData.registrant.street = value;
+          else if (mappedKey === 'registrant_city') whoisData.registrant.city = value;
+          else if (mappedKey === 'registrant_state/province') whoisData.registrant.state_province = value;
+          else if (mappedKey === 'registrant_postal_code') whoisData.registrant.postal_code = value;
+          else if (mappedKey === 'registrant_country') whoisData.registrant.country = value;
+          else if (mappedKey === 'registrant_phone') whoisData.registrant.phone = value;
+          else if (mappedKey === 'registrant_phone_ext') whoisData.registrant.phone_ext = value;
+          else if (mappedKey === 'registrant_fax') whoisData.registrant.fax = value;
+          else if (mappedKey === 'registrant_fax_ext') whoisData.registrant.fax_ext = value;
+          else if (mappedKey === 'registrant_email') whoisData.registrant.email = value;
+        } else if (mappedKey.startsWith('admin')) {
+          if (mappedKey === 'admin_name') whoisData.admin.name = value;
+          else if (mappedKey === 'admin_organization') whoisData.admin.organization = value;
+          else if (mappedKey === 'admin_street') whoisData.admin.street = value;
+          else if (mappedKey === 'admin_city') whoisData.admin.city = value;
+          else if (mappedKey === 'admin_state/province') whoisData.admin.state_province = value;
+          else if (mappedKey === 'admin_postal_code') whoisData.admin.postal_code = value;
+          else if (mappedKey === 'admin_country') whoisData.admin.country = value;
+          else if (mappedKey === 'admin_phone') whoisData.admin.phone = value;
+          else if (mappedKey === 'admin_phone_ext') whoisData.admin.phone_ext = value;
+          else if (mappedKey === 'admin_fax') whoisData.admin.fax = value;
+          else if (mappedKey === 'admin_fax_ext') whoisData.admin.fax_ext = value;
+          else if (mappedKey === 'admin_email') whoisData.admin.email = value;
+        } else if (mappedKey.startsWith('tech')) {
+          if (mappedKey === 'tech_name') whoisData.tech.name = value;
+          else if (mappedKey === 'tech_organization') whoisData.tech.organization = value;
+          else if (mappedKey === 'tech_street') whoisData.tech.street = value;
+          else if (mappedKey === 'tech_city') whoisData.tech.city = value;
+          else if (mappedKey === 'tech_state/province') whoisData.tech.state_province = value;
+          else if (mappedKey === 'tech_postal_code') whoisData.tech.postal_code = value;
+          else if (mappedKey === 'tech_country') whoisData.tech.country = value;
+          else if (mappedKey === 'tech_phone') whoisData.tech.phone = value;
+          else if (mappedKey === 'tech_phone_ext') whoisData.tech.phone_ext = value;
+          else if (mappedKey === 'tech_fax') whoisData.tech.fax = value;
+          else if (mappedKey === 'tech_fax_ext') whoisData.tech.fax_ext = value;
+          else if (mappedKey === 'tech_email') whoisData.tech.email = value;
+        } else if (mappedKey.startsWith('billing')) {
+          if (mappedKey === 'billing_name') whoisData.billing.name = value;
+          else if (mappedKey === 'billing_organization') whoisData.billing.organization = value;
+          else if (mappedKey === 'billing_street') whoisData.billing.street = value;
+          else if (mappedKey === 'billing_city') whoisData.billing.city = value;
+          else if (mappedKey === 'billing_state/province') whoisData.billing.state_province = value;
+          else if (mappedKey === 'billing_postal_code') whoisData.billing.postal_code = value;
+          else if (mappedKey === 'billing_country') whoisData.billing.country = value;
+          else if (mappedKey === 'billing_phone') whoisData.billing.phone = value;
+          else if (mappedKey === 'billing_phone_ext') whoisData.billing.phone_ext = value;
+          else if (mappedKey === 'billing_fax') whoisData.billing.fax = value;
+          else if (mappedKey === 'billing_fax_ext') whoisData.billing.fax_ext = value;
+          else if (mappedKey === 'billing_email') whoisData.billing.email = value;
+        } else {
+          whoisData.raw[key] = value; // Store unmapped fields
         }
       }
 
@@ -107,6 +154,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       if (!Object.keys(whoisData.registrant).length) delete whoisData.registrant;
       if (!Object.keys(whoisData.admin).length) delete whoisData.admin;
       if (!Object.keys(whoisData.tech).length) delete whoisData.tech;
+      if (!Object.keys(whoisData.billing).length) delete whoisData.billing;
+      if (!Object.keys(whoisData.raw).length) delete whoisData.raw;
 
       console.log('Parsed WHOIS data:', whoisData); // Debug
       return whoisData;
