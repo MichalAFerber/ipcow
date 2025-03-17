@@ -7,7 +7,10 @@ function debugLog($message) {
     $timestamp = microtime(true);
     $date = date('Y-m-d H:i:s', (int)$timestamp);
     $micro = sprintf("%06d", ($timestamp - floor($timestamp)) * 1000000);
-    @file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND | LOCK_EX);
+    $result = @file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND | LOCK_EX);
+    if ($result === false) {
+        error_log("Failed to write to $logFile: $message");
+    }
 }
 
 $startTime = microtime(true);
@@ -28,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['domain']) && isset($_GE
     $captchaResponse = $_GET['h-captcha-response'];
 
     debugLog("Received domain: $domain");
-    debugLog("Received hCaptcha response: $captchaResponse");
+    debugLog("Received hCaptcha response: " . substr($captchaResponse, 0, 50) . "..."); // Truncate for brevity
 
     if (empty($domain) || empty($captchaResponse)) {
         http_response_code(400);
@@ -42,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['domain']) && isset($_GE
     if (!$validationResult['success']) {
         http_response_code(400);
         if ($validationResult['error'] === 'hCaptcha verification failed: already-seen-response') {
-            debugLog("[$startTime] Warning: hCaptcha response reused, prompting new challenge.");
+            debugLog("Warning: hCaptcha response reused, prompting new challenge.");
             echo json_encode(['success' => false, 'error' => 'Please complete a new hCaptcha challenge.']);
         } else {
             echo json_encode(['success' => false, 'error' => $validationResult['error']]);
@@ -53,12 +56,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['domain']) && isset($_GE
     $domain = escapeshellarg($domain);
     $whoisStartTime = microtime(true);
     $whoisCommand = "whois $domain 2>/dev/null";
+    debugLog("Executing WHOIS command: $whoisCommand");
     $whoisOutput = shell_exec($whoisCommand);
     $whoisTime = (microtime(true) - $whoisStartTime) * 1000;
 
     if ($whoisOutput === null) {
+        debugLog("WHOIS lookup failed for $domain: No output returned");
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'WHOIS lookup failed']);
+        echo json_encode(['success' => false, 'error' => "WHOIS lookup failed for $domain. Please try again later."]);
         exit;
     }
 
@@ -70,6 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['domain']) && isset($_GE
             $value = trim($matches[2]);
             $whoisData[$key] = $value;
         }
+    }
+
+    if (empty($whoisData)) {
+        debugLog("WHOIS parsing failed for $domain: No valid data found");
+        echo json_encode(['success' => true, 'domain' => trim($domain, "'"), 'whois' => [], 'execution_time' => ['whois' => $whoisTime, 'total' => (microtime(true) - $startTime) * 1000]]);
+        exit;
     }
 
     $totalTime = (microtime(true) - $startTime) * 1000;
