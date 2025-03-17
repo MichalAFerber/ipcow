@@ -15,21 +15,23 @@ $startTime = microtime(true);
 
 // Include files with error checking
 if (!file_exists('/var/www/config/config.php')) {
-    $error = "Config file not found: /var/www/config/config.php";
-    @file_put_contents($debugLog, "[$startTime] Error: $error\n", FILE_APPEND | LOCK_EX);
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $error]);
-    exit;
+  $error = "Config file not found: /var/www/config/config.php";
+  @file_put_contents($debugLog, "[$startTime] Error: $error\n", FILE_APPEND | LOCK_EX);
+  http_response_code(500);
+  echo json_encode(['success' => false, 'error' => $error]);
+  exit;
 }
 require_once '/var/www/config/config.php';
 
-$hcaptchaUtilsPath = '/api/hcaptcha-utils.php';
+$hcaptchaUtilsPath = __DIR__ . '/hcaptcha-utils.php';
+@file_put_contents($debugLog, "[$startTime] Checking hCaptcha utils path: $hcaptchaUtilsPath\n", FILE_APPEND | LOCK_EX);
+@file_put_contents($debugLog, "[$startTime] File exists: " . (file_exists($hcaptchaUtilsPath) ? 'Yes' : 'No') . "\n", FILE_APPEND | LOCK_EX);
 if (!file_exists($hcaptchaUtilsPath)) {
-    $error = "hCaptcha utils file not found: $hcaptchaUtilsPath";
-    @file_put_contents($debugLog, "[$startTime] Error: $error\n", FILE_APPEND | LOCK_EX);
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $error]);
-    exit;
+  $error = "hCaptcha utils file not found: " . $hcaptchaUtilsPath;
+  @file_put_contents($debugLog, "[$startTime] Error: $error\n", FILE_APPEND | LOCK_EX);
+  http_response_code(500);
+  echo json_encode(['success' => false, 'error' => $error]);
+  exit;
 }
 require_once $hcaptchaUtilsPath;
 
