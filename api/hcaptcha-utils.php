@@ -1,6 +1,8 @@
 <?php
+// Define log file location
 $logFile = '/var/www/html/whois_debug.log';
 
+// Debug logging function
 function debugLog($message) {
     global $logFile;
     $timestamp = microtime(true);
@@ -8,11 +10,12 @@ function debugLog($message) {
     file_put_contents($logFile, $formattedMessage, FILE_APPEND);
 }
 
+// hCaptcha validation function
 function validateHcaptcha($response) {
     global $logFile;
     debugLog("validateHcaptcha called with response: $response");
     
-    // Include the config file with the secret key
+    // Include config file with secret key
     require_once '/var/www/config/config.php';
     if (!isset($hcaptchaSecretKey)) {
         debugLog("Error: hCaptcha secret key not found in config.php");
@@ -27,6 +30,7 @@ function validateHcaptcha($response) {
         'response' => $response
     );
     debugLog("Preparing POST data");
+    
     $options = array(
         'http' => array(
             'method' => 'POST',
@@ -35,19 +39,22 @@ function validateHcaptcha($response) {
         )
     );
     debugLog("Sending HTTP request to $url");
+    
     $context = stream_context_create($options);
-    $result = file_get_contents($url, false, $context);
+    $result = @file_get_contents($url, false, $context); // @ suppresses warnings
     if ($result === false) {
         debugLog("Error: Failed to get response from hCaptcha API");
         return false;
     }
     debugLog("HTTP response received");
+    
     $responseData = json_decode($result, true);
     if (json_last_error() !== JSON_ERROR_NONE) {
         debugLog("Error: Failed to decode JSON response: " . json_last_error_msg());
         return false;
     }
     debugLog("JSON decoded: " . json_encode($responseData));
+    
     return $responseData['success'] ?? false;
 }
 ?>
