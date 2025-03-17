@@ -1,37 +1,62 @@
 <?php
+// Enable error reporting and logging
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', '/var/www/html/php_errors.log');
+error_reporting(E_ALL);
+
+// Define log paths
+$phpErrorLog = '/var/www/html/php_errors.log';
+$debugLog = '/var/www/html/whois_debug.log';
+
+// Start debugging
+$startTime = microtime(true);
+@file_put_contents($debugLog, "[$startTime] Script started\n", FILE_APPEND | LOCK_EX);
+
+// Include files with error checking
+if (!file_exists('/var/www/config/config.php')) {
+    $error = "Config file not found: /var/www/config/config.php";
+    @file_put_contents($debugLog, "[$startTime] Error: $error\n", FILE_APPEND | LOCK_EX);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $error]);
+    exit;
+}
 require_once '/var/www/config/config.php';
-require_once '/api/hcaptcha-utils.php'; // Updated path
+
+if (!file_exists('/var/www/api/hcaptcha-utils.php')) {
+    $error = "hCaptcha utils file not found: /var/www/api/hcaptcha-utils.php";
+    @file_put_contents($debugLog, "[$startTime] Error: $error\n", FILE_APPEND | LOCK_EX);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $error]);
+    exit;
+}
+require_once '/api/hcaptcha-utils.php';
 
 header('Content-Type: application/json');
 $response = ['success' => false, 'whois' => [], 'error' => '', 'available' => false];
 
-$logPath = '/var/www/html/whois_debug.log';
-$startTime = microtime(true);
-
-// Enable error logging for debugging
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', '/var/www/html/php_errors.log'); // Temporary error log
-
 $hcaptchaResponse = $_GET['h-captcha-response'] ?? '';
+@file_put_contents($debugLog, "[$startTime] Received hCaptcha response: $hcaptchaResponse\n", FILE_APPEND | LOCK_EX);
 $validationResult = validateHcaptcha($hcaptchaResponse);
 if (!$validationResult['success']) {
     $response['error'] = $validationResult['error'];
+    @file_put_contents($debugLog, "[$startTime] hCaptcha validation error: " . $response['error'] . "\n", FILE_APPEND | LOCK_EX);
     echo json_encode($response);
     exit;
 }
 
 $domain = $_GET['domain'] ?? '';
-file_put_contents($logPath, "[$startTime] Received domain: $domain\n", FILE_APPEND | LOCK_EX);
+@file_put_contents($debugLog, "[$startTime] Received domain: $domain\n", FILE_APPEND | LOCK_EX);
 
 if ($domain && filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
     $whoisStart = microtime(true);
-    $whoisOutput = shell_exec("whois " . escapeshellarg($domain));
+    $whoisOutput = @shell_exec("whois " . escapeshellarg($domain));
     $whoisEnd = microtime(true);
-    file_put_contents($logPath, "[$startTime] WHOIS time: " . (($whoisEnd - $whoisStart) * 1000) . " ms\n", FILE_APPEND | LOCK_EX);
+    @file_put_contents($debugLog, "[$startTime] WHOIS time: " . (($whoisEnd - $whoisStart) * 1000) . " ms\n", FILE_APPEND | LOCK_EX);
 
     if ($whoisOutput === null || trim($whoisOutput) === '') {
         $response['error'] = "No WHOIS data found for $domain or query failed.";
+        @file_put_contents($debugLog, "[$startTime] Error: " . $response['error'] . "\n", FILE_APPEND | LOCK_EX);
     } else {
         $whoisOutputLower = strtolower($whoisOutput);
         if (strpos($whoisOutputLower, 'no match') !== false || 
@@ -75,6 +100,6 @@ if ($domain && filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)
 }
 
 $totalTime = (microtime(true) - $startTime) * 1000;
-file_put_contents($logPath, "[$startTime] Total time: $totalTime ms\n", FILE_APPEND | LOCK_EX);
+@file_put_contents($debugLog, "[$startTime] Total time: $totalTime ms\n", FILE_APPEND | LOCK_EX);
 echo json_encode($response);
 ?>
