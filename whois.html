@@ -36,23 +36,25 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         registrar: {},
         dates: {},
         status: [],
-        name_servers: []
+        name_servers: [],
+        registrant: {},
+        admin: {},
+        tech: {}
       };
 
-      // Stop parsing at boilerplate
       const stopMarker = '>>> Last update of WHOIS database:';
       for (const line of lines) {
         if (line.startsWith(stopMarker)) {
           whoisData.last_updated = line.split(stopMarker)[1].trim();
           break;
         }
-        if (!line || line.startsWith('#')) continue;
+        if (!line || line.startsWith('#') || !line.includes(':')) continue;
 
-        // Split on the first occurrence of ':'
-        const [keyPart, ...valueParts] = line.split(/:(.+)/);
-        if (!valueParts.length) continue; // Skip lines without a value
+        // Split on the first colon
+        const [keyPart, valuePart] = line.split(/:(.+)/);
+        if (!valuePart) continue;
         const key = keyPart.trim().toLowerCase().replace(/\s+/g, '_');
-        const value = valueParts.join(':').trim();
+        const value = valuePart.trim();
 
         // Handle specific keys
         if (key === 'domain_name') whoisData.domain_name = value;
@@ -71,18 +73,18 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         } else if (key === 'domain_status') whoisData.status.push(value);
         else if (key === 'name_server') whoisData.name_servers.push(value);
         else if (key === 'dnssec') whoisData.dnssec = value;
-        else if (key === 'registrant_organization') whoisData.registrant_organization = value;
-        else if (key === 'registrant_state/province') whoisData.registrant_state_province = value;
-        else if (key === 'registrant_country') whoisData.registrant_country = value;
-        else if (key === 'registrant_email') whoisData.registrant_email = value;
-        else if (key === 'admin_organization') whoisData.admin_organization = value;
-        else if (key === 'admin_state/province') whoisData.admin_state_province = value;
-        else if (key === 'admin_country') whoisData.admin_country = value;
-        else if (key === 'admin_email') whoisData.admin_email = value;
-        else if (key === 'tech_organization') whoisData.tech_organization = value;
-        else if (key === 'tech_state/province') whoisData.tech_state_province = value;
-        else if (key === 'tech_country') whoisData.tech_country = value;
-        else if (key === 'tech_email') whoisData.tech_email = value;
+        else if (key === 'registrant_organization') whoisData.registrant.organization = value;
+        else if (key === 'registrant_state/province') whoisData.registrant.state_province = value;
+        else if (key === 'registrant_country') whoisData.registrant.country = value;
+        else if (key === 'registrant_email') whoisData.registrant.email = value;
+        else if (key === 'admin_organization') whoisData.admin.organization = value;
+        else if (key === 'admin_state/province') whoisData.admin.state_province = value;
+        else if (key === 'admin_country') whoisData.admin.country = value;
+        else if (key === 'admin_email') whoisData.admin.email = value;
+        else if (key === 'tech_organization') whoisData.tech.organization = value;
+        else if (key === 'tech_state/province') whoisData.tech.state_province = value;
+        else if (key === 'tech_country') whoisData.tech.country = value;
+        else if (key === 'tech_email') whoisData.tech.email = value;
       }
 
       // Remove empty nested objects
@@ -90,6 +92,9 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
       if (!whoisData.status.length) delete whoisData.status;
       if (!whoisData.name_servers.length) delete whoisData.name_servers;
+      if (!Object.keys(whoisData.registrant).length) delete whoisData.registrant;
+      if (!Object.keys(whoisData.admin).length) delete whoisData.admin;
+      if (!Object.keys(whoisData.tech).length) delete whoisData.tech;
 
       return whoisData;
     }
