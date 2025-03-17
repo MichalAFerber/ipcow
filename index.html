@@ -5,41 +5,36 @@ subtitle: Your Connection
 share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 # full-width: true
 ---
-<div class="error-message" style="display: none;">Error loading connection info.</div>
+<div class="alert alert-warning" role="alert">Error loading connection info.</div>
 <div class="main-explain-area jumbotron">
   <section style="margin: 20px;">
-    <ul style="list-style: none;">
-      <li>IPv4: <span id="ipv4-display">Loading...</span></li>
-      <li>IPv6: <span id="ipv6-display">Loading...</span></li>
-      <li>Hostname: <span id="hostname">Loading...</span></li>
-      <li>ISP: <span id="isp">Loading...</span></li>
-      <li>Country: <span id="country">Loading...</span></li>
-      <li>Region: <span id="region">Loading...</span></li>
-      <li>City: <span id="city">Loading...</span></li>
-      <li>Latitude: <span id="latitude">Loading...</span></li>
-      <li>Longitude: <span id="longitude">Loading...</span></li>
-      <li>Timezone: <span id="timezone">Loading...</span></li>
-      <li>User Agent: <span id="user-agent">Loading...</span></li>
-      <li>Browser: <span id="browser">Loading...</span></li>
-      <li>Browser Version: <span id="browser-version">Loading...</span></li>
-      <li>Operating System: <span id="os">Loading...</span></li>
-      <li>OS Version: <span id="os-version">Loading...</span></li>
-      <li>Device Type: <span id="device">Loading...</span></li>
-      <li>Device Vendor: <span id="device-vendor">Loading...</span></li>
-      <li>Device Model: <span id="device-model">Loading...</span></li>
-      <li>CPU Architecture: <span id="cpu-architecture">Loading...</span></li>
-      <li>Screen Resolution: <span id="screen-resolution">Loading...</span></li>
-      <li>Viewport Size: <span id="viewport-size">Loading...</span></li>
-      <li>Cookies Enabled: <span id="cookies-enabled">Loading...</span></li>
-      <li>JavaScript Enabled: <span id="javascript-enabled">Loading...</span></li>
-      <li>Language: <span id="language">Loading...</span></li>
+    <ul class="list-unstyled">
+      <li>IPv4: <span class="display-6" id="ipv4-display">Loading...</span></li>
+      <li>IPv6: <span class="display-6" id="ipv6-display">Loading...</span></li>
+      <li>Hostname: <span class="lead" id="hostname">Loading...</span></li>
+      <li>ISP: <span class="lead" id="isp">Loading...</span></li>
+      <li>Country: <span class="lead" id="country">Loading...</span></li>
+      <li>Region: <span class="lead" id="region">Loading...</span></li>
+      <li>City: <span class="lead" id="city">Loading...</span></li>
+      <li>Latitude: <span class="lead" id="latitude">Loading...</span></li>
+      <li>Longitude: <span class="lead" id="longitude">Loading...</span></li>
+      <li>Timezone: <span class="lead" id="timezone">Loading...</span></li>
+      <li>User Agent: <span class="lead" id="user-agent">Loading...</span></li>
+      <li>Browser: <span class="lead" id="browser">Loading...</span></li>
+      <li>Browser Version: <span class="lead" id="browser-version">Loading...</span></li>
+      <li>Operating System: <span class="lead" id="os">Loading...</span></li>
+      <li>OS Version: <span class="lead" id="os-version">Loading...</span></li>
+      <li>Device Type: <span class="lead" id="device">Loading...</span></li>
+      <li>Device Vendor: <span class="lead" id="device-vendor">Loading...</span></li>
+      <li>Device Model: <span class="lead" id="device-model">Loading...</span></li>
+      <li>CPU Architecture: <span class="lead" id="cpu-architecture">Loading...</span></li>
+      <li>Screen Resolution: <span class="lead" id="screen-resolution">Loading...</span></li>
+      <li>Viewport Size: <span class="lead" id="viewport-size">Loading...</span></li>
+      <li>Cookies Enabled: <span class="lead" id="cookies-enabled">Loading...</span></li>
+      <li>JavaScript Enabled: <span class="lead" id="javascript-enabled">Loading...</span></li>
+      <li>Language: <span class="lead" id="language">Loading...</span></li>
     </ul>
   </section>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1/dist/ua-parser.min.js"></script>
 <script src="{{ '/assets/js/connection-info.js' | relative_url }}"></script>
-<!-- <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    document.querySelector('.page-heading .page-subheading').innerHTML = 'IPv4: <b><span id="ipv4-display">Loading...</span></b><br>IPv6: <b><span id="ipv6-display">Loading...</span></b>';
-  });
-</script> -->
