@@ -48,6 +48,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       console.log('Parsing WHOIS data, total lines:', lines.length); // Debug
 
       let currentContactType = null; // Track the current contact type (administrative, technical, etc.)
+      let inContactSection = false; // Track if we are in a contact section
 
       const stopMarker = '>>> Last update of WHOIS database:';
       for (let i = 0; i < lines.length; i++) {
@@ -63,6 +64,11 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         const match = line.match(/([^:]+):(.+)/);
         if (!match) {
           console.log('Skipping line (no key-value pair):', line); // Debug
+          // If we encounter a blank line or a line without a key-value pair, end the contact section
+          if (inContactSection) {
+            currentContactType = null;
+            inContactSection = false;
+          }
           continue;
         }
         const key = match[1].trim().toLowerCase().replace(/\s+/g, '_');
@@ -78,11 +84,12 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         // Handle contact sections (e.g., administrative, technical)
         if (mappedKey === 'contact') {
           currentContactType = value.toLowerCase();
+          inContactSection = true;
           continue;
         }
 
         // Handle fields based on the current contact type
-        if (currentContactType) {
+        if (currentContactType && inContactSection) {
           let targetObject;
           if (currentContactType === 'administrative') targetObject = whoisData.registrant; // Map administrative to registrant
           else if (currentContactType === 'technical') targetObject = whoisData.tech;
@@ -121,10 +128,13 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           if (mappedKey === 'updated_date' || mappedKey === 'changed') whoisData.dates.updated = value;
           else if (mappedKey === 'creation_date' || mappedKey === 'created') whoisData.dates.created = value;
           else if (mappedKey === 'registrar_registration_expiration_date' || mappedKey === 'registry_expiry_date') whoisData.dates.expiry = value;
-        } else if (mappedKey === 'domain_status' || mappedKey === 'status') whoisData.status.push(value);
-        else if (mappedKey === 'name_server') whoisData.name_servers.push(value);
-        else if (mappedKey === 'dnssec') whoisData.dnssec = value;
-        else if (mappedKey.startsWith('registrant')) {
+        } else if (mappedKey === 'domain_status' || mappedKey === 'status') {
+          whoisData.status.push(value);
+        } else if (mappedKey === 'name_server') {
+          whoisData.name_servers.push(value);
+        } else if (mappedKey === 'dnssec') {
+          whoisData.dnssec = value;
+        } else if (mappedKey.startsWith('registrant')) {
           if (mappedKey === 'registrant_name') whoisData.registrant.name = value;
           else if (mappedKey === 'registrant_organization') whoisData.registrant.organization = value;
           else if (mappedKey === 'registrant_street') whoisData.registrant.street = value;
