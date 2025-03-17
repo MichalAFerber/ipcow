@@ -1,7 +1,7 @@
 url: "https://dev.ipcow.com"
 baseurl: ""
 title: IP Cow
-author: TechGuyWithABeard&nbsp;&bull;&nbsp;a ThompsonBlack company
+author: Michal Ferber
 
 navbar-links:
   Blog: "blog"
@@ -64,14 +64,14 @@ rss-description: Here you can see the internet IP address your device is using a
 
 # Select which social network share links to show in posts
 share-links-active:
-  twitter: false
-  facebook: false
-  linkedin: false
+  twitter: true
+  facebook: true
+  linkedin: true
   vk: false
 
 # How to display the link to your website in the footer
 # Remove this if you don't want a link in the footer
-# url-pretty: "MyWebsite.com"
+url-pretty: "IPCow.com"
 
 # Add the website title to the title of every page
 title-on-all-pages: true
@@ -89,12 +89,12 @@ feed_show_tags: true
 post_search: true
 
 # Add a button in the footer to edit the current page. Only works if your website is hosted on GitHub
-# edit_page_button: true
+edit_page_button: true
 
 # Allow sub-menu items (second-level navigation menu items) to be longer than the top-level menu
 # If this setting is off, then long sub-menu words might get cut off
 # See https://github.com/daattali/beautiful-jekyll/issues/765 to understand the issue this setting can solve
-navbar-var-length: true
+navbar-var-length: false
 
 # The keywords to associate with your website, for SEO purposes
 keywords: "what is my ip, ip lookup, whats my ip, whatismyip, ip address lookup, find ip, find your ip address, ipaddress, ipconfig, address, remote, remote access, whois, speedtest, speed test, vpn, admin, dns lookup, dns checker, dns, tcp, udp, port scanner, port scan, portscan, telnet, ping, traceroute, http header, lan, wan, network, router, gateway, ssl, tls, ssh, openssh, linux, ipv6, ipv4"
