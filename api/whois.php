@@ -5,13 +5,10 @@ function debugLog($message) {
     global $logFile;
     $timestamp = microtime(true);
     $formattedMessage = "[$timestamp] $message\n";
-    if (file_put_contents($logFile, $formattedMessage, FILE_APPEND) === false) {
-        error_log("Failed to write to $logFile: $message");
-    }
+    file_put_contents($logFile, $formattedMessage, FILE_APPEND);
 }
 
 debugLog("Script started");
-require_once '/home/appleseed/ipcow/core-dev/_site/api/hcaptcha-utils.php';
 
 header('Content-Type: application/json');
 
