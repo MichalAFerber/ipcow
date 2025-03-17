@@ -30,9 +30,10 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     }
 
     // Function to parse raw WHOIS string into structured data
-    function parseWhoisData(rawWhois) {
+    function parseWhoisData(rawWhois, queriedDomain) {
       const lines = rawWhois.split('\n').map(line => line.trim());
       const whoisData = {
+        domain_name: queriedDomain, // Set the domain_name to the queried domain
         registrar: {},
         dates: {},
         status: [],
@@ -45,6 +46,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       };
 
       console.log('Parsing WHOIS data, total lines:', lines.length); // Debug
+
+      let currentContactType = null; // Track the current contact type (administrative, technical, etc.)
 
       const stopMarker = '>>> Last update of WHOIS database:';
       for (let i = 0; i < lines.length; i++) {
@@ -72,6 +75,36 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
         console.log(`Parsed line - key: ${key}, mappedKey: ${mappedKey}, value: ${value}`); // Debug
 
+        // Handle contact sections (e.g., administrative, technical)
+        if (mappedKey === 'contact') {
+          currentContactType = value.toLowerCase();
+          continue;
+        }
+
+        // Handle fields based on the current contact type
+        if (currentContactType) {
+          let targetObject;
+          if (currentContactType === 'administrative') targetObject = whoisData.registrant; // Map administrative to registrant
+          else if (currentContactType === 'technical') targetObject = whoisData.tech;
+          else if (currentContactType === 'billing') targetObject = whoisData.billing;
+          else targetObject = whoisData.admin;
+
+          if (mappedKey === 'name') targetObject.name = value;
+          else if (mappedKey === 'organisation') targetObject.organization = value;
+          else if (mappedKey === 'address') {
+            if (!targetObject.street) targetObject.street = value;
+            else if (!targetObject.city) targetObject.city = value;
+            else if (!targetObject.country) targetObject.country = value;
+          }
+          else if (mappedKey === 'phone') targetObject.phone = value;
+          else if (mappedKey === 'fax') targetObject.fax = value;
+          else if (mappedKey === 'e-mail') targetObject.email = value;
+          else {
+            whoisData.raw[mappedKey] = value;
+          }
+          continue;
+        }
+
         // Handle specific keys
         if (mappedKey === 'domain_name') whoisData.domain_name = value;
         else if (mappedKey === 'registry_domain_id') whoisData.registry_domain_id = value;
@@ -82,9 +115,11 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           else if (mappedKey === 'registrar_iana_id') whoisData.registrar.iana_id = value;
           else if (mappedKey === 'registrar_abuse_contact_email') whoisData.registrar.abuse_contact_email = value;
           else if (mappedKey === 'registrar_abuse_contact_phone') whoisData.registrar.abuse_contact_phone = value;
-        } else if (mappedKey === 'updated_date' || mappedKey === 'creation_date' || mappedKey === 'registrar_registration_expiration_date' || mappedKey === 'registry_expiry_date' || mappedKey === 'changed') {
+        } else if (mappedKey === 'organisation') {
+          whoisData.registrar.name = value; // Map organisation to registrar for IANA data
+        } else if (mappedKey === 'updated_date' || mappedKey === 'creation_date' || mappedKey === 'registrar_registration_expiration_date' || mappedKey === 'registry_expiry_date' || mappedKey === 'changed' || mappedKey === 'created') {
           if (mappedKey === 'updated_date' || mappedKey === 'changed') whoisData.dates.updated = value;
-          else if (mappedKey === 'creation_date') whoisData.dates.created = value;
+          else if (mappedKey === 'creation_date' || mappedKey === 'created') whoisData.dates.created = value;
           else if (mappedKey === 'registrar_registration_expiration_date' || mappedKey === 'registry_expiry_date') whoisData.dates.expiry = value;
         } else if (mappedKey === 'domain_status' || mappedKey === 'status') whoisData.status.push(value);
         else if (mappedKey === 'name_server') whoisData.name_servers.push(value);
@@ -142,7 +177,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           else if (mappedKey === 'billing_fax_ext') whoisData.billing.fax_ext = value;
           else if (mappedKey === 'billing_email') whoisData.billing.email = value;
         } else {
-          whoisData.raw[key] = value; // Store unmapped fields
+          whoisData.raw[mappedKey] = value; // Store unmapped fields
         }
       }
 
@@ -212,7 +247,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         exportBtn.style.marginTop = '20px';
         exportBtn.className = 'btn btn-primary';
         exportBtn.onclick = () => {
-          const parsedWhois = parseWhoisData(whoisData);
+          const parsedWhois = parseWhoisData(whoisData, domain); // Pass the queried domain
           const exportData = {
             domain: domain,
             latency_ms: parseFloat(latency),
