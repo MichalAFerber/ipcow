@@ -29,7 +29,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       return;
     }
 
-    // Function to parse raw WHOIS string into structured data (unchanged)
+    // Function to parse raw WHOIS string into structured data
     function parseWhoisData(rawWhois) {
       const lines = rawWhois.split('\r\n').map(line => line.trim());
       const whoisData = {
@@ -38,8 +38,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         status: [],
         name_servers: []
       };
-      let lastKey = '';
 
+      // Stop parsing at boilerplate
       const stopMarker = '>>> Last update of WHOIS database:';
       for (const line of lines) {
         if (line.startsWith(stopMarker)) {
@@ -48,11 +48,13 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         }
         if (!line || line.startsWith('#')) continue;
 
-        const [keyPart, ...valueParts] = line.split(':');
-        if (!valueParts.length) continue;
+        // Split on the first occurrence of ':'
+        const [keyPart, ...valueParts] = line.split(/:(.+)/);
+        if (!valueParts.length) continue; // Skip lines without a value
         const key = keyPart.trim().toLowerCase().replace(/\s+/g, '_');
         const value = valueParts.join(':').trim();
 
+        // Handle specific keys
         if (key === 'domain_name') whoisData.domain_name = value;
         else if (key === 'registry_domain_id') whoisData.registry_domain_id = value;
         else if (key.includes('registrar')) {
@@ -62,17 +64,28 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           else if (key === 'registrar_iana_id') whoisData.registrar.iana_id = value;
           else if (key === 'registrar_abuse_contact_email') whoisData.registrar.abuse_contact_email = value;
           else if (key === 'registrar_abuse_contact_phone') whoisData.registrar.abuse_contact_phone = value;
-        } else if (key.includes('date')) {
+        } else if (key === 'updated_date' || key === 'creation_date' || key === 'registrar_registration_expiration_date') {
           if (key === 'updated_date') whoisData.dates.updated = value;
           else if (key === 'creation_date') whoisData.dates.created = value;
-          else if (key === 'registry_expiry_date') whoisData.dates.expiry = value;
+          else if (key === 'registrar_registration_expiration_date') whoisData.dates.expiry = value;
         } else if (key === 'domain_status') whoisData.status.push(value);
         else if (key === 'name_server') whoisData.name_servers.push(value);
         else if (key === 'dnssec') whoisData.dnssec = value;
-
-        lastKey = key;
+        else if (key === 'registrant_organization') whoisData.registrant_organization = value;
+        else if (key === 'registrant_state/province') whoisData.registrant_state_province = value;
+        else if (key === 'registrant_country') whoisData.registrant_country = value;
+        else if (key === 'registrant_email') whoisData.registrant_email = value;
+        else if (key === 'admin_organization') whoisData.admin_organization = value;
+        else if (key === 'admin_state/province') whoisData.admin_state_province = value;
+        else if (key === 'admin_country') whoisData.admin_country = value;
+        else if (key === 'admin_email') whoisData.admin_email = value;
+        else if (key === 'tech_organization') whoisData.tech_organization = value;
+        else if (key === 'tech_state/province') whoisData.tech_state_province = value;
+        else if (key === 'tech_country') whoisData.tech_country = value;
+        else if (key === 'tech_email') whoisData.tech_email = value;
       }
 
+      // Remove empty nested objects
       if (!Object.keys(whoisData.registrar).length) delete whoisData.registrar;
       if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
       if (!whoisData.status.length) delete whoisData.status;
@@ -122,7 +135,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         formatted += `<tr><td>WHOIS Time</td><td>${data.whois_time_ms.toFixed(2)} ms</td></tr>`;
         formatted += `<tr><td>Total Time</td><td>${data.total_time_ms.toFixed(2)} ms</td></tr>`;
         formatted += '<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>';
-        formatted += `<tr><td colspan="2"><pre>${whoisData.trim()}</pre></td></tr>`;
+        formatted += `<tr><td colspan="2"><pre style="white-space: pre-wrap; word-wrap: break-word;">${whoisData.trim()}</pre></td></tr>`;
         formatted += '</tbody></table>';
 
         resultsDiv.innerHTML = formatted;
