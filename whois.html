@@ -256,8 +256,21 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       const data = await response.json();
       console.log('Received WHOIS response:', data);
 
+      // const whoisData = data.whois || '';
+      // if (!whoisData || whoisData.trim() === '') {
+      //   resultsDiv.innerHTML = `
+      //     <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
+      //       No WHOIS data found for this domain.
+      //       <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      //         <span aria-hidden="true">&times;</span>
+      //       </button>
+      //     </div>
+      //   `;
+      //   return;
+      // }
       const whoisData = data.whois || '';
-      if (!whoisData || whoisData.trim() === '') {
+      const lines = whoisData.trim().split('\n');
+      if (!whoisData || whoisData.trim() === '' || lines.some(line => line.toLowerCase().match(/^(no match|not found)/))) {
         resultsDiv.innerHTML = `
           <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
             No WHOIS data found for this domain.
