@@ -5,11 +5,16 @@ subtitle: Retrieve WHOIS information for a domain.
 share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 # full-width: true
 ---
-<form class="form-inline justify-content-center" method="GET" action="/api/whois.php" novalidate>
-  <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
-  <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752" data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
-  <button type="submit" class="btn btn-primary">Check WHOIS</button>
-</form>
+<div class="input-group">
+  <form class="form-inline justify-content-center" method="GET" action="/api/whois.php" novalidate>
+    <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
+    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752" data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+    <div class="input-group-append">
+      <button class="btn btn-primary" type="submit">Check WHOIS</button>
+    </div>
+  </form>
+</div>
+
 <div id="whois-results" class="center-results"></div>
 
 <!-- Load hCaptcha and custom module -->
