@@ -36,7 +36,7 @@ function getIanaRdapData() {
     if ($rdapData === null) {
         if (file_exists($cacheFile) && (filemtime($cacheFile) > (time() - $cacheDuration))) {
             $rdapData = json_decode(file_get_contents($cacheFile), true);
-            debugLog("Loaded RDAP data from cache: $cacheFile");
+            debugLog("Loaded RDAP data from cache: $cacheFile, Data: " . json_encode($rdapData));
         } else {
             $ianaUrl = 'https://data.iana.org/rdap/dns.json';
             $ch = curl_init();
@@ -62,10 +62,13 @@ function getIanaRdapData() {
                         $rdapData = [];
                     } else {
                         if (!is_writable($cacheFile)) {
-                            debugLog("Warning: Cache file $cacheFile is not writable");
+                            debugLog("Warning: Cache file $cacheFile is not writable, Permissions: " . substr(sprintf('%o', fileperms($cacheFile)), -4));
                         } else {
-                            file_put_contents($cacheFile, $response);
-                            debugLog("Fetched and cached IANA RDAP data from $ianaUrl");
+                            if (file_put_contents($cacheFile, $response) === false) {
+                                debugLog("Failed to write to cache file $cacheFile");
+                            } else {
+                                debugLog("Fetched and cached IANA RDAP data from $ianaUrl");
+                            }
                         }
                     }
                 }
