@@ -256,13 +256,6 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           return;
         }
 
-        // let formatted = '';
-        // formatted += `<h3 class="text-center"><span class="font-weight-bold">${domain}</span></h3>`;
-        // formatted += `<div class="mt-5 main-explain-area jumbotron jumbotron-fluid"><section class="m-0 p-0">`;
-        // formatted += `<p class="lead font-weight-bold pt-0 mt-0">WHOIS Data</p>`;
-        // formatted += `<pre style="white-space: pre-wrap; word-wrap: break-word; margin-left: 0;">${whoisData.trim()}</pre>`;
-        // formatted += `</section></div>`;
-
         // Format the response
         let formatted = `
         <h3 class="text-center"><span class="font-weight-bold">${domain}</span></h3>
@@ -272,6 +265,9 @@ share-description: "IP Cow is a free service that shows you the public IP addres
             <div class="flush-container">
               <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; padding: 0;">${whoisData.trim()}</pre>
             </div>
+            <div class="button-container d-flex justify-content-center mt-3">
+              <!-- Placeholder for the button -->
+            </div>
           </section>
         </div>
         `;
@@ -280,8 +276,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
         const exportBtn = document.createElement('button');
         exportBtn.textContent = 'Download JSON';
-        exportBtn.style.marginTop = '10px';
-        exportBtn.className = 'btn btn-primary centered';
+        exportBtn.className = 'btn btn-primary';
         exportBtn.onclick = () => {
           const parsedWhois = parseWhoisData(whoisData, domain);
           const exportData = {
@@ -296,7 +291,10 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           a.click();
           URL.revokeObjectURL(url);
         };
-        resultsDiv.appendChild(exportBtn);
+
+        // Append the button to the container
+        const buttonContainer = resultsDiv.querySelector('.button-container');
+        buttonContainer.appendChild(exportBtn);
       } catch (error) {
         console.error('Error in WHOIS lookup:', error);
         resultsDiv.innerHTML = `<div class="alert alert-danger" role="alert">Error: ${error.message}. Please check the domain and try again.</div>`;
