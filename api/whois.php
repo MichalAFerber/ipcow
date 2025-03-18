@@ -44,19 +44,32 @@ function getIanaRdapData() {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 10);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'MyWHOISApp/1.0');
             $response = curl_exec($ch);
             if (curl_errno($ch)) {
-                debugLog("Error fetching IANA RDAP data: " . curl_error($ch) . ", Response: " . ($response ?: 'N/A'));
+                debugLog("Error fetching IANA RDAP data: " . curl_error($ch) . ", HTTP Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . ", Response: " . ($response ?: 'N/A'));
                 curl_close($ch);
+                // Fallback to empty array but log attempt
                 $rdapData = [];
             } else {
-                $rdapData = json_decode($response, true);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    debugLog("Error parsing IANA RDAP data: " . json_last_error_msg() . ", Raw response: " . substr($response, 0, 200));
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                if ($httpCode >= 400) {
+                    debugLog("Error: IANA fetch returned HTTP $httpCode, Response: " . substr($response, 0, 200));
                     $rdapData = [];
                 } else {
-                    file_put_contents($cacheFile, $response);
-                    debugLog("Fetched and cached IANA RDAP data from $ianaUrl");
+                    $rdapData = json_decode($response, true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        debugLog("Error parsing IANA RDAP data: " . json_last_error_msg() . ", Raw response: " . substr($response, 0, 200));
+                        $rdapData = [];
+                    } else {
+                        if (!is_writable(__DIR__)) {
+                            debugLog("Warning: Directory " . __DIR__ . " is not writable, cache not saved");
+                        } else {
+                            file_put_contents($cacheFile, $response);
+                            debugLog("Fetched and cached IANA RDAP data from $ianaUrl");
+                        }
+                    }
                 }
             }
             curl_close($ch);
@@ -70,9 +83,24 @@ function getRdapServer($domain, $ianaRdapData) {
     $tld = strtolower(substr(strrchr($domain, '.'), 1));
     debugLog("Extracted TLD: $tld");
 
+    // Manual fallback for testing common TLDs
+    $manualServers = [
+        'com' => 'https://rdap.verisign.com/com/v1/',
+        'net' => 'https://rdap.verisign.com/net/v1/',
+        'org' => 'https://rdap.publicinterestregistry.net/rdap/org/',
+        'me' => 'https://rdap.nic.me/',
+        'us' => 'https://rdap.usnic.net/',
+        'xyz' => 'https://rdap.donuts.co/'
+    ];
+    if (isset($manualServers[$tld])) {
+        $rdapUrl = $manualServers[$tld];
+        debugLog("Using manual RDAP server for TLD '$tld': $rdapUrl");
+        return rtrim($rdapUrl, '/') . '/domain/' . urlencode($domain);
+    }
+
     foreach ($ianaRdapData['services'] ?? [] as $service) {
         if (isset($service['ldhName']) && $service['ldhName'] === $tld && isset($service['rdapUrl']) && is_array($service['rdapUrl']) && !empty($service['rdapUrl'])) {
-            $rdapUrl = $service['rdapUrl'][0]; // Use the first URL
+            $rdapUrl = $service['rdapUrl'][0];
             debugLog("Found RDAP server for TLD '$tld': $rdapUrl");
             return rtrim($rdapUrl, '/') . '/domain/' . urlencode($domain);
         }
@@ -93,6 +121,7 @@ function performRdapLookup($domain, $server, &$rdapTime) {
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // Ensure SSL verification
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/rdap+json', 'User-Agent: MyWHOISApp/1.0']); // Add User-Agent
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Follow redirects
+    curl_setopt($ch, CURLOPT_FAILONERROR, false); // Allow error codes to be caught
 
     $startTime = microtime(true);
     $rdapData = curl_exec($ch);
