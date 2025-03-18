@@ -223,7 +223,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       const success = await hcaptchaManager.executeHcaptcha();
       if (!success) {
         const resultsDiv = document.getElementById('whois-results');
-        resultsDiv.innerHTML = 'hCaptcha verification failed. Please try again or check your network connection.';
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = '<div class="alert alert-warning" role="alert">hCaptcha verification failed. Please try again or check your network connection.</div>';
         return;
       }
 
@@ -232,7 +233,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
       const resultsDiv = document.getElementById('whois-results');
       resultsDiv.style.display = 'block';
-      resultsDiv.innerHTML = 'Loading...';
+      resultsDiv.innerHTML = '<div class="d-flex justify-content-center alert alert-secondary" role="alert"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
       //console.log('Submitting form with domain:', domain, 'and hCaptcha response:', hcaptchaManager.getHcaptchaResponse());
 
       try {
@@ -251,7 +252,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
         const whoisData = data.whois || '';
         if (!whoisData || whoisData.trim() === '') {
-          resultsDiv.innerHTML = 'No WHOIS data found for this domain.';
+          resultsDiv.innerHTML = '<div class="alert alert-primary" role="alert">No WHOIS data found for this domain.</div>';
           return;
         }
 
@@ -286,7 +287,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         resultsDiv.appendChild(exportBtn);
       } catch (error) {
         console.error('Error in WHOIS lookup:', error);
-        resultsDiv.innerHTML = `Error: ${error.message}. Please check the domain and try again.`;
+        resultsDiv.innerHTML = `<div class="alert alert-danger" role="alert">Error: ${error.message}. Please check the domain and try again.</div>`;
       }
     });
   });
