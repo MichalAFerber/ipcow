@@ -67,13 +67,15 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
           // Extract registrar
           if (jsonData.entities) {
             const registrarEntity = jsonData.entities.find(entity => entity.roles && entity.roles.includes('registrar'));
-            if (registrarEntity) {
-              whoisData.registrar.name = registrarEntity.fn || registrarEntity.name;
+            if (registrarEntity && registrarEntity.vcardArray) {
+              const vcard = registrarEntity.vcardArray[1];
+              whoisData.registrar.name = vcard.find(item => item[0] === 'fn')?.[3] || 'Unknown';
               if (registrarEntity.entities) {
                 const abuseEntity = registrarEntity.entities.find(e => e.roles?.includes('abuse'));
-                if (abuseEntity) {
-                  whoisData.registrar.abuse_contact_email = abuseEntity.vcardArray?.find(v => v[0] === 'email')?.[3];
-                  whoisData.registrar.abuse_contact_phone = abuseEntity.vcardArray?.find(v => v[0] === 'tel')?.[3];
+                if (abuseEntity && abuseEntity.vcardArray) {
+                  const abuseVcard = abuseEntity.vcardArray[1];
+                  whoisData.registrar.abuse_contact_email = abuseVcard.find(item => item[0] === 'email')?.[3] || '';
+                  whoisData.registrar.abuse_contact_phone = abuseVcard.find(item => item[0] === 'tel')?.[3] || '';
                 }
               }
             }
@@ -87,15 +89,14 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
               else if (entity.roles?.includes('administrative')) target = whoisData.admin;
               else if (entity.roles?.includes('technical')) target = whoisData.tech;
               else if (entity.roles?.includes('billing')) target = whoisData.billing;
-              if (Object.keys(target).length) {
-                target.name = entity.fn;
-                if (entity.vcardArray) {
-                  entity.vcardArray.forEach(vcard => {
-                    if (vcard[0] === 'adr' && vcard[1].label) target.street = vcard[1].label;
-                    else if (vcard[0] === 'email') target.email = vcard[3];
-                    else if (vcard[0] === 'tel') target.phone = vcard[3];
-                  });
-                }
+              if (Object.keys(target).length && entity.vcardArray) {
+                const vcard = entity.vcardArray[1];
+                target.name = vcard.find(item => item[0] === 'fn')?.[3] || '';
+                vcard.forEach(item => {
+                  if (item[0] === 'adr' && item[1].label) target.street = item[1].label;
+                  else if (item[0] === 'email') target.email = item[3];
+                  else if (item[0] === 'tel') target.phone = item[3];
+                });
               }
             });
           }
@@ -107,6 +108,7 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
           whoisData.raw = rawWhois; // Fallback to raw data if parsing fails
         }
   
+        // Only delete empty objects after ensuring defaults
         if (!Object.keys(whoisData.registrar).length) delete whoisData.registrar;
         if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
         if (!whoisData.status.length) delete whoisData.status;
@@ -186,7 +188,7 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
         let domain = extractBaseDomain(domainInputValue);
         console.log('Extracted base domain:', domain);
   
-        resultsDiv.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
+        resultsDiv.innerHTML = '<div class="d-flex justify-content-center'><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
   
         try {
           const maxRetries = 3;
@@ -256,17 +258,17 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
                   <table class="table table-striped">
                     ${parsedWhois.domain_name ? `<tr><th>Domain Name</th><td>${parsedWhois.domain_name}</td></tr>` : ''}
                     ${parsedWhois.registry_domain_id ? `<tr><th>Registry Domain ID</th><td>${parsedWhois.registry_domain_id}</td></tr>` : ''}
-                    ${parsedWhois.status.length ? `<tr><th>Status</th><td>${parsedWhois.status.join(', ')}</td></tr>` : ''}
-                    ${parsedWhois.dates.created ? `<tr><th>Created</th><td>${parsedWhois.dates.created}</td></tr>` : ''}
-                    ${parsedWhois.dates.expiry ? `<tr><th>Expires</th><td>${parsedWhois.dates.expiry}</td></tr>` : ''}
-                    ${parsedWhois.dates.updated ? `<tr><th>Updated</th><td>${parsedWhois.dates.updated}</td></tr>` : ''}
-                    ${parsedWhois.name_servers.length ? `<tr><th>Name Servers</th><td>${parsedWhois.name_servers.join(', ')}</td></tr>` : ''}
-                    ${parsedWhois.registrar.name ? `<tr><th>Registrar</th><td>${parsedWhois.registrar.name}</td></tr>` : ''}
-                    ${parsedWhois.registrar.abuse_contact_email ? `<tr><th>Abuse Email</th><td>${parsedWhois.registrar.abuse_contact_email}</td></tr>` : ''}
-                    ${parsedWhois.registrar.abuse_contact_phone ? `<tr><th>Abuse Phone</th><td>${parsedWhois.registrar.abuse_contact_phone}</td></tr>` : ''}
-                    ${parsedWhois.registrant.name ? `<tr><th>Registrant Name</th><td>${parsedWhois.registrant.name}</td></tr>` : ''}
-                    ${parsedWhois.registrant.email ? `<tr><th>Registrant Email</th><td>${parsedWhois.registrant.email}</td></tr>` : ''}
-                    ${parsedWhois.registrant.phone ? `<tr><th>Registrant Phone</th><td>${parsedWhois.registrant.phone}</td></tr>` : ''}
+                    ${parsedWhois.status && parsedWhois.status.length ? `<tr><th>Status</th><td>${parsedWhois.status.join(', ')}</td></tr>` : ''}
+                    ${parsedWhois.dates && parsedWhois.dates.created ? `<tr><th>Created</th><td>${parsedWhois.dates.created}</td></tr>` : ''}
+                    ${parsedWhois.dates && parsedWhois.dates.expiry ? `<tr><th>Expires</th><td>${parsedWhois.dates.expiry}</td></tr>` : ''}
+                    ${parsedWhois.dates && parsedWhois.dates.updated ? `<tr><th>Updated</th><td>${parsedWhois.dates.updated}</td></tr>` : ''}
+                    ${parsedWhois.name_servers && parsedWhois.name_servers.length ? `<tr><th>Name Servers</th><td>${parsedWhois.name_servers.join(', ')}</td></tr>` : ''}
+                    ${parsedWhois.registrar && parsedWhois.registrar.name ? `<tr><th>Registrar</th><td>${parsedWhois.registrar.name}</td></tr>` : ''}
+                    ${parsedWhois.registrar && parsedWhois.registrar.abuse_contact_email ? `<tr><th>Abuse Email</th><td>${parsedWhois.registrar.abuse_contact_email}</td></tr>` : ''}
+                    ${parsedWhois.registrar && parsedWhois.registrar.abuse_contact_phone ? `<tr><th>Abuse Phone</th><td>${parsedWhois.registrar.abuse_contact_phone}</td></tr>` : ''}
+                    ${parsedWhois.registrant && parsedWhois.registrant.name ? `<tr><th>Registrant Name</th><td>${parsedWhois.registrant.name}</td></tr>` : ''}
+                    ${parsedWhois.registrant && parsedWhois.registrant.email ? `<tr><th>Registrant Email</th><td>${parsedWhois.registrant.email}</td></tr>` : ''}
+                    ${parsedWhois.registrant && parsedWhois.registrant.phone ? `<tr><th>Registrant Phone</th><td>${parsedWhois.registrant.phone}</td></tr>` : ''}
                   </table>
                 </div>
               </section>
