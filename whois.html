@@ -281,7 +281,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         const exportBtn = document.createElement('button');
         exportBtn.textContent = 'Download JSON';
         exportBtn.style.marginTop = '10px';
-        exportBtn.className = 'btn btn-primary justify-content-center';
+        exportBtn.className = 'btn btn-primary centered';
         exportBtn.onclick = () => {
           const parsedWhois = parseWhoisData(whoisData, domain);
           const exportData = {

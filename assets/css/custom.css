@@ -17,9 +17,9 @@ a.btn {
   color: #777;
   font-size: 0.9em;
 }
-.btn-success {
+/* .btn-success {
   background: #5cb85c;
-}
+} */
 .main-explain-area {
   font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: #eee;
@@ -32,7 +32,7 @@ a.btn {
 }
 @media (min-width: 768px) {
   .main-explain-area {
-    padding: 3rem 3.75rem;
+    padding: 2rem 2.5rem;
   }
 }
 .jumbotron.purple {
@@ -49,14 +49,14 @@ a.btn {
 }
 @media (min-width: 768px) {
   .jumbotron.purple {
-    padding: 3rem 3.75rem;
+    padding: 2rem 2.5rem;
     font-size: 1.5rem;
   }
 }
 form {
   margin-bottom: 30px;
 }
-.target-hop {
+/* .target-hop {
   font-weight: bold;
   background-color: #f0f0f0;
 }
@@ -65,7 +65,7 @@ form {
   justify-content: center;
   align-items: center;
   flex-direction: column;
-}
+} */
 .flush-container {
   padding-left: 0 !important;
   margin-left: 0 !important;
