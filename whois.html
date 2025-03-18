@@ -22,7 +22,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
 <script type="module">
   document.addEventListener('DOMContentLoaded', () => {
-    const hcaptchaManager = new HcaptchaManager({
+    window.hcaptchaManager = new HcaptchaManager({
       formSelector: 'form',
       resultsId: 'whois-results'
     });
@@ -227,29 +227,19 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     resultsDiv.style.display = 'block';
 
     hcaptchaManager.resetHcaptcha();
-    let success = false; // Initialize success as false
+    let success = false;
     try {
       console.log('Attempting hCaptcha verification...');
       success = await hcaptchaManager.executeHcaptcha();
       console.log('hCaptcha verification result:', success);
+      if (!success) {
+        throw new Error('hCaptcha verification failed after maximum retries');
+      }
     } catch (error) {
-      console.error('hCaptcha error caught in inner try/catch:', error);
+      console.error('hCaptcha error caught:', error);
       resultsDiv.innerHTML = `
         <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">
           hCaptcha verification failed: ${error.message}. Please try again or check your network connection.
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-      `;
-      return;
-    }
-
-    if (!success) {
-      console.log('hCaptcha verification failed (success = false)');
-      resultsDiv.innerHTML = `
-        <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">
-          hCaptcha verification failed. Please try again or check your network connection.
           <button type="button" class="close" data-dismiss="alert" aria-label="Close">
             <span aria-hidden="true">×</span>
           </button>
@@ -330,7 +320,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       const buttonContainer = resultsDiv.querySelector('.button-container');
       buttonContainer.appendChild(exportBtn);
     } catch (error) {
-      console.error('Error in WHOIS lookup (outer catch):', error);
+      console.error('Error in WHOIS lookup:', error);
       resultsDiv.innerHTML = `
         <div class="alert alert-danger alert-dismissible fade show" role="alert" aria-live="assertive">
           Error: ${error.message}. Please check the domain and try again.
