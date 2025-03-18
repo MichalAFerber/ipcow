@@ -52,7 +52,7 @@ function getIanaRdapData() {
             } else {
                 $rdapData = json_decode($response, true);
                 if (json_last_error() !== JSON_ERROR_NONE) {
-                    debugLog("Error parsing IANA RDAP data: " . json_last_error_msg());
+                    debugLog("Error parsing IANA RDAP data: " . json_last_error_msg() . ", Raw response: " . substr($response, 0, 200));
                     $rdapData = [];
                 } else {
                     file_put_contents($cacheFile, $response);
@@ -97,22 +97,18 @@ function performRdapLookup($domain, $server, &$rdapTime) {
     $rdapData = curl_exec($ch);
     $rdapTime = (microtime(true) - $startTime) * 1000;
 
-    if (curl_errno($ch)) {
-        debugLog("Error: RDAP request failed - " . curl_error($ch));
-        curl_close($ch);
-        return false;
-    }
-
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
     curl_close($ch);
 
-    if ($httpCode >= 400) {
-        debugLog("Error: RDAP HTTP response code $httpCode");
+    debugLog("RDAP HTTP response code: $httpCode, Error: $error");
+    if (curl_errno($ch) || $httpCode >= 400) {
+        debugLog("Error: RDAP request failed - HTTP $httpCode, Error: $error");
         return false;
     }
 
     debugLog("RDAP time: " . number_format($rdapTime, 2) . " ms");
-    debugLog("RDAP data received: " . substr($rdapData, 0, 100) . "...");
+    debugLog("RDAP data received: " . substr($rdapData, 0, 200) . "...");
     return $rdapData;
 }
 
@@ -130,8 +126,11 @@ if ($rdapData === false) {
 } else {
     // Check for RDAP error responses (e.g., 404, 500, or error notices)
     $jsonData = json_decode($rdapData, true);
-    if (json_last_error() !== JSON_ERROR_NONE || isset($jsonData['errorCode'])) {
-        debugLog("RDAP response contains error: " . json_last_error_msg());
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        debugLog("Error parsing RDAP JSON: " . json_last_error_msg() . ", Raw response: " . substr($rdapData, 0, 200));
+        $rdapData = null;
+    } elseif (isset($jsonData['errorCode'])) {
+        debugLog("RDAP response contains error code: " . $jsonData['errorCode'] . ", Description: " . ($jsonData['description'] ?? 'N/A'));
         $rdapData = null;
     }
 }
