@@ -8,40 +8,33 @@
   margin-left: 0.25rem;
   margin-right: 0.25rem;
 }
-
 a.btn {
   font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
-
 #created-by {
   text-align: right;
   margin-top: 1.875rem;
   color: #777;
   font-size: 0.9em;
 }
-
 .btn-success {
   background: #5cb85c;
 }
-
 .main-explain-area {
   font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: #eee;
   padding: 1.25rem 0.9375rem;
 }
-
 .main-explain-area p {
   margin-bottom: 0.9375rem;
   font-size: 1.3125rem;
   font-weight: 200;
 }
-
 @media (min-width: 768px) {
   .main-explain-area {
     padding: 3rem 3.75rem;
   }
 }
-
 .jumbotron.purple {
   font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   padding: 1.25rem 0.9375rem;
@@ -50,28 +43,23 @@ a.btn {
   font-weight: bold;
   font-size: 1.3rem;
 }
-
 .jumbotron.purple a {
   color: #fff;
   text-decoration: underline;
 }
-
 @media (min-width: 768px) {
   .jumbotron.purple {
     padding: 3rem 3.75rem;
     font-size: 1.5rem;
   }
 }
-
 form {
   margin-bottom: 30px;
 }
-
 .target-hop {
   font-weight: bold;
   background-color: #f0f0f0;
 }
-
 .center-results {
   display: flex;
   justify-content: center;
