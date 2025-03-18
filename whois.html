@@ -259,8 +259,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         let formatted = '';
         formatted += `<h3 class="text-center"><span class="font-weight-bold">${domain}</span></h3>`;
         formatted += '<div class="mt-5 main-explain-area jumbotron jumbotron-fluid"><section class="m-0 p-0">';
-        formatted = '<p class="lead font-weight-bold pt-0 mt-0">WHOIS Data</p>';
-        formatted += <pre style="white-space: pre-wrap; word-wrap: break-word;">${whoisData.trim()}</pre>;
+        formatted += '<p class="lead font-weight-bold pt-0 mt-0">WHOIS Data</p>';
+        formatted += '<pre style="white-space: pre-wrap; word-wrap: break-word;">${whoisData.trim()}</pre>';
         formatted += '</section></div>';
 
         resultsDiv.innerHTML = formatted;
