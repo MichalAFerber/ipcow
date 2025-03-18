@@ -11,7 +11,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 
-<div id="whois-results" class="mt-5 main-explain-area jumbotron jumbotron-fluid" style="display: none;"></div>
+<div id="whois-results" style="display: none;"></div>
 
 <!-- Load hCaptcha and custom module -->
 <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
@@ -256,14 +256,12 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         }
 
         // Format the response into a table
-        let formatted = '<section class="m-0 p-0"><p class="lead font-weight-bold pt-0 mt-0">WHOIS Data</p>';
-        formatted += `<span class="font-weight-bold">${domain}</span>`;
-        //formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
-        //formatted += `<tr><td>WHOIS Time</td><td>${data.whois_time_ms.toFixed(2)} ms</td></tr>`;
-        //formatted += `<tr><td>Total Time</td><td>${data.total_time_ms.toFixed(2)} ms</td></tr>`;
-        //formatted += '<tr><td><strong>WHOIS Data</strong></td></tr>';
-        formatted += `<span><pre style="white-space: pre-wrap; word-wrap: break-word;">${whoisData.trim()}</pre></span>`;
-        formatted += '</section>';
+        let formatted = '';
+        formatted += `<h3 class="text-center"><span class="font-weight-bold">${domain}</span></h3>`;
+        formatted += '<div class="mt-5 main-explain-area jumbotron jumbotron-fluid"><section class="m-0 p-0">';
+        formatted = '<p class="lead font-weight-bold pt-0 mt-0">WHOIS Data</p>';
+        formatted += <pre style="white-space: pre-wrap; word-wrap: break-word;">${whoisData.trim()}</pre>;
+        formatted += '</section></div>';
 
         resultsDiv.innerHTML = formatted;
 
@@ -275,12 +273,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           const parsedWhois = parseWhoisData(whoisData, domain);
           const exportData = {
             domain: domain,
-            //latency_ms: parseFloat(latency),
-            whois: parsedWhois,
-            timings: {
-              //whois_ms: parseFloat(data.whois_time_ms.toFixed(2)),
-              //total_ms: parseFloat(data.total_time_ms.toFixed(2))
-            }
+            whois: parsedWhois
           };
           const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
