@@ -231,6 +231,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
 
       const resultsDiv = document.getElementById('whois-results');
+      resultsDiv.style.display = 'block';
       resultsDiv.innerHTML = 'Loading...';
       //console.log('Submitting form with domain:', domain, 'and hCaptcha response:', hcaptchaManager.getHcaptchaResponse());
 
