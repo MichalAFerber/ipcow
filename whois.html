@@ -21,146 +21,296 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
 
 <script type="module">
     document.addEventListener('DOMContentLoaded', () => {
-        window.hcaptchaManager = new HcaptchaManager({
-            formSelector: 'form',
-            resultsId: 'whois-results'
-        });
-
-        const form = document.querySelector('form');
-        const domainInput = document.getElementById('domain');
-        const resultsDiv = document.getElementById('whois-results');
-
-        if (!form || !domainInput || !resultsDiv) {
-            console.error('Form, domain input, or results div not found');
-            return;
-        }
-
-        function parseWhoisData(rawWhois, queriedDomain) {
-            let whoisData = { domain_name: queriedDomain, registrar: {}, dates: {}, status: [], name_servers: [], registrant: {}, admin: {}, tech: {}, billing: {}, raw: {} };
-            console.log('Parsing RDAP data:', rawWhois);
-
-            try {
-                const jsonData = JSON.parse(rawWhois);
-                console.log('Parsed JSON:', jsonData);
-
-                // Extract basic domain info
-                if (jsonData.handle) whoisData.registry_domain_id = jsonData.handle;
-                if (jsonData.ldhName) whoisData.domain_name = jsonData.ldhName;
-
-                // Extract statuses
-                if (jsonData.status) whoisData.status = jsonData.status;
-
-                // Extract dates
-                if (jsonData.events) {
-                    jsonData.events.forEach(event => {
-                        if (event.eventAction === 'registration') whoisData.dates.created = event.eventDate;
-                        else if (event.eventAction === 'expiration' || event.eventAction === 'last changed') whoisData.dates.expiry = event.eventDate;
-                        else if (event.eventAction === 'last updated') whoisData.dates.updated = event.eventDate;
-                    });
+      window.hcaptchaManager = new HcaptchaManager({
+        formSelector: 'form',
+        resultsId: 'whois-results'
+      });
+  
+      const form = document.querySelector('form');
+      const domainInput = document.getElementById('domain');
+      const resultsDiv = document.getElementById('whois-results');
+  
+      if (!form || !domainInput || !resultsDiv) {
+        console.error('Form, domain input, or results div not found');
+        return;
+      }
+  
+      function parseWhoisData(rawWhois, queriedDomain) {
+        let whoisData = { domain_name: queriedDomain, registrar: {}, dates: {}, status: [], name_servers: [], registrant: {}, admin: {}, tech: {}, billing: {}, raw: {} };
+        console.log('Parsing RDAP data:', rawWhois);
+  
+        try {
+          const jsonData = JSON.parse(rawWhois);
+          console.log('Parsed JSON:', jsonData);
+  
+          // Extract basic domain info
+          if (jsonData.handle) whoisData.registry_domain_id = jsonData.handle;
+          if (jsonData.ldhName) whoisData.domain_name = jsonData.ldhName;
+  
+          // Extract statuses
+          if (jsonData.status) whoisData.status = jsonData.status;
+  
+          // Extract dates
+          if (jsonData.events) {
+            jsonData.events.forEach(event => {
+              if (event.eventAction === 'registration') whoisData.dates.created = event.eventDate;
+              else if (event.eventAction === 'expiration') whoisData.dates.expiry = event.eventDate;
+              else if (event.eventAction === 'last changed' || event.eventAction === 'last update of RDAP database') whoisData.dates.updated = event.eventDate;
+            });
+          }
+  
+          // Extract name servers
+          if (jsonData.nameservers) {
+            whoisData.name_servers = jsonData.nameservers.map(ns => ns.ldhName || ns);
+          }
+  
+          // Extract registrar
+          if (jsonData.entities) {
+            const registrarEntity = jsonData.entities.find(entity => entity.roles && entity.roles.includes('registrar'));
+            if (registrarEntity) {
+              whoisData.registrar.name = registrarEntity.fn || registrarEntity.name;
+              if (registrarEntity.entities) {
+                const abuseEntity = registrarEntity.entities.find(e => e.roles?.includes('abuse'));
+                if (abuseEntity) {
+                  whoisData.registrar.abuse_contact_email = abuseEntity.vcardArray?.find(v => v[0] === 'email')?.[3];
+                  whoisData.registrar.abuse_contact_phone = abuseEntity.vcardArray?.find(v => v[0] === 'tel')?.[3];
                 }
-
-                // Extract name servers
-                if (jsonData.nameservers) {
-                    whoisData.name_servers = jsonData.nameservers.map(ns => ns.ldhName || ns);
-                }
-
-                // Extract registrar
-                if (jsonData.entities) {
-                    const registrarEntity = jsonData.entities.find(entity => entity.roles && entity.roles.includes('registrar'));
-                    if (registrarEntity) {
-                        whoisData.registrar.name = registrarEntity.fn || registrarEntity.name;
-                        whoisData.registrar.url = registrarEntity.links?.find(link => link.rel === 'registrar url')?.value;
-                    }
-                }
-
-                // Extract contacts (registrant, admin, tech, billing)
-                if (jsonData.entities) {
-                    jsonData.entities.forEach(entity => {
-                        let target = {};
-                        if (entity.roles?.includes('registrant')) target = whoisData.registrant;
-                        else if (entity.roles?.includes('administrative')) target = whoisData.admin;
-                        else if (entity.roles?.includes('technical')) target = whoisData.tech;
-                        else if (entity.roles?.includes('billing')) target = whoisData.billing;
-                        if (Object.keys(target).length) {
-                            target.name = entity.fn;
-                            if (entity.vcardArray) {
-                                entity.vcardArray.forEach(vcard => {
-                                    if (vcard[0] === 'adr' && vcard[1].label) target.street = vcard[1].label;
-                                    else if (vcard[0] === 'email') target.email = vcard[3];
-                                    else if (vcard[0] === 'tel') target.phone = vcard[3];
-                                });
-                            }
-                        }
-                    });
-                }
-
-                // Store any unprocessed data
-                whoisData.raw = jsonData;
-            } catch (e) {
-                console.error('Error parsing RDAP JSON:', e);
-                whoisData.raw = rawWhois; // Fallback to raw data if parsing fails
+              }
             }
-
-            if (!Object.keys(whoisData.registrar).length) delete whoisData.registrar;
-            if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
-            if (!whoisData.status.length) delete whoisData.status;
-            if (!whoisData.name_servers.length) delete whoisData.name_servers;
-            if (!Object.keys(whoisData.registrant).length) delete whoisData.registrant;
-            if (!Object.keys(whoisData.admin).length) delete whoisData.admin;
-            if (!Object.keys(whoisData.tech).length) delete whoisData.tech;
-            if (!Object.keys(whoisData.billing).length) delete whoisData.billing;
-            if (!Object.keys(whoisData.raw).length) delete whoisData.raw;
-
-            console.log('Parsed RDAP data:', whoisData);
-            return whoisData;
+          }
+  
+          // Extract contacts
+          if (jsonData.entities) {
+            jsonData.entities.forEach(entity => {
+              let target = {};
+              if (entity.roles?.includes('registrant')) target = whoisData.registrant;
+              else if (entity.roles?.includes('administrative')) target = whoisData.admin;
+              else if (entity.roles?.includes('technical')) target = whoisData.tech;
+              else if (entity.roles?.includes('billing')) target = whoisData.billing;
+              if (Object.keys(target).length) {
+                target.name = entity.fn;
+                if (entity.vcardArray) {
+                  entity.vcardArray.forEach(vcard => {
+                    if (vcard[0] === 'adr' && vcard[1].label) target.street = vcard[1].label;
+                    else if (vcard[0] === 'email') target.email = vcard[3];
+                    else if (vcard[0] === 'tel') target.phone = vcard[3];
+                  });
+                }
+              }
+            });
+          }
+  
+          // Store any unprocessed data
+          whoisData.raw = jsonData;
+        } catch (e) {
+          console.error('Error parsing RDAP JSON:', e);
+          whoisData.raw = rawWhois; // Fallback to raw data if parsing fails
         }
-        function extractBaseDomain(input) {
-            try {
-                const sanitizedInput = input.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
-                if (!sanitizedInput.includes('.')) { console.warn('Invalid domain format, using as-is:', sanitizedInput); return sanitizedInput; }
-                let url; try { url = new URL(input); } catch (e) { console.warn('Invalid URL, treating as domain:', sanitizedInput); return sanitizedInput; }
-                let hostname = url.hostname.toLowerCase();
-                const parts = hostname.split('.');
-                if (parts.length > 2) {
-                    hostname = parts.slice(-2).join('.');
-                    const tldList = ['co.uk', 'org.uk', 'me.uk', 'ltd.uk', 'com.au', 'org.au', 'net.au', 'co.jp', 'or.kr', 'com.br', 'org.br'];
-                    const potentialTld = parts.slice(-2).join('.');
-                    if (tldList.includes(potentialTld)) hostname = parts.slice(-3).join('.');
-                }
-                return hostname;
-            } catch (error) { console.error('Error extracting base domain:', error); return input.trim().toLowerCase().replace(/[^a-z0-9.-]/g, ''); }
+  
+        if (!Object.keys(whoisData.registrar).length) delete whoisData.registrar;
+        if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
+        if (!whoisData.status.length) delete whoisData.status;
+        if (!whoisData.name_servers.length) delete whoisData.name_servers;
+        if (!Object.keys(whoisData.registrant).length) delete whoisData.registrant;
+        if (!Object.keys(whoisData.admin).length) delete whoisData.admin;
+        if (!Object.keys(whoisData.tech).length) delete whoisData.tech;
+        if (!Object.keys(whoisData.billing).length) delete whoisData.billing;
+        if (!Object.keys(whoisData.raw).length) delete whoisData.raw;
+  
+        console.log('Parsed RDAP data:', whoisData);
+        return whoisData;
+      }
+  
+      function extractBaseDomain(input) {
+        try {
+          const sanitizedInput = input.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
+          if (!sanitizedInput.includes('.')) {
+            console.warn('Invalid domain format, using as-is:', sanitizedInput);
+            return sanitizedInput;
+          }
+          let url;
+          try {
+            url = new URL(input);
+          } catch (e) {
+            console.warn('Invalid URL, treating as domain:', sanitizedInput);
+            return sanitizedInput;
+          }
+          let hostname = url.hostname.toLowerCase();
+          const parts = hostname.split('.');
+          if (parts.length > 2) {
+            hostname = parts.slice(-2).join('.');
+            const tldList = ['co.uk', 'org.uk', 'me.uk', 'ltd.uk', 'com.au', 'org.au', 'net.au', 'co.jp', 'or.kr', 'com.br', 'org.br'];
+            const potentialTld = parts.slice(-2).join('.');
+            if (tldList.includes(potentialTld)) hostname = parts.slice(-3).join('.');
+          }
+          return hostname;
+        } catch (error) {
+          console.error('Error extracting base domain:', error);
+          return input.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
         }
-
-        domainInput.addEventListener('click', () => { domainInput.placeholder = ''; domainInput.focus(); });
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            resultsDiv.style.display = 'block';
-            hcaptchaManager.resetHcaptcha();
-            let success = false;
-            try { console.log('Attempting hCaptcha verification...'); success = await hcaptchaManager.executeHcaptcha(); console.log('hCaptcha verification result:', success); if (!success) throw new Error('hCaptcha verification failed after maximum retries'); }
-            catch (error) { console.error('hCaptcha error caught:', error); resultsDiv.innerHTML = `<div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">hCaptcha verification failed: ${error.message}. Please try again or check your network connection.<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>`; return; }
-            let domainInputValue = domainInput.value.trim(); let domain = extractBaseDomain(domainInputValue); console.log('Extracted base domain:', domain);
-            resultsDiv.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
+      }
+  
+      domainInput.addEventListener('click', () => {
+        domainInput.placeholder = '';
+        domainInput.focus();
+      });
+  
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+  
+        resultsDiv.style.display = 'block';
+  
+        hcaptchaManager.resetHcaptcha();
+        let success = false;
+        try {
+          console.log('Attempting hCaptcha verification...');
+          success = await hcaptchaManager.executeHcaptcha();
+          console.log('hCaptcha verification result:', success);
+          if (!success) {
+            throw new Error('hCaptcha verification failed after maximum retries');
+          }
+        } catch (error) {
+          console.error('hCaptcha error caught:', error);
+          resultsDiv.innerHTML = `
+            <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">
+              hCaptcha verification failed: ${error.message}. Please try again or check your network connection.
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+          `;
+          return;
+        }
+  
+        let domainInputValue = domainInput.value.trim();
+        let domain = extractBaseDomain(domainInputValue);
+        console.log('Extracted base domain:', domain);
+  
+        resultsDiv.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
+  
+        try {
+          const maxRetries = 3;
+          const retryDelay = 5000;
+          let response;
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                const maxRetries = 3, retryDelay = 5000; let response;
-                for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                    try { console.log(`Fetching WHOIS data (attempt ${attempt} of ${maxRetries})...`); const startTime = performance.now(); response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaManager.getHcaptchaResponse())}`, { signal: AbortSignal.timeout(30000) }); const endTime = performance.now(); const latency = (endTime - startTime).toFixed(2); console.log(`Fetch completed in ${latency}ms`); break; }
-                    catch (error) { console.error(`Fetch attempt ${attempt} failed:`, error); if (attempt === maxRetries) throw new Error('Failed to fetch WHOIS data after maximum retries'); await new Promise(resolve => setTimeout(resolve, retryDelay)); }
-                }
-                if (!response.ok) { const text = await response.text(); console.error('Server response:', text); throw new Error(`HTTP Error! status: ${response.status}`); }
-                const data = await response.json(); console.log('Received WHOIS response:', data);
-                const whoisData = data.whois || '';
-                if (!whoisData || whoisData.trim() === '' || whoisData.toLowerCase().includes('no match') || whoisData.toLowerCase().includes('not found') || whoisData.toLowerCase().includes('no data') || whoisData.toLowerCase().includes('connection timeout') || whoisData.toLowerCase().includes('could not') || whoisData.toLowerCase().includes('error') || whoisData.toLowerCase().includes('retired') || whoisData.toLowerCase().includes('try again after')) {
-                    resultsDiv.innerHTML = `<div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">No WHOIS data found for this domain. The WHOIS server may be retired or unavailable.<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>`;
-                    domainInput.value = ''; domainInput.focus(); return;
-                }
-                let formatted = `<h3 class="text-center"><span class="font-weight-bold">${domain}</span></h3><div class="main-explain-area jumbotron jumbotron-fluid"><section class="flush-container"><p class="lead font-weight-bold">WHOIS Data</p><div class="flush-container"><pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; padding: 0;">${whoisData.trim()}</pre></div></section></div><div class="button-container d-flex justify-content-center mt-3"><!-- Placeholder for the button --></div>`;
-                resultsDiv.innerHTML = formatted;
-                const exportBtn = document.createElement('button'); exportBtn.textContent = 'Download JSON'; exportBtn.className = 'btn btn-primary'; exportBtn.onclick = () => { const parsedWhois = parseWhoisData(whoisData, domain); const exportData = { domain: domain, whois: parsedWhois }; const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${domain}_whois.json`; a.click(); URL.revokeObjectURL(url); };
-                const buttonContainer = resultsDiv.querySelector('.button-container'); buttonContainer.appendChild(exportBtn);
-                domainInput.value = ''; domainInput.focus();
-            } catch (error) { console.error('Error in WHOIS lookup:', error); resultsDiv.innerHTML = `<div class="alert alert-danger alert-dismissible fade show" role="alert" aria-live="assertive">Error: ${error.message}. Please check the domain and try again.<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button></div>`; }
-        });
+              console.log(`Fetching WHOIS data (attempt ${attempt} of ${maxRetries})...`);
+              const startTime = performance.now();
+              response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaManager.getHcaptchaResponse())}`, {
+                signal: AbortSignal.timeout(30000)
+              });
+              const endTime = performance.now();
+              const latency = (endTime - startTime).toFixed(2);
+              console.log(`Fetch completed in ${latency}ms`);
+              break;
+            } catch (error) {
+              console.error(`Fetch attempt ${attempt} failed:`, error);
+              if (attempt === maxRetries) {
+                throw new Error('Failed to fetch WHOIS data after maximum retries');
+              }
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+          }
+  
+          if (!response.ok) {
+            const text = await response.text();
+            console.error('Server response:', text);
+            throw new Error(`HTTP Error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          console.log('Received WHOIS response:', data);
+  
+          const whoisData = data.whois || '';
+          if (
+            !whoisData ||
+            whoisData.trim() === '' ||
+            whoisData.toLowerCase().includes('no match') ||
+            whoisData.toLowerCase().includes('not found') ||
+            whoisData.toLowerCase().includes('no data') ||
+            whoisData.toLowerCase().includes('connection timeout') ||
+            whoisData.toLowerCase().includes('could not') ||
+            whoisData.toLowerCase().includes('error') ||
+            whoisData.toLowerCase().includes('retired') ||
+            whoisData.toLowerCase().includes('try again after')
+          ) {
+            resultsDiv.innerHTML = `
+              <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
+                No WHOIS data found for this domain. The WHOIS server may be retired or unavailable.
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
+            `;
+            domainInput.value = '';
+            domainInput.focus();
+            return;
+          }
+  
+          const parsedWhois = parseWhoisData(whoisData, domain);
+          let formatted = `
+            <h3 class="text-center"><span class="font-weight-bold">${domain}</span></h3>
+            <div class="main-explain-area jumbotron jumbotron-fluid">
+              <section class="flush-container">
+                <p class="lead font-weight-bold">WHOIS Data</p>
+                <div class="flush-container">
+                  <table class="table table-striped">
+                    ${parsedWhois.domain_name ? `<tr><th>Domain Name</th><td>${parsedWhois.domain_name}</td></tr>` : ''}
+                    ${parsedWhois.registry_domain_id ? `<tr><th>Registry Domain ID</th><td>${parsedWhois.registry_domain_id}</td></tr>` : ''}
+                    ${parsedWhois.status.length ? `<tr><th>Status</th><td>${parsedWhois.status.join(', ')}</td></tr>` : ''}
+                    ${parsedWhois.dates.created ? `<tr><th>Created</th><td>${parsedWhois.dates.created}</td></tr>` : ''}
+                    ${parsedWhois.dates.expiry ? `<tr><th>Expires</th><td>${parsedWhois.dates.expiry}</td></tr>` : ''}
+                    ${parsedWhois.dates.updated ? `<tr><th>Updated</th><td>${parsedWhois.dates.updated}</td></tr>` : ''}
+                    ${parsedWhois.name_servers.length ? `<tr><th>Name Servers</th><td>${parsedWhois.name_servers.join(', ')}</td></tr>` : ''}
+                    ${parsedWhois.registrar.name ? `<tr><th>Registrar</th><td>${parsedWhois.registrar.name}</td></tr>` : ''}
+                    ${parsedWhois.registrar.abuse_contact_email ? `<tr><th>Abuse Email</th><td>${parsedWhois.registrar.abuse_contact_email}</td></tr>` : ''}
+                    ${parsedWhois.registrar.abuse_contact_phone ? `<tr><th>Abuse Phone</th><td>${parsedWhois.registrar.abuse_contact_phone}</td></tr>` : ''}
+                    ${parsedWhois.registrant.name ? `<tr><th>Registrant Name</th><td>${parsedWhois.registrant.name}</td></tr>` : ''}
+                    ${parsedWhois.registrant.email ? `<tr><th>Registrant Email</th><td>${parsedWhois.registrant.email}</td></tr>` : ''}
+                    ${parsedWhois.registrant.phone ? `<tr><th>Registrant Phone</th><td>${parsedWhois.registrant.phone}</td></tr>` : ''}
+                  </table>
+                </div>
+              </section>
+            </div>
+            <div class="button-container d-flex justify-content-center mt-3">
+              <!-- Placeholder for the button -->
+            </div>
+          `;
+  
+          resultsDiv.innerHTML = formatted;
+  
+          const exportBtn = document.createElement('button');
+          exportBtn.textContent = 'Download JSON';
+          exportBtn.className = 'btn btn-primary';
+          exportBtn.onclick = () => {
+            const exportData = {
+              domain: domain,
+              whois: parsedWhois
+            };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${domain}_whois.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          };
+  
+          const buttonContainer = resultsDiv.querySelector('.button-container');
+          buttonContainer.appendChild(exportBtn);
+  
+          domainInput.value = '';
+          domainInput.focus();
+        } catch (error) {
+          console.error('Error in WHOIS lookup:', error);
+          resultsDiv.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert" aria-live="assertive">
+              Error: ${error.message}. Please check the domain and try again.
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+          `;
+        }
+      });
     });
-</script>
+  </script>
