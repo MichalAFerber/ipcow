@@ -28,8 +28,11 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     });
 
     const form = document.querySelector('form');
-    if (!form) {
-      console.error('Form not found');
+    const domainInput = document.getElementById('domain');
+    const resultsDiv = document.getElementById('whois-results');
+
+    if (!form || !domainInput || !resultsDiv) {
+      console.error('Form, domain input, or results div not found');
       return;
     }
 
@@ -37,7 +40,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     function parseWhoisData(rawWhois, queriedDomain) {
       const lines = rawWhois.split('\n').map(line => line.trim());
       const whoisData = {
-        domain_name: queriedDomain, // Set the domain_name to the queried domain
+        domain_name: queriedDomain,
         registrar: {},
         dates: {},
         status: [],
@@ -46,13 +49,13 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         admin: {},
         tech: {},
         billing: {},
-        raw: {} // Store unmapped fields
+        raw: {}
       };
 
-      console.log('Parsing WHOIS data, total lines:', lines.length); // Debug
+      console.log('Parsing WHOIS data, total lines:', lines.length);
 
-      let currentContactType = null; // Track the current contact type (administrative, technical, etc.)
-      let inContactSection = false; // Track if we are in a contact section
+      let currentContactType = null;
+      let inContactSection = false;
 
       const stopMarkers = [
         '>>> Last update of WHOIS database:',
@@ -64,7 +67,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         for (const marker of stopMarkers) {
           if (line.startsWith(marker)) {
             whoisData.last_updated = line.split(marker)[1].trim();
-            console.log('Found stop marker, last_updated:', whoisData.last_updated); // Debug
+            console.log('Found stop marker, last_updated:', whoisData.last_updated);
             stopMarkerFound = true;
             break;
           }
@@ -73,11 +76,9 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 
         if (!line || line.startsWith('#') || line.startsWith('%')) continue;
 
-        // Split on the first colon
         const match = line.match(/([^:]+):(.+)/);
         if (!match) {
-          console.log('Skipping line (no key-value pair):', line); // Debug
-          // If we encounter a blank line or a line without a key-value pair, end the contact section
+          console.log('Skipping line (no key-value pair):', line);
           if (inContactSection) {
             currentContactType = null;
             inContactSection = false;
@@ -87,24 +88,21 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         const key = match[1].trim().toLowerCase().replace(/\s+/g, '_');
         let value = match[2].trim();
 
-        // Map alternative keys
         let mappedKey = key;
         if (key === 'nserver') mappedKey = 'name_server';
         else if (key === 'fax-no') mappedKey = 'fax';
 
-        console.log(`Parsed line - key: ${key}, mappedKey: ${mappedKey}, value: ${value}`); // Debug
+        console.log(`Parsed line - key: ${key}, mappedKey: ${mappedKey}, value: ${value}`);
 
-        // Handle contact sections (e.g., administrative, technical)
         if (mappedKey === 'contact') {
           currentContactType = value.toLowerCase();
           inContactSection = true;
           continue;
         }
 
-        // Handle fields based on the current contact type
         if (currentContactType && inContactSection) {
           let targetObject;
-          if (currentContactType === 'administrative') targetObject = whoisData.registrant; // Map administrative to registrant
+          if (currentContactType === 'administrative') targetObject = whoisData.registrant;
           else if (currentContactType === 'technical') targetObject = whoisData.tech;
           else if (currentContactType === 'billing') targetObject = whoisData.billing;
           else targetObject = whoisData.admin;
@@ -125,7 +123,6 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           continue;
         }
 
-        // Handle specific keys
         if (mappedKey === 'domain_name') whoisData.domain_name = value;
         else if (mappedKey === 'registry_domain_id') whoisData.registry_domain_id = value;
         else if (mappedKey.startsWith('registrar')) {
@@ -135,19 +132,25 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           else if (mappedKey === 'registrar_iana_id') whoisData.registrar.iana_id = value;
           else if (mappedKey === 'registrar_abuse_contact_email') whoisData.registrar.abuse_contact_email = value;
           else if (mappedKey === 'registrar_abuse_contact_phone') whoisData.registrar.abuse_contact_phone = value;
-        } else if (mappedKey === 'organisation') {
-          whoisData.registrar.name = value; // Map organisation to registrar for IANA data
-        } else if (mappedKey === 'updated_date' || mappedKey === 'creation_date' || mappedKey === 'registrar_registration_expiration_date' || mappedKey === 'registry_expiry_date' || mappedKey === 'changed' || mappedKey === 'created') {
+        }
+        else if (mappedKey === 'organisation') {
+          whoisData.registrar.name = value;
+        }
+        else if (mappedKey === 'updated_date' || mappedKey === 'creation_date' || mappedKey === 'registrar_registration_expiration_date' || mappedKey === 'registry_expiry_date' || mappedKey === 'changed' || mappedKey === 'created') {
           if (mappedKey === 'updated_date' || mappedKey === 'changed') whoisData.dates.updated = value;
           else if (mappedKey === 'creation_date' || mappedKey === 'created') whoisData.dates.created = value;
           else if (mappedKey === 'registrar_registration_expiration_date' || mappedKey === 'registry_expiry_date') whoisData.dates.expiry = value;
-        } else if (mappedKey === 'domain_status' || mappedKey === 'status') {
+        }
+        else if (mappedKey === 'domain_status' || mappedKey === 'status') {
           whoisData.status.push(value);
-        } else if (mappedKey === 'name_server') {
+        }
+        else if (mappedKey === 'name_server') {
           whoisData.name_servers.push(value);
-        } else if (mappedKey === 'dnssec') {
+        }
+        else if (mappedKey === 'dnssec') {
           whoisData.dnssec = value;
-        } else if (mappedKey.startsWith('registrant')) {
+        }
+        else if (mappedKey.startsWith('registrant')) {
           if (mappedKey === 'registrant_name') whoisData.registrant.name = value;
           else if (mappedKey === 'registrant_organization') whoisData.registrant.organization = value;
           else if (mappedKey === 'registrant_street') whoisData.registrant.street = value;
@@ -160,7 +163,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           else if (mappedKey === 'registrant_fax') whoisData.registrant.fax = value;
           else if (mappedKey === 'registrant_fax_ext') whoisData.registrant.fax_ext = value;
           else if (mappedKey === 'registrant_email') whoisData.registrant.email = value;
-        } else if (mappedKey.startsWith('admin')) {
+        }
+        else if (mappedKey.startsWith('admin')) {
           if (mappedKey === 'admin_name') whoisData.admin.name = value;
           else if (mappedKey === 'admin_organization') whoisData.admin.organization = value;
           else if (mappedKey === 'admin_street') whoisData.admin.street = value;
@@ -173,7 +177,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           else if (mappedKey === 'admin_fax') whoisData.admin.fax = value;
           else if (mappedKey === 'admin_fax_ext') whoisData.admin.fax_ext = value;
           else if (mappedKey === 'admin_email') whoisData.admin.email = value;
-        } else if (mappedKey.startsWith('tech')) {
+        }
+        else if (mappedKey.startsWith('tech')) {
           if (mappedKey === 'tech_name') whoisData.tech.name = value;
           else if (mappedKey === 'tech_organization') whoisData.tech.organization = value;
           else if (mappedKey === 'tech_street') whoisData.tech.street = value;
@@ -186,7 +191,8 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           else if (mappedKey === 'tech_fax') whoisData.tech.fax = value;
           else if (mappedKey === 'tech_fax_ext') whoisData.tech.fax_ext = value;
           else if (mappedKey === 'tech_email') whoisData.tech.email = value;
-        } else if (mappedKey.startsWith('billing')) {
+        }
+        else if (mappedKey.startsWith('billing')) {
           if (mappedKey === 'billing_name') whoisData.billing.name = value;
           else if (mappedKey === 'billing_organization') whoisData.billing.organization = value;
           else if (mappedKey === 'billing_street') whoisData.billing.street = value;
@@ -199,12 +205,12 @@ share-description: "IP Cow is a free service that shows you the public IP addres
           else if (mappedKey === 'billing_fax') whoisData.billing.fax = value;
           else if (mappedKey === 'billing_fax_ext') whoisData.billing.fax_ext = value;
           else if (mappedKey === 'billing_email') whoisData.billing.email = value;
-        } else {
-          whoisData.raw[mappedKey] = value; // Store unmapped fields
+        }
+        else {
+          whoisData.raw[mappedKey] = value;
         }
       }
 
-      // Remove empty nested objects
       if (!Object.keys(whoisData.registrar).length) delete whoisData.registrar;
       if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
       if (!whoisData.status.length) delete whoisData.status;
@@ -215,92 +221,73 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       if (!Object.keys(whoisData.billing).length) delete whoisData.billing;
       if (!Object.keys(whoisData.raw).length) delete whoisData.raw;
 
-      console.log('Parsed WHOIS data:', whoisData); // Debug
+      console.log('Parsed WHOIS data:', whoisData);
       return whoisData;
     }
 
-    // Handle form submission
-    form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+    // Function to extract base domain from various input formats
+    function extractBaseDomain(input) {
+      try {
+        // Basic validation
+        const sanitizedInput = input.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
+        if (!sanitizedInput.includes('.')) {
+          console.warn('Invalid domain format, using as-is:', sanitizedInput);
+          return sanitizedInput;
+        }
 
-    const resultsDiv = document.getElementById('whois-results');
-    resultsDiv.style.display = 'block';
+        // Parse the input as a URL
+        let url;
+        try {
+          url = new URL(input);
+        } catch (e) {
+          console.warn('Invalid URL, treating as domain:', sanitizedInput);
+          return sanitizedInput;
+        }
 
-    hcaptchaManager.resetHcaptcha();
-    let success = false;
-    try {
-      console.log('Attempting hCaptcha verification...');
-      success = await hcaptchaManager.executeHcaptcha();
-      console.log('hCaptcha verification result:', success);
-      if (!success) {
-        throw new Error('hCaptcha verification failed after maximum retries');
+        let hostname = url.hostname.toLowerCase();
+        const parts = hostname.split('.');
+        if (parts.length > 2) {
+          hostname = parts.slice(-2).join('.');
+          const tldList = ['co.uk', 'org.uk', 'me.uk', 'ltd.uk', 'com.au', 'org.au', 'net.au', 'co.jp', 'or.kr', 'com.br', 'org.br'];
+          const potentialTld = parts.slice(-2).join('.');
+          if (tldList.includes(potentialTld)) {
+            hostname = parts.slice(-3).join('.');
+          }
+        }
+
+        return hostname;
+      } catch (error) {
+        console.error('Error extracting base domain:', error);
+        return input.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
       }
-    } catch (error) {
-      console.error('hCaptcha error caught:', error);
-      resultsDiv.innerHTML = `
-        <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">
-          hCaptcha verification failed: ${error.message}. Please try again or check your network connection.
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-      `;
-      return;
     }
 
-    let domain = document.getElementById('domain').value.trim();
-    domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
+    // Remove placeholder and focus on input click
+    domainInput.addEventListener('click', () => {
+      domainInput.placeholder = '';
+      domainInput.focus();
+    });
 
-    resultsDiv.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
+    // Handle form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    try {
-      // Add retry logic for the fetch request
-      const maxRetries = 3;
-      const retryDelay = 5000; // 5 seconds
-      let response;
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          console.log(`Fetching WHOIS data (attempt ${attempt} of ${maxRetries})...`);
-          const startTime = performance.now();
-          response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaManager.getHcaptchaResponse())}`, {
-            signal: AbortSignal.timeout(30000) // 30-second timeout for fetch
-          });
-          const endTime = performance.now();
-          const latency = (endTime - startTime).toFixed(2);
-          console.log(`Fetch completed in ${latency}ms`);
-          break; // Success, exit retry loop
-        } catch (error) {
-          console.error(`Fetch attempt ${attempt} failed:`, error);
-          if (attempt === maxRetries) {
-            throw new Error('Failed to fetch WHOIS data after maximum retries');
-          }
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
+      resultsDiv.style.display = 'block';
+
+      hcaptchaManager.resetHcaptcha();
+      let success = false;
+      try {
+        console.log('Attempting hCaptcha verification...');
+        success = await hcaptchaManager.executeHcaptcha();
+        console.log('hCaptcha verification result:', success);
+        if (!success) {
+          throw new Error('hCaptcha verification failed after maximum retries');
         }
-      }
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('Server response:', text);
-        throw new Error(`HTTP Error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('Received WHOIS response:', data);
-
-      const whoisData = data.whois || '';
-      // Update condition to include "connection timeout"
-      if (
-        !whoisData ||
-        whoisData.trim() === '' ||
-        whoisData.toLowerCase().includes('no match') ||
-        whoisData.toLowerCase().includes('not found') ||
-        whoisData.toLowerCase().includes('no data') ||
-        whoisData.toLowerCase().includes('connection timeout') ||
-        whoisData.toLowerCase().includes('could not') ||
-        whoisData.toLowerCase().includes('error')
-      ) {
+      } catch (error) {
+        console.error('hCaptcha error caught:', error);
         resultsDiv.innerHTML = `
-          <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
-            No WHOIS data found for this domain.
+          <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">
+            hCaptcha verification failed: ${error.message}. Please try again or check your network connection.
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">×</span>
             </button>
@@ -309,56 +296,119 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         return;
       }
 
-      // Format the response
-      let formatted = `
-        <h3 class="text-center"><span class="font-weight-bold">${domain}</span></h3>
-        <div class="main-explain-area jumbotron jumbotron-fluid">
-          <section class="flush-container">
-            <p class="lead font-weight-bold">WHOIS Data</p>
-            <div class="flush-container">
-              <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; padding: 0;">${whoisData.trim()}</pre>
+      // Extract base domain from input
+      let domainInputValue = domainInput.value.trim();
+      let domain = extractBaseDomain(domainInputValue);
+      console.log('Extracted base domain:', domain);
+
+      resultsDiv.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
+
+      try {
+        const maxRetries = 3;
+        const retryDelay = 5000;
+        let response;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            console.log(`Fetching WHOIS data (attempt ${attempt} of ${maxRetries})...`);
+            const startTime = performance.now();
+            response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaManager.getHcaptchaResponse())}`, {
+              signal: AbortSignal.timeout(30000)
+            });
+            const endTime = performance.now();
+            const latency = (endTime - startTime).toFixed(2);
+            console.log(`Fetch completed in ${latency}ms`);
+            break;
+          } catch (error) {
+            console.error(`Fetch attempt ${attempt} failed:`, error);
+            if (attempt === maxRetries) {
+              throw new Error('Failed to fetch WHOIS data after maximum retries');
+            }
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
+        }
+
+        if (!response.ok) {
+          const text = await response.text();
+          console.error('Server response:', text);
+          throw new Error(`HTTP Error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Received WHOIS response:', data);
+
+        const whoisData = data.whois || '';
+        if (
+          !whoisData ||
+          whoisData.trim() === '' ||
+          whoisData.toLowerCase().includes('no match') ||
+          whoisData.toLowerCase().includes('not found') ||
+          whoisData.toLowerCase().includes('no data') ||
+          whoisData.toLowerCase().includes('connection timeout') ||
+          whoisData.toLowerCase().includes('could not') ||
+          whoisData.toLowerCase().includes('error')
+        ) {
+          resultsDiv.innerHTML = `
+            <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
+              No WHOIS data found for this domain.
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">×</span>
+              </button>
             </div>
-          </section>
-        </div>
-        <div class="button-container d-flex justify-content-center mt-3">
-          <!-- Placeholder for the button -->
-        </div>
-      `;
+          `;
+          return;
+        }
 
-      resultsDiv.innerHTML = formatted;
+        let formatted = `
+          <h3 class="text-center"><span class="font-weight-bold">${domain}</span></h3>
+          <div class="main-explain-area jumbotron jumbotron-fluid">
+            <section class="flush-container">
+              <p class="lead font-weight-bold">WHOIS Data</p>
+              <div class="flush-container">
+                <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; padding: 0;">${whoisData.trim()}</pre>
+              </div>
+            </section>
+          </div>
+          <div class="button-container d-flex justify-content-center mt-3">
+            <!-- Placeholder for the button -->
+          </div>
+        `;
 
-      const exportBtn = document.createElement('button');
-      exportBtn.textContent = 'Download JSON';
-      exportBtn.className = 'btn btn-primary';
-      exportBtn.onclick = () => {
-        const parsedWhois = parseWhoisData(whoisData, domain);
-        const exportData = {
-          domain: domain,
-          whois: parsedWhois
+        resultsDiv.innerHTML = formatted;
+
+        const exportBtn = document.createElement('button');
+        exportBtn.textContent = 'Download JSON';
+        exportBtn.className = 'btn btn-primary';
+        exportBtn.onclick = () => {
+          const parsedWhois = parseWhoisData(whoisData, domain);
+          const exportData = {
+            domain: domain,
+            whois: parsedWhois
+          };
+          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${domain}_whois.json`;
+          a.click();
+          URL.revokeObjectURL(url);
         };
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${domain}_whois.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      };
 
-      // Append the button to the container
-      const buttonContainer = resultsDiv.querySelector('.button-container');
-      buttonContainer.appendChild(exportBtn);
-    } catch (error) {
-      console.error('Error in WHOIS lookup:', error);
-      resultsDiv.innerHTML = `
-        <div class="alert alert-danger alert-dismissible fade show" role="alert" aria-live="assertive">
-          Error: ${error.message}. Please check the domain and try again.
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-      `;
-    }
+        const buttonContainer = resultsDiv.querySelector('.button-container');
+        buttonContainer.appendChild(exportBtn);
+
+        // Clear input and focus after successful lookup
+        domainInput.value = '';
+        domainInput.focus();
+      } catch (error) {
+        console.error('Error in WHOIS lookup:', error);
+        resultsDiv.innerHTML = `
+          <div class="alert alert-danger alert-dismissible fade show" role="alert" aria-live="assertive">
+            Error: ${error.message}. Please check the domain and try again.
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+        `;
+      }
+    });
   });
- });
 </script>
