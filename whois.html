@@ -217,47 +217,60 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     }
 
     form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    e.preventDefault();
 
-      hcaptchaManager.resetHcaptcha();
-      const success = await hcaptchaManager.executeHcaptcha();
-      if (!success) {
-        const resultsDiv = document.getElementById('whois-results');
-        resultsDiv.style.display = 'block';
-        resultsDiv.innerHTML = '<div class="alert alert-warning" role="alert">hCaptcha verification failed. Please try again or check your network connection.</div>';
+    hcaptchaManager.resetHcaptcha();
+    const success = await hcaptchaManager.executeHcaptcha();
+    if (!success) {
+      const resultsDiv = document.getElementById('whois-results');
+      resultsDiv.style.display = 'block';
+      resultsDiv.innerHTML = `
+        <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">
+          hCaptcha verification failed. Please try again or check your network connection.
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    let domain = document.getElementById('domain').value.trim();
+    domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
+
+    const resultsDiv = document.getElementById('whois-results');
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
+
+    try {
+      const startTime = performance.now();
+      const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaManager.getHcaptchaResponse())}`);
+      const endTime = performance.now();
+      const latency = (endTime - startTime).toFixed(2);
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Server response:', text);
+        throw new Error(`HTTP Error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Received WHOIS response:', data);
+
+      const whoisData = data.whois || '';
+      if (!whoisData || whoisData.trim() === '') {
+        resultsDiv.innerHTML = `
+          <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
+            No WHOIS data found for this domain.
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+        `;
         return;
       }
 
-      let domain = document.getElementById('domain').value.trim();
-      domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
-
-      const resultsDiv = document.getElementById('whois-results');
-      resultsDiv.style.display = 'block';
-      resultsDiv.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
-      //console.log('Submitting form with domain:', domain, 'and hCaptcha response:', hcaptchaManager.getHcaptchaResponse());
-
-      try {
-        const startTime = performance.now();
-        const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaManager.getHcaptchaResponse())}`);
-        const endTime = performance.now();
-        const latency = (endTime - startTime).toFixed(2);
-
-        if (!response.ok) {
-          const text = await response.text();
-          console.error('Server response:', text);
-          throw new Error(`HTTP Error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log('Received WHOIS response:', data);
-
-        const whoisData = data.whois || '';
-        if (!whoisData || whoisData.trim() === '') {
-          resultsDiv.innerHTML = '<div class="alert alert-primary" role="alert">No WHOIS data found for this domain.</div>';
-          return;
-        }
-
-        // Format the response
-        let formatted = `
+      // Format the response
+      let formatted = `
         <h3 class="text-center"><span class="font-weight-bold">${domain}</span></h3>
         <div class="main-explain-area jumbotron jumbotron-fluid">
           <section class="flush-container">
@@ -270,35 +283,42 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         <div class="button-container d-flex justify-content-center mt-3">
           <!-- Placeholder for the button -->
         </div>
-        `;
+      `;
 
-        resultsDiv.innerHTML = formatted;
+      resultsDiv.innerHTML = formatted;
 
-        const exportBtn = document.createElement('button');
-        exportBtn.textContent = 'Download JSON';
-        exportBtn.className = 'btn btn-primary';
-        exportBtn.onclick = () => {
-          const parsedWhois = parseWhoisData(whoisData, domain);
-          const exportData = {
-            domain: domain,
-            whois: parsedWhois
-          };
-          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${domain}_whois.json`;
-          a.click();
-          URL.revokeObjectURL(url);
+      const exportBtn = document.createElement('button');
+      exportBtn.textContent = 'Download JSON';
+      exportBtn.className = 'btn btn-primary';
+      exportBtn.onclick = () => {
+        const parsedWhois = parseWhoisData(whoisData, domain);
+        const exportData = {
+          domain: domain,
+          whois: parsedWhois
         };
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${domain}_whois.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
 
-        // Append the button to the container
-        const buttonContainer = resultsDiv.querySelector('.button-container');
-        buttonContainer.appendChild(exportBtn);
-      } catch (error) {
-        console.error('Error in WHOIS lookup:', error);
-        resultsDiv.innerHTML = `<div class="alert alert-danger" role="alert">Error: ${error.message}. Please check the domain and try again.</div>`;
-      }
-    });
+      // Append the button to the container
+      const buttonContainer = resultsDiv.querySelector('.button-container');
+      buttonContainer.appendChild(exportBtn);
+    } catch (error) {
+      console.error('Error in WHOIS lookup:', error);
+      resultsDiv.innerHTML = `
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" aria-live="assertive">
+          Error: ${error.message}. Please check the domain and try again.
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      `;
+    }
   });
+ });
 </script>
