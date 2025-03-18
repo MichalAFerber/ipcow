@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/utils.php'; // Include utils.php for debugLog()
+require_once __DIR__ . '/hcaptcha-utils.php'; // Include hCaptcha utility functions
 
 // Start script
 $scriptStartTime = microtime(true);
@@ -17,9 +18,6 @@ $domain = htmlspecialchars($_GET['domain']);
 $hCaptchaResponse = $_GET['h-captcha-response'];
 debugLog("GET parameters received: domain=$domain, hCaptcha response length=" . strlen($hCaptchaResponse));
 
-// Include hCaptcha utility functions
-require_once __DIR__ . '/hcaptcha-utils.php';
-
 debugLog("Calling validateHcaptcha");
 if (!validateHcaptcha($hCaptchaResponse)) {
     debugLog("Error: hCaptcha validation failed");
@@ -29,109 +27,112 @@ if (!validateHcaptcha($hCaptchaResponse)) {
 }
 debugLog("hCaptcha validation result: success");
 
-// Function to get WHOIS server based on TLD
-function getWhoisServer($domain) {
-    static $whoisServersCache = null;
+// Function to fetch and cache IANA RDAP data
+function getIanaRdapData() {
+    static $rdapData = null;
+    $cacheFile = __DIR__ . '/iana-rdap-cache.json';
+    $cacheDuration = 86400; // 24 hours in seconds
 
+    if ($rdapData === null) {
+        if (file_exists($cacheFile) && (filemtime($cacheFile) > (time() - $cacheDuration))) {
+            $rdapData = json_decode(file_get_contents($cacheFile), true);
+            debugLog("Loaded RDAP data from cache: $cacheFile");
+        } else {
+            $ianaUrl = 'https://data.iana.org/rdap/dns.json';
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $ianaUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            $response = curl_exec($ch);
+            if (curl_errno($ch)) {
+                debugLog("Error fetching IANA RDAP data: " . curl_error($ch));
+                curl_close($ch);
+                $rdapData = [];
+            } else {
+                $rdapData = json_decode($response, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    debugLog("Error parsing IANA RDAP data: " . json_last_error_msg());
+                    $rdapData = [];
+                } else {
+                    file_put_contents($cacheFile, $response);
+                    debugLog("Fetched and cached IANA RDAP data from $ianaUrl");
+                }
+            }
+            curl_close($ch);
+        }
+    }
+    return $rdapData ?: [];
+}
+
+// Function to get RDAP server based on TLD using IANA data
+function getRdapServer($domain, $ianaRdapData) {
     $tld = strtolower(substr(strrchr($domain, '.'), 1));
     debugLog("Extracted TLD: $tld");
 
-    if ($whoisServersCache === null) {
-        $whoisConfigFile = __DIR__ . '/whois-servers.json';
-        if (!file_exists($whoisConfigFile)) {
-            debugLog("Error: WHOIS servers configuration file not found: $whoisConfigFile");
-            $whoisServersCache = ['default' => 'whois.iana.org', 'servers' => []];
-        } else {
-            $whoisConfig = json_decode(file_get_contents($whoisConfigFile), true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                debugLog("Error: Failed to parse WHOIS servers configuration: " . json_last_error_msg());
-                $whoisServersCache = ['default' => 'whois.iana.org', 'servers' => []];
-            } else {
-                $whoisServersCache = $whoisConfig;
-            }
-        }
-        debugLog("Loaded WHOIS servers configuration into cache");
-    }
-
-    $defaultServer = $whoisServersCache['default'] ?? 'whois.iana.org';
-    $whoisServers = $whoisServersCache['servers'] ?? [];
-
-    foreach ($whoisServers as $server => $tlds) {
-        if (in_array($tld, $tlds, true)) {
-            debugLog("Found WHOIS server for TLD '$tld': $server");
-            return $server;
+    foreach ($ianaRdapData['services'] ?? [] as $service) {
+        if (isset($service['ldhName']) && $service['ldhName'] === $tld && isset($service['rdapUrl'])) {
+            $rdapUrl = $service['rdapUrl'][0]; // Use the first URL
+            debugLog("Found RDAP server for TLD '$tld': $rdapUrl");
+            return rtrim($rdapUrl, '/') . '/domain/' . urlencode($domain);
         }
     }
 
-    debugLog("No WHOIS server found for TLD '$tld', using default: $defaultServer");
+    // Fallback to IANA bootstrap service
+    $defaultServer = 'https://rdap.iana.org/domain/' . urlencode($domain);
+    debugLog("No RDAP server found for TLD '$tld', using default: $defaultServer");
     return $defaultServer;
 }
 
-// Function to perform WHOIS lookup
-function performWhoisLookup($domain, $server, &$whoisTime) {
-    $port = 43;
-    $fp = @fsockopen($server, $port, $errno, $errstr, 30); // 30-second timeout
-    if (!$fp) {
-        debugLog("Error: WHOIS connection failed to $server - $errstr ($errno)");
+// Function to perform RDAP lookup
+function performRdapLookup($domain, $server, &$rdapTime) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $server);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30); // 30-second timeout
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // Ensure SSL verification
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/rdap+json']);
+
+    $startTime = microtime(true);
+    $rdapData = curl_exec($ch);
+    $rdapTime = (microtime(true) - $startTime) * 1000;
+
+    if (curl_errno($ch)) {
+        debugLog("Error: RDAP request failed - " . curl_error($ch));
+        curl_close($ch);
         return false;
     }
 
-    fputs($fp, "$domain\r\n");
-    $whoisData = '';
-    $startTime = microtime(true);
-    while (!feof($fp)) {
-        $whoisData .= fgets($fp, 128);
-    }
-    fclose($fp);
-    $whoisTime = (microtime(true) - $startTime) * 1000;
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-    debugLog("WHOIS time for $server: " . number_format($whoisTime, 2) . " ms");
-    debugLog("WHOIS data received from $server: " . substr($whoisData, 0, 100) . "...");
-    return $whoisData;
+    if ($httpCode >= 400) {
+        debugLog("Error: RDAP HTTP response code $httpCode");
+        return false;
+    }
+
+    debugLog("RDAP time: " . number_format($rdapTime, 2) . " ms");
+    debugLog("RDAP data received: " . substr($rdapData, 0, 100) . "...");
+    return $rdapData;
 }
 
-// Perform initial WHOIS lookup
-$whoisServer = getWhoisServer($domain);
-debugLog("Initial WHOIS server: $whoisServer");
-$whoisData = performWhoisLookup($domain, $whoisServer, $whoisTime);
+// Fetch IANA RDAP data
+$ianaRdapData = getIanaRdapData();
 
-if ($whoisData === false) {
-    debugLog("WHOIS lookup failed, returning null whois data");
-    $whoisData = null;
-}
+// Perform RDAP lookup
+$rdapServer = getRdapServer($domain, $ianaRdapData);
+debugLog("RDAP server: $rdapServer");
+$rdapData = performRdapLookup($domain, $rdapServer, $rdapTime);
 
-// Enhanced referral handling
-if ($whoisData && preg_match('/Registrar WHOIS Server: (.+)/i', $whoisData, $match)) {
-    $registrarWhois = trim($match[1]);
-    if ($registrarWhois && $registrarWhois !== $whoisServer) {
-        debugLog("Referral detected, querying: $registrarWhois");
-        $referralData = performWhoisLookup($domain, $registrarWhois, $referralTime);
-        if ($referralData !== false) {
-            $whoisData = $referralData; // Use referral data if successful
-            $whoisTime = $referralTime; // Update time to reflect referral lookup
-        } else {
-            debugLog("Referral lookup failed, sticking with initial data or null");
-            $whoisData = $whoisData ?: null; // Fallback to null if referral fails
-        }
-    }
-} elseif ($whoisData && stripos($whoisData, 'No match') !== false) {
-    // If "No match" is found and no referral is detected, try a fallback WHOIS server
-    $fallbackServers = ['whois.cloudflare.com', 'whois.iana.org'];
-    foreach ($fallbackServers as $fallbackServer) {
-        if ($fallbackServer !== $whoisServer) {
-            debugLog("Trying fallback WHOIS server: $fallbackServer");
-            $fallbackData = performWhoisLookup($domain, $fallbackServer, $fallbackTime);
-            if ($fallbackData !== false && stripos($fallbackData, 'No match') === false) {
-                $whoisData = $fallbackData;
-                $whoisTime = $fallbackTime;
-                debugLog("Successful fallback to $fallbackServer");
-                break;
-            }
-        }
-    }
-    if (stripos($whoisData, 'No match') !== false) {
-        debugLog("All lookups returned 'No match', setting whois to null");
-        $whoisData = null;
+if ($rdapData === false) {
+    debugLog("RDAP lookup failed, returning null rdap data");
+    $rdapData = null;
+} else {
+    // Check for RDAP error responses (e.g., 404, 500, or error notices)
+    $jsonData = json_decode($rdapData, true);
+    if (json_last_error() !== JSON_ERROR_NONE || isset($jsonData['errorCode'])) {
+        debugLog("RDAP response contains error: " . json_last_error_msg());
+        $rdapData = null;
     }
 }
 
@@ -144,8 +145,8 @@ header('Content-Type: application/json');
 echo json_encode([
     'success' => true,
     'domain' => $domain,
-    'whois' => $whoisData ? trim($whoisData) : null,
-    'whois_time_ms' => $whoisTime ?? 0,
+    'whois' => $rdapData ? trim($rdapData) : null, // Reuse 'whois' key for compatibility
+    'whois_time_ms' => $rdapTime ?? 0,
     'total_time_ms' => $totalTime
 ]);
 ?>
