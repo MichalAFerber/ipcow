@@ -36,7 +36,7 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
       }
   
       function parseWhoisData(rawWhois, queriedDomain) {
-        let whoisData = { domain_name: queriedDomain, registrar: {}, dates: {}, status: [], name_servers: [], registrant: {}, admin: {}, tech: {}, billing: {}, raw: {} };
+        let whoisData = { domain_name: queriedDomain, registrar: { name: 'Unknown' }, dates: {}, status: [], name_servers: [], registrant: {}, admin: {}, tech: {}, billing: {}, raw: {} };
         console.log('Parsing RDAP data:', rawWhois);
   
         try {
@@ -69,7 +69,7 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
             const registrarEntity = jsonData.entities.find(entity => entity.roles && entity.roles.includes('registrar'));
             if (registrarEntity && registrarEntity.vcardArray) {
               const vcard = registrarEntity.vcardArray[1];
-              whoisData.registrar.name = vcard.find(item => item[0] === 'fn')?.[3] || 'Unknown';
+              whoisData.registrar.name = vcard.find(item => item[0] === 'fn')?.[3] || whoisData.registrar.name;
               if (registrarEntity.entities) {
                 const abuseEntity = registrarEntity.entities.find(e => e.roles?.includes('abuse'));
                 if (abuseEntity && abuseEntity.vcardArray) {
@@ -109,7 +109,7 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
         }
   
         // Only delete empty objects after ensuring defaults
-        if (!Object.keys(whoisData.registrar).length) delete whoisData.registrar;
+        if (Object.keys(whoisData.registrar).length === 1 && !whoisData.registrar.name) delete whoisData.registrar;
         if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
         if (!whoisData.status.length) delete whoisData.status;
         if (!whoisData.name_servers.length) delete whoisData.name_servers;
@@ -263,9 +263,10 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
                     ${parsedWhois.dates && parsedWhois.dates.expiry ? `<tr><th>Expires</th><td>${parsedWhois.dates.expiry}</td></tr>` : ''}
                     ${parsedWhois.dates && parsedWhois.dates.updated ? `<tr><th>Updated</th><td>${parsedWhois.dates.updated}</td></tr>` : ''}
                     ${parsedWhois.name_servers && parsedWhois.name_servers.length ? `<tr><th>Name Servers</th><td>${parsedWhois.name_servers.join(', ')}</td></tr>` : ''}
-                    ${parsedWhois.registrar && parsedWhois.registrar.name ? `<tr><th>Registrar</th><td>${parsedWhois.registrar.name}</td></tr>` : ''}
+                    ${parsedWhois.registrar ? `<tr><th>Registrar</th><td>${parsedWhois.registrar.name || 'Unknown'}</td></tr>` : ''}
                     ${parsedWhois.registrar && parsedWhois.registrar.abuse_contact_email ? `<tr><th>Abuse Email</th><td>${parsedWhois.registrar.abuse_contact_email}</td></tr>` : ''}
                     ${parsedWhois.registrar && parsedWhois.registrar.abuse_contact_phone ? `<tr><th>Abuse Phone</th><td>${parsedWhois.registrar.abuse_contact_phone}</td></tr>` : ''}
+                    ${parsedWhois.registrar && parsedWhois.registrar.abuse_contact_email ? `<tr><th>Abuse Email</th><td>${parsedWhois.registrar.abuse_contact_email}</td></tr>` : ''}
                     ${parsedWhois.registrant && parsedWhois.registrant.name ? `<tr><th>Registrant Name</th><td>${parsedWhois.registrant.name}</td></tr>` : ''}
                     ${parsedWhois.registrant && parsedWhois.registrant.email ? `<tr><th>Registrant Email</th><td>${parsedWhois.registrant.email}</td></tr>` : ''}
                     ${parsedWhois.registrant && parsedWhois.registrant.phone ? `<tr><th>Registrant Phone</th><td>${parsedWhois.registrant.phone}</td></tr>` : ''}

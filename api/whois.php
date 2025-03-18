@@ -48,9 +48,7 @@ function getIanaRdapData() {
             curl_setopt($ch, CURLOPT_USERAGENT, 'MyWHOISApp/1.0');
             $response = curl_exec($ch);
             if (curl_errno($ch)) {
-                debugLog("Error fetching IANA RDAP data: " . curl_error($ch) . ", HTTP Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . ", Response: " . ($response ?: 'N/A'));
-                curl_close($ch);
-                // Fallback to empty array but log attempt
+                debugLog("Error fetching IANA RDAP data: " . curl_error($ch) . ", HTTP Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE));
                 $rdapData = [];
             } else {
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -63,8 +61,8 @@ function getIanaRdapData() {
                         debugLog("Error parsing IANA RDAP data: " . json_last_error_msg() . ", Raw response: " . substr($response, 0, 200));
                         $rdapData = [];
                     } else {
-                        if (!is_writable(__DIR__)) {
-                            debugLog("Warning: Directory " . __DIR__ . " is not writable, cache not saved");
+                        if (!is_writable($cacheFile)) {
+                            debugLog("Warning: Cache file $cacheFile is not writable");
                         } else {
                             file_put_contents($cacheFile, $response);
                             debugLog("Fetched and cached IANA RDAP data from $ianaUrl");
