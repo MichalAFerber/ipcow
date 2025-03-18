@@ -28,7 +28,8 @@ if (!validateHcaptcha($hCaptchaResponse)) {
 debugLog("hCaptcha validation result: success");
 
 // Function to fetch and cache IANA RDAP data
-function getIanaRdapData() {
+function getIanaRdapData()
+{
     static $rdapData = null;
     $cacheFile = __DIR__ . '/iana-rdap-cache.json';
     $cacheDuration = 86400; // 24 hours in seconds
@@ -80,18 +81,21 @@ function getIanaRdapData() {
 }
 
 // Function to get RDAP server based on TLD using IANA data
-function getRdapServer($domain, $ianaRdapData) {
+function getRdapServer($domain, $ianaRdapData)
+{
     $tld = strtolower(substr(strrchr($domain, '.'), 1));
     debugLog("Extracted TLD: $tld");
 
-    // Manual fallback for testing common TLDs
+    // Expanded manual fallback for common TLDs
     $manualServers = [
         'com' => 'https://rdap.verisign.com/com/v1/',
         'net' => 'https://rdap.verisign.com/net/v1/',
         'org' => 'https://rdap.publicinterestregistry.net/rdap/org/',
         'me' => 'https://rdap.nic.me/',
         'us' => 'https://rdap.usnic.net/',
-        'xyz' => 'https://rdap.donuts.co/'
+        'xyz' => 'https://rdap.nic.xyz/',
+        'info' => 'https://rdap.afilias.info/',
+        'co' => 'https://rdap.nic.co/'
     ];
     if (isset($manualServers[$tld])) {
         $rdapUrl = $manualServers[$tld];
@@ -100,21 +104,28 @@ function getRdapServer($domain, $ianaRdapData) {
     }
 
     foreach ($ianaRdapData['services'] ?? [] as $service) {
-        if (isset($service['ldhName']) && $service['ldhName'] === $tld && isset($service['rdapUrl']) && is_array($service['rdapUrl']) && !empty($service['rdapUrl'])) {
-            $rdapUrl = $service['rdapUrl'][0];
+        if (isset($service[0][0]) && $service[0][0] === $tld && isset($service[1][0]) && !empty($service[1][0])) {
+            $rdapUrl = $service[1][0];
             debugLog("Found RDAP server for TLD '$tld': $rdapUrl");
             return rtrim($rdapUrl, '/') . '/domain/' . urlencode($domain);
         }
     }
 
-    // Fallback to IANA bootstrap service
+    // Fallback to Cloudflare RDAP for Cloudflare-registered domains or IANA bootstrap
+    if (in_array($tld, ['xyz', 'me']) || strpos($domain, 'cloudflare') !== false) {
+        $rdapUrl = 'https://rdap.cloudflare.com/rdap/v1/';
+        debugLog("Using Cloudflare RDAP fallback for TLD '$tld': $rdapUrl");
+        return rtrim($rdapUrl, '/') . 'domain/' . urlencode($domain);
+    }
+
     $defaultServer = 'https://rdap.iana.org/domain/' . urlencode($domain);
     debugLog("No RDAP server found for TLD '$tld', using default: $defaultServer");
     return $defaultServer;
 }
 
 // Function to perform RDAP lookup
-function performRdapLookup($domain, $server, &$rdapTime) {
+function performRdapLookup($domain, $server, &$rdapTime)
+{
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $server);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -180,4 +191,3 @@ echo json_encode([
     'whois_time_ms' => $rdapTime ?? 0,
     'total_time_ms' => $totalTime
 ]);
-?>
