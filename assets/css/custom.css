@@ -66,3 +66,7 @@ form {
   align-items: center;
   flex-direction: column;
 }
+.flush-container {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
