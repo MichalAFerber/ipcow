@@ -23,12 +23,14 @@ a.btn {
 .main-explain-area {
   font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: #eee;
+  margin-top: 1.25rem;
   padding: 1.25rem 0.9375rem;
 }
 .main-explain-area p {
-  margin-bottom: 0.9375rem;
-  font-size: 1.3125rem;
-  font-weight: 200;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 300;
 }
 @media (min-width: 768px) {
   .main-explain-area {
@@ -69,4 +71,8 @@ form {
 .flush-container {
   padding-left: 0 !important;
   margin-left: 0 !important;
+}
+.intro-header {
+    margin: 8.15rem 0 1.25rem !important;
+    position: relative !important;
 }
