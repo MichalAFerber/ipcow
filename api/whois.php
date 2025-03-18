@@ -33,11 +33,9 @@ debugLog("hCaptcha validation result: success");
 function getWhoisServer($domain) {
     static $whoisServersCache = null;
 
-    // Extract the TLD from the domain
     $tld = strtolower(substr(strrchr($domain, '.'), 1));
     debugLog("Extracted TLD: $tld");
 
-    // Load WHOIS servers configuration if not already cached
     if ($whoisServersCache === null) {
         $whoisConfigFile = __DIR__ . '/whois-servers.json';
         if (!file_exists($whoisConfigFile)) {
@@ -58,7 +56,6 @@ function getWhoisServer($domain) {
     $defaultServer = $whoisServersCache['default'] ?? 'whois.iana.org';
     $whoisServers = $whoisServersCache['servers'] ?? [];
 
-    // Search for the TLD in the servers array
     foreach ($whoisServers as $server => $tlds) {
         if (in_array($tld, $tlds, true)) {
             debugLog("Found WHOIS server for TLD '$tld': $server");
@@ -73,7 +70,7 @@ function getWhoisServer($domain) {
 // Function to perform WHOIS lookup
 function performWhoisLookup($domain, $server, &$whoisTime) {
     $port = 43;
-    $fp = @fsockopen($server, $port, $errno, $errstr, 30); // Increased timeout to 30 seconds
+    $fp = @fsockopen($server, $port, $errno, $errstr, 30); // 30-second timeout
     if (!$fp) {
         debugLog("Error: WHOIS connection failed to $server - $errstr ($errno)");
         return false;
@@ -100,10 +97,10 @@ $whoisData = performWhoisLookup($domain, $whoisServer, $whoisTime);
 
 if ($whoisData === false) {
     debugLog("WHOIS lookup failed, returning null whois data");
-    $whoisData = null; // Return null instead of an error message
+    $whoisData = null;
 }
 
-// Check for referral to registrar's WHOIS server
+// Enhanced referral handling
 if ($whoisData && preg_match('/Registrar WHOIS Server: (.+)/i', $whoisData, $match)) {
     $registrarWhois = trim($match[1]);
     if ($registrarWhois && $registrarWhois !== $whoisServer) {
@@ -116,6 +113,25 @@ if ($whoisData && preg_match('/Registrar WHOIS Server: (.+)/i', $whoisData, $mat
             debugLog("Referral lookup failed, sticking with initial data or null");
             $whoisData = $whoisData ?: null; // Fallback to null if referral fails
         }
+    }
+} elseif ($whoisData && stripos($whoisData, 'No match') !== false) {
+    // If "No match" is found and no referral is detected, try a fallback WHOIS server
+    $fallbackServers = ['whois.cloudflare.com', 'whois.iana.org'];
+    foreach ($fallbackServers as $fallbackServer) {
+        if ($fallbackServer !== $whoisServer) {
+            debugLog("Trying fallback WHOIS server: $fallbackServer");
+            $fallbackData = performWhoisLookup($domain, $fallbackServer, $fallbackTime);
+            if ($fallbackData !== false && stripos($fallbackData, 'No match') === false) {
+                $whoisData = $fallbackData;
+                $whoisTime = $fallbackTime;
+                debugLog("Successful fallback to $fallbackServer");
+                break;
+            }
+        }
+    }
+    if (stripos($whoisData, 'No match') !== false) {
+        debugLog("All lookups returned 'No match', setting whois to null");
+        $whoisData = null;
     }
 }
 
