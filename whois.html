@@ -5,12 +5,15 @@ subtitle: Retrieve WHOIS information for a domain.
 share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 # full-width: true
 ---
+<!-- This snippet is a standalone WHOIS lookup form that uses hCaptcha for verification and fetches WHOIS data from a server-side script. 
+     The form is designed to allow users to check WHOIS information for a domain. -->
 <form class="form-inline justify-content-center" method="GET" action="/api/whois.php" novalidate>
   <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
   <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752" data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
   <button type="submit" class="btn btn-primary">Check WHOIS</button>
 </form>
 
+<!-- Display the WHOIS results here -->
 <div id="whois-results" style="display: none;"></div>
 
 <!-- Load hCaptcha and custom module -->
@@ -216,19 +219,35 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       return whoisData;
     }
 
+    // Handle form submission
     form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const resultsDiv = document.getElementById('whois-results');
+    resultsDiv.style.display = 'block';
+
     hcaptchaManager.resetHcaptcha();
-    const success = await hcaptchaManager.executeHcaptcha();
+    let success;
+    try {
+      success = await hcaptchaManager.executeHcaptcha();
+    } catch (error) {
+      resultsDiv.innerHTML = `
+        <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">
+          hCaptcha verification failed: ${error.message}. Please try again or check your network connection.
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times</span>
+          </button>
+        </div>
+      `;
+      return;
+    }
+
     if (!success) {
-      const resultsDiv = document.getElementById('whois-results');
-      resultsDiv.style.display = 'block';
       resultsDiv.innerHTML = `
         <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">
           hCaptcha verification failed. Please try again or check your network connection.
           <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+            <span aria-hidden="true">&times</span>
           </button>
         </div>
       `;
@@ -238,8 +257,6 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     let domain = document.getElementById('domain').value.trim();
     domain = domain.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '').replace(/[\/]+$/, '').split('/')[0];
 
-    const resultsDiv = document.getElementById('whois-results');
-    resultsDiv.style.display = 'block';
     resultsDiv.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
 
     try {
@@ -256,26 +273,13 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       const data = await response.json();
       console.log('Received WHOIS response:', data);
 
-      // const whoisData = data.whois || '';
-      // if (!whoisData || whoisData.trim() === '') {
-      //   resultsDiv.innerHTML = `
-      //     <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
-      //       No WHOIS data found for this domain.
-      //       <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-      //         <span aria-hidden="true">&times;</span>
-      //       </button>
-      //     </div>
-      //   `;
-      //   return;
-      // }
       const whoisData = data.whois || '';
-      const lines = whoisData.trim().split('\n');
-      if (!whoisData || whoisData.trim() === '' || lines.some(line => line.toLowerCase().match(/^(no match|not found)/))) {
+      if (!whoisData || whoisData.trim() === '' || whoisData.toLowerCase().includes('no match') || whoisData.toLowerCase().includes('not found') || whoisData.toLowerCase().includes('no data')) {
         resultsDiv.innerHTML = `
           <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
             No WHOIS data found for this domain.
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
+              <span aria-hidden="true">&times</span>
             </button>
           </div>
         `;
@@ -327,7 +331,7 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         <div class="alert alert-danger alert-dismissible fade show" role="alert" aria-live="assertive">
           Error: ${error.message}. Please check the domain and try again.
           <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+            <span aria-hidden="true">&times</span>
           </button>
         </div>
       `;
