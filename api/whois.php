@@ -46,7 +46,7 @@ function getIanaRdapData() {
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
             $response = curl_exec($ch);
             if (curl_errno($ch)) {
-                debugLog("Error fetching IANA RDAP data: " . curl_error($ch));
+                debugLog("Error fetching IANA RDAP data: " . curl_error($ch) . ", Response: " . ($response ?: 'N/A'));
                 curl_close($ch);
                 $rdapData = [];
             } else {
@@ -71,7 +71,7 @@ function getRdapServer($domain, $ianaRdapData) {
     debugLog("Extracted TLD: $tld");
 
     foreach ($ianaRdapData['services'] ?? [] as $service) {
-        if (isset($service['ldhName']) && $service['ldhName'] === $tld && isset($service['rdapUrl'])) {
+        if (isset($service['ldhName']) && $service['ldhName'] === $tld && isset($service['rdapUrl']) && is_array($service['rdapUrl']) && !empty($service['rdapUrl'])) {
             $rdapUrl = $service['rdapUrl'][0]; // Use the first URL
             debugLog("Found RDAP server for TLD '$tld': $rdapUrl");
             return rtrim($rdapUrl, '/') . '/domain/' . urlencode($domain);
@@ -91,7 +91,8 @@ function performRdapLookup($domain, $server, &$rdapTime) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30); // 30-second timeout
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // Ensure SSL verification
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/rdap+json']);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/rdap+json', 'User-Agent: MyWHOISApp/1.0']); // Add User-Agent
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Follow redirects
 
     $startTime = microtime(true);
     $rdapData = curl_exec($ch);
@@ -99,11 +100,12 @@ function performRdapLookup($domain, $server, &$rdapTime) {
 
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
+    $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     curl_close($ch);
 
-    debugLog("RDAP HTTP response code: $httpCode, Error: $error");
+    debugLog("RDAP request - Server: $server, Effective URL: $effectiveUrl, HTTP Code: $httpCode, Error: $error");
     if (curl_errno($ch) || $httpCode >= 400) {
-        debugLog("Error: RDAP request failed - HTTP $httpCode, Error: $error");
+        debugLog("Error: RDAP request failed - HTTP $httpCode, Error: $error, Data: " . ($rdapData ?: 'N/A'));
         return false;
     }
 
