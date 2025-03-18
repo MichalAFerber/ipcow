@@ -257,9 +257,9 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         // Format the response into a table
         let formatted = '<table class="table table-striped"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>';
         formatted += `<tr><td>Domain</td><td>${domain}</td></tr>`;
-        formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
-        formatted += `<tr><td>WHOIS Time</td><td>${data.whois_time_ms.toFixed(2)} ms</td></tr>`;
-        formatted += `<tr><td>Total Time</td><td>${data.total_time_ms.toFixed(2)} ms</td></tr>`;
+        //formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
+        //formatted += `<tr><td>WHOIS Time</td><td>${data.whois_time_ms.toFixed(2)} ms</td></tr>`;
+        //formatted += `<tr><td>Total Time</td><td>${data.total_time_ms.toFixed(2)} ms</td></tr>`;
         formatted += '<tr><td colspan="2"><strong>WHOIS Data</strong></td></tr>';
         formatted += `<tr><td colspan="2"><pre style="white-space: pre-wrap; word-wrap: break-word;">${whoisData.trim()}</pre></td></tr>`;
         formatted += '</tbody></table>';
@@ -271,14 +271,14 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         exportBtn.style.marginTop = '20px';
         exportBtn.className = 'btn btn-primary';
         exportBtn.onclick = () => {
-          const parsedWhois = parseWhoisData(whoisData, domain); // Pass the queried domain
+          const parsedWhois = parseWhoisData(whoisData, domain);
           const exportData = {
             domain: domain,
-            latency_ms: parseFloat(latency),
+            //latency_ms: parseFloat(latency),
             whois: parsedWhois,
             timings: {
-              whois_ms: parseFloat(data.whois_time_ms.toFixed(2)),
-              total_ms: parseFloat(data.total_time_ms.toFixed(2))
+              //whois_ms: parseFloat(data.whois_time_ms.toFixed(2)),
+              //total_ms: parseFloat(data.total_time_ms.toFixed(2))
             }
           };
           const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
