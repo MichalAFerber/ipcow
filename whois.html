@@ -254,10 +254,29 @@ share-description: "IP Cow is a free service that shows you the public IP addres
     resultsDiv.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
 
     try {
-      const startTime = performance.now();
-      const response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaManager.getHcaptchaResponse())}`);
-      const endTime = performance.now();
-      const latency = (endTime - startTime).toFixed(2);
+      // Add retry logic for the fetch request
+      const maxRetries = 3;
+      const retryDelay = 5000; // 5 seconds
+      let response;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`Fetching WHOIS data (attempt ${attempt} of ${maxRetries})...`);
+          const startTime = performance.now();
+          response = await fetch(`/api/whois.php?domain=${encodeURIComponent(domain)}&h-captcha-response=${encodeURIComponent(hcaptchaManager.getHcaptchaResponse())}`, {
+            signal: AbortSignal.timeout(30000) // 30-second timeout for fetch
+          });
+          const endTime = performance.now();
+          const latency = (endTime - startTime).toFixed(2);
+          console.log(`Fetch completed in ${latency}ms`);
+          break; // Success, exit retry loop
+        } catch (error) {
+          console.error(`Fetch attempt ${attempt} failed:`, error);
+          if (attempt === maxRetries) {
+            throw new Error('Failed to fetch WHOIS data after maximum retries');
+          }
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
 
       if (!response.ok) {
         const text = await response.text();
@@ -268,7 +287,17 @@ share-description: "IP Cow is a free service that shows you the public IP addres
       console.log('Received WHOIS response:', data);
 
       const whoisData = data.whois || '';
-      if (!whoisData || whoisData.trim() === '' || whoisData.toLowerCase().includes('no match') || whoisData.toLowerCase().includes('not found') || whoisData.toLowerCase().includes('no data')) {
+      // Update condition to include "connection timeout"
+      if (
+        !whoisData ||
+        whoisData.trim() === '' ||
+        whoisData.toLowerCase().includes('no match') ||
+        whoisData.toLowerCase().includes('not found') ||
+        whoisData.toLowerCase().includes('no data') ||
+        whoisData.toLowerCase().includes('connection timeout') ||
+        whoisData.toLowerCase().includes('could not') ||
+        whoisData.toLowerCase().includes('error')
+      ) {
         resultsDiv.innerHTML = `
           <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
             No WHOIS data found for this domain.

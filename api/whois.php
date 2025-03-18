@@ -131,7 +131,7 @@ function getWhoisServer($domain) {
         'museum' => 'whois.museum',
         'travel' => 'whois.nic.travel',
         // Add more TLDs as needed
-        'default' => 'whois.iana.org' // Fallback for unknown TLDs
+        'default' => 'whois.iana.org'
     ];
     return $whoisServers[$tld] ?? $whoisServers['default'];
 }
@@ -139,7 +139,7 @@ function getWhoisServer($domain) {
 // Function to perform WHOIS lookup
 function performWhoisLookup($domain, $server, &$whoisTime) {
     $port = 43;
-    $fp = @fsockopen($server, $port, $errno, $errstr, 10);
+    $fp = @fsockopen($server, $port, $errno, $errstr, 30); // Increased timeout to 30 seconds
     if (!$fp) {
         debugLog("Error: WHOIS connection failed to $server - $errstr ($errno)");
         return false;
@@ -165,13 +165,12 @@ debugLog("Initial WHOIS server: $whoisServer");
 $whoisData = performWhoisLookup($domain, $whoisServer, $whoisTime);
 
 if ($whoisData === false) {
-    http_response_code(500);
-    echo json_encode(['error' => "WHOIS lookup failed for server: $whoisServer"]);
-    exit;
+    debugLog("WHOIS lookup failed, returning null whois data");
+    $whoisData = null; // Return null instead of an error message
 }
 
 // Check for referral to registrar's WHOIS server
-if (preg_match('/Registrar WHOIS Server: (.+)/i', $whoisData, $match)) {
+if ($whoisData && preg_match('/Registrar WHOIS Server: (.+)/i', $whoisData, $match)) {
     $registrarWhois = trim($match[1]);
     if ($registrarWhois && $registrarWhois !== $whoisServer) {
         debugLog("Referral detected, querying: $registrarWhois");
@@ -180,7 +179,8 @@ if (preg_match('/Registrar WHOIS Server: (.+)/i', $whoisData, $match)) {
             $whoisData = $referralData; // Use referral data if successful
             $whoisTime = $referralTime; // Update time to reflect referral lookup
         } else {
-            debugLog("Referral lookup failed, sticking with initial data");
+            debugLog("Referral lookup failed, sticking with initial data or null");
+            $whoisData = $whoisData ?: null; // Fallback to null if referral fails
         }
     }
 }
@@ -194,8 +194,8 @@ header('Content-Type: application/json');
 echo json_encode([
     'success' => true,
     'domain' => $domain,
-    'whois' => trim($whoisData),
-    'whois_time_ms' => $whoisTime,
+    'whois' => $whoisData ? trim($whoisData) : null,
+    'whois_time_ms' => $whoisTime ?? 0,
     'total_time_ms' => $totalTime
 ]);
 ?>
