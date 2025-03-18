@@ -28,8 +28,7 @@ if (!validateHcaptcha($hCaptchaResponse)) {
 debugLog("hCaptcha validation result: success");
 
 // Function to fetch and cache IANA RDAP data
-function getIanaRdapData()
-{
+function getIanaRdapData() {
     static $rdapData = null;
     $cacheFile = __DIR__ . '/iana-rdap-cache.json';
     $cacheDuration = 86400; // 24 hours in seconds
@@ -37,7 +36,7 @@ function getIanaRdapData()
     if ($rdapData === null) {
         if (file_exists($cacheFile) && (filemtime($cacheFile) > (time() - $cacheDuration))) {
             $rdapData = json_decode(file_get_contents($cacheFile), true);
-            debugLog("Loaded RDAP data from cache: $cacheFile, Data: " . json_encode($rdapData));
+            debugLog("Loaded RDAP data from cache: $cacheFile, Size: " . filesize($cacheFile) . " bytes");
         } else {
             $ianaUrl = 'https://data.iana.org/rdap/dns.json';
             $ch = curl_init();
@@ -65,10 +64,11 @@ function getIanaRdapData()
                         if (!is_writable($cacheFile)) {
                             debugLog("Warning: Cache file $cacheFile is not writable, Permissions: " . substr(sprintf('%o', fileperms($cacheFile)), -4));
                         } else {
-                            if (file_put_contents($cacheFile, $response) === false) {
+                            $bytesWritten = file_put_contents($cacheFile, $response);
+                            if ($bytesWritten === false) {
                                 debugLog("Failed to write to cache file $cacheFile");
                             } else {
-                                debugLog("Fetched and cached IANA RDAP data from $ianaUrl");
+                                debugLog("Fetched and cached IANA RDAP data from $ianaUrl, Bytes written: $bytesWritten");
                             }
                         }
                     }
@@ -81,21 +81,21 @@ function getIanaRdapData()
 }
 
 // Function to get RDAP server based on TLD using IANA data
-function getRdapServer($domain, $ianaRdapData)
-{
+function getRdapServer($domain, $ianaRdapData) {
     $tld = strtolower(substr(strrchr($domain, '.'), 1));
     debugLog("Extracted TLD: $tld");
 
-    // Expanded manual fallback for common TLDs
+    // Enhanced manual fallback with Cloudflare prioritization
     $manualServers = [
         'com' => 'https://rdap.verisign.com/com/v1/',
         'net' => 'https://rdap.verisign.com/net/v1/',
         'org' => 'https://rdap.publicinterestregistry.net/rdap/org/',
         'me' => 'https://rdap.nic.me/',
-        'us' => 'https://rdap.usnic.net/',
         'xyz' => 'https://rdap.nic.xyz/',
+        'us' => 'https://rdap.usnic.net/',
         'info' => 'https://rdap.afilias.info/',
-        'co' => 'https://rdap.nic.co/'
+        'co' => 'https://rdap.nic.co/',
+        'cloudflare' => 'https://rdap.cloudflare.com/rdap/v1/' // Fallback for Cloudflare domains
     ];
     if (isset($manualServers[$tld])) {
         $rdapUrl = $manualServers[$tld];
@@ -103,18 +103,19 @@ function getRdapServer($domain, $ianaRdapData)
         return rtrim($rdapUrl, '/') . '/domain/' . urlencode($domain);
     }
 
+    // Check IANA data
     foreach ($ianaRdapData['services'] ?? [] as $service) {
         if (isset($service[0][0]) && $service[0][0] === $tld && isset($service[1][0]) && !empty($service[1][0])) {
             $rdapUrl = $service[1][0];
-            debugLog("Found RDAP server for TLD '$tld': $rdapUrl");
+            debugLog("Found RDAP server for TLD '$tld' in IANA: $rdapUrl");
             return rtrim($rdapUrl, '/') . '/domain/' . urlencode($domain);
         }
     }
 
-    // Fallback to Cloudflare RDAP for Cloudflare-registered domains or IANA bootstrap
-    if (in_array($tld, ['xyz', 'me']) || strpos($domain, 'cloudflare') !== false) {
+    // Cloudflare fallback for known registrars
+    if (preg_match('/cloudflare/i', $domain) || in_array($tld, ['me', 'xyz'])) {
         $rdapUrl = 'https://rdap.cloudflare.com/rdap/v1/';
-        debugLog("Using Cloudflare RDAP fallback for TLD '$tld': $rdapUrl");
+        debugLog("Using Cloudflare RDAP fallback for TLD '$tld' or domain: $rdapUrl");
         return rtrim($rdapUrl, '/') . 'domain/' . urlencode($domain);
     }
 
