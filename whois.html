@@ -256,14 +256,14 @@ share-description: "IP Cow is a free service that shows you the public IP addres
         }
 
         // Format the response into a table
-        let formatted = '<table class="table"><tbody>';
-        formatted += `<tr><td>${domain}</td></tr>`;
+        let formatted = '<section class="m-0 p-0"><p class="lead font-weight-bold pt-0 mt-0">WHOIS Data</p>';
+        formatted += `<span class="font-weight-bold">${domain}</span>`;
         //formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
         //formatted += `<tr><td>WHOIS Time</td><td>${data.whois_time_ms.toFixed(2)} ms</td></tr>`;
         //formatted += `<tr><td>Total Time</td><td>${data.total_time_ms.toFixed(2)} ms</td></tr>`;
-        formatted += '<tr><td><strong>WHOIS Data</strong></td></tr>';
-        formatted += `<tr><td><pre style="white-space: pre-wrap; word-wrap: break-word;">${whoisData.trim()}</pre></td></tr>`;
-        formatted += '</tbody></table>';
+        //formatted += '<tr><td><strong>WHOIS Data</strong></td></tr>';
+        formatted += `<span><pre style="white-space: pre-wrap; word-wrap: break-word;">${whoisData.trim()}</pre></span>`;
+        formatted += '</section>';
 
         resultsDiv.innerHTML = formatted;
 
