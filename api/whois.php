@@ -28,16 +28,16 @@ if (!validateHcaptcha($hCaptchaResponse)) {
 debugLog("hCaptcha validation result: success");
 
 // Function to fetch and cache IANA RDAP data
-function getIanaRdapData()
-{
+function getIanaRdapData() {
     static $rdapData = null;
     $cacheFile = __DIR__ . '/iana-rdap-cache.json';
     $cacheDuration = 86400; // 24 hours in seconds
 
+    debugLog("Checking IANA RDAP cache: $cacheFile, Exists: " . (file_exists($cacheFile) ? 'Yes' : 'No'));
     if ($rdapData === null) {
         if (file_exists($cacheFile) && (filemtime($cacheFile) > (time() - $cacheDuration))) {
             $rdapData = json_decode(file_get_contents($cacheFile), true);
-            debugLog("Loaded RDAP data from cache: $cacheFile, Size: " . filesize($cacheFile) . " bytes");
+            debugLog("Loaded RDAP data from cache, Size: " . filesize($cacheFile) . " bytes");
         } else {
             $ianaUrl = 'https://data.iana.org/rdap/dns.json';
             $ch = curl_init();
@@ -46,10 +46,11 @@ function getIanaRdapData()
             curl_setopt($ch, CURLOPT_TIMEOUT, 10);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'MyWHOISApp/1.0');
+            curl_setopt($ch, CURLOPT_USERAGENT, 'MyWHOISApp/1.0 (https://yourdomain.com)');
             $response = curl_exec($ch);
+            debugLog("IANA fetch completed, HTTP Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE));
             if (curl_errno($ch)) {
-                debugLog("Error fetching IANA RDAP data: " . curl_error($ch) . ", HTTP Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE));
+                debugLog("Error fetching IANA RDAP data: " . curl_error($ch));
                 $rdapData = [];
             } else {
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -59,17 +60,17 @@ function getIanaRdapData()
                 } else {
                     $rdapData = json_decode($response, true);
                     if (json_last_error() !== JSON_ERROR_NONE) {
-                        debugLog("Error parsing IANA RDAP data: " . json_last_error_msg() . ", Raw response: " . substr($response, 0, 200));
+                        debugLog("Error parsing IANA RDAP data: " . json_last_error_msg());
                         $rdapData = [];
                     } else {
                         if (!is_writable($cacheFile)) {
-                            debugLog("Warning: Cache file $cacheFile is not writable, Permissions: " . substr(sprintf('%o', fileperms($cacheFile)), -4));
+                            debugLog("Warning: Cache file not writable, Permissions: " . substr(sprintf('%o', fileperms($cacheFile)), -4));
                         } else {
                             $bytesWritten = file_put_contents($cacheFile, $response);
                             if ($bytesWritten === false) {
-                                debugLog("Failed to write to cache file $cacheFile");
+                                debugLog("Failed to write to cache file");
                             } else {
-                                debugLog("Fetched and cached IANA RDAP data from $ianaUrl, Bytes written: $bytesWritten");
+                                debugLog("Cached IANA RDAP data, Bytes written: $bytesWritten");
                             }
                         }
                     }
@@ -82,12 +83,10 @@ function getIanaRdapData()
 }
 
 // Function to get RDAP server based on TLD using IANA data
-function getRdapServer($domain, $ianaRdapData)
-{
+function getRdapServer($domain, $ianaRdapData) {
     $tld = strtolower(substr(strrchr($domain, '.'), 1));
     debugLog("Extracted TLD: $tld");
 
-    // Enhanced manual fallback with Cloudflare prioritization
     $manualServers = [
         'com' => 'https://rdap.verisign.com/com/v1/',
         'net' => 'https://rdap.verisign.com/net/v1/',
@@ -97,7 +96,6 @@ function getRdapServer($domain, $ianaRdapData)
         'us' => 'https://rdap.usnic.net/',
         'info' => 'https://rdap.afilias.info/',
         'co' => 'https://rdap.nic.co/',
-        'cloudflare' => 'https://rdap.cloudflare.com/rdap/v1/' // Fallback for Cloudflare domains
     ];
     if (isset($manualServers[$tld])) {
         $rdapUrl = $manualServers[$tld];
@@ -105,7 +103,6 @@ function getRdapServer($domain, $ianaRdapData)
         return rtrim($rdapUrl, '/') . '/domain/' . urlencode($domain);
     }
 
-    // Check IANA data
     foreach ($ianaRdapData['services'] ?? [] as $service) {
         if (isset($service[0][0]) && $service[0][0] === $tld && isset($service[1][0]) && !empty($service[1][0])) {
             $rdapUrl = $service[1][0];
@@ -126,31 +123,63 @@ function getRdapServer($domain, $ianaRdapData)
     return $defaultServer;
 }
 
-// Function to perform RDAP lookup
-function performRdapLookup($domain, $server, &$rdapTime)
-{
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $server);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30); // 30-second timeout
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // Ensure SSL verification
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/rdap+json', 'User-Agent: MyWHOISApp/1.0']); // Add User-Agent
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Follow redirects
-    curl_setopt($ch, CURLOPT_FAILONERROR, false); // Allow error codes to be caught
+// Function to perform RDAP lookup with retries
+function performRdapLookup($domain, $rdapServer, &$rdapTime) {
+    $maxRetries = 3;
+    $retryDelay = 2000; // 2 seconds in milliseconds
+    $rdapData = null;
 
-    $startTime = microtime(true);
-    $rdapData = curl_exec($ch);
-    $rdapTime = (microtime(true) - $startTime) * 1000;
+    for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $rdapServer);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30); // 30-second timeout
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_FAILONERROR, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/rdap+json',
+            'Content-Type: application/json',
+            'User-Agent: MyWHOISApp/1.0 (https://yourdomain.com)'
+        ]);
 
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-    curl_close($ch);
+        $startTime = microtime(true);
+        $response = curl_exec($ch);
+        $rdapTime = (microtime(true) - $startTime) * 1000;
 
-    debugLog("RDAP request - Server: $server, Effective URL: $effectiveUrl, HTTP Code: $httpCode, Error: $error");
-    if (curl_errno($ch) || $httpCode >= 400) {
-        debugLog("Error: RDAP request failed - HTTP $httpCode, Error: $error, Data: " . ($rdapData ?: 'N/A'));
-        return false;
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        curl_close($ch);
+
+        debugLog("RDAP request - Attempt $attempt, Server: $rdapServer, Effective URL: $effectiveUrl, HTTP Code: $httpCode, Error: $error");
+        if ($response && !empty(trim($response))) {
+            debugLog("RDAP data received on attempt $attempt, Length: " . strlen($response));
+            $rdapData = $response;
+            break;
+        } else {
+            debugLog("RDAP attempt $attempt failed, HTTP $httpCode, Error: $error, Response: " . substr($response, 0, 200));
+            if ($attempt < $maxRetries) {
+                debugLog("Retrying in $retryDelay ms");
+                usleep($retryDelay * 1000); // Convert ms to microseconds
+            }
+        }
+    }
+
+    if (!$rdapData) {
+        debugLog("RDAP lookup failed after $maxRetries attempts");
+        return null;
+    }
+
+    // Validate JSON
+    $jsonData = json_decode($rdapData, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        debugLog("Error parsing RDAP JSON: " . json_last_error_msg() . ", Raw response: " . substr($rdapData, 0, 200));
+        return null;
+    }
+    if (isset($jsonData['errorCode'])) {
+        debugLog("RDAP response contains error code: " . $jsonData['errorCode'] . ", Description: " . ($jsonData['description'] ?? 'N/A'));
+        return null;
     }
 
     debugLog("RDAP time: " . number_format($rdapTime, 2) . " ms");
@@ -160,25 +189,17 @@ function performRdapLookup($domain, $server, &$rdapTime)
 
 // Fetch IANA RDAP data
 $ianaRdapData = getIanaRdapData();
+debugLog("IANA RDAP data loaded: " . (empty($ianaRdapData) ? 'Empty' : 'Populated'));
 
 // Perform RDAP lookup
 $rdapServer = getRdapServer($domain, $ianaRdapData);
-debugLog("RDAP server: $rdapServer");
+debugLog("RDAP server selected: $rdapServer");
 $rdapData = performRdapLookup($domain, $rdapServer, $rdapTime);
 
-if ($rdapData === false) {
+if ($rdapData === null) {
     debugLog("RDAP lookup failed, returning null rdap data");
-    $rdapData = null;
 } else {
-    // Check for RDAP error responses (e.g., 404, 500, or error notices)
-    $jsonData = json_decode($rdapData, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        debugLog("Error parsing RDAP JSON: " . json_last_error_msg() . ", Raw response: " . substr($rdapData, 0, 200));
-        $rdapData = null;
-    } elseif (isset($jsonData['errorCode'])) {
-        debugLog("RDAP response contains error code: " . $jsonData['errorCode'] . ", Description: " . ($jsonData['description'] ?? 'N/A'));
-        $rdapData = null;
-    }
+    debugLog("RDAP lookup succeeded");
 }
 
 // Calculate total time
@@ -190,7 +211,7 @@ header('Content-Type: application/json');
 echo json_encode([
     'success' => true,
     'domain' => $domain,
-    'whois' => $rdapData ? trim($rdapData) : null, // Reuse 'whois' key for compatibility
+    'whois' => $rdapData ? trim($rdapData) : null,
     'whois_time_ms' => $rdapTime ?? 0,
     'total_time_ms' => $totalTime
 ]);
