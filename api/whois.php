@@ -38,46 +38,49 @@ function getIanaRdapData() {
         if (file_exists($cacheFile) && (filemtime($cacheFile) > (time() - $cacheDuration))) {
             $rdapData = json_decode(file_get_contents($cacheFile), true);
             debugLog("Loaded RDAP data from cache, Size: " . filesize($cacheFile) . " bytes, Last Modified: " . date('Y-m-d H:i:s', filemtime($cacheFile)));
+        }
+        $ianaUrl = 'https://data.iana.org/rdap/dns.json';
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $ianaUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'MyWHOISApp/1.0 (https://ipcow.com)');
+        $response = curl_exec($ch);
+        debugLog("IANA fetch completed, HTTP Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE));
+        if (curl_errno($ch)) {
+            debugLog("Error fetching IANA RDAP data: " . curl_error($ch));
+            $rdapData = [];
         } else {
-            $ianaUrl = 'https://data.iana.org/rdap/dns.json';
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $ianaUrl);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'MyWHOISApp/1.0 (https://ipcow.com)');
-            $response = curl_exec($ch);
-            debugLog("IANA fetch completed, HTTP Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE));
-            if (curl_errno($ch)) {
-                debugLog("Error fetching IANA RDAP data: " . curl_error($ch));
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($httpCode >= 400) {
+                debugLog("Error: IANA fetch returned HTTP $httpCode, Response: " . substr($response, 0, 200));
                 $rdapData = [];
             } else {
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                if ($httpCode >= 400) {
-                    debugLog("Error: IANA fetch returned HTTP $httpCode, Response: " . substr($response, 0, 200));
+                $rdapData = json_decode($response, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    debugLog("Error parsing IANA RDAP data: " . json_last_error_msg());
                     $rdapData = [];
                 } else {
-                    $rdapData = json_decode($response, true);
-                    if (json_last_error() !== JSON_ERROR_NONE) {
-                        debugLog("Error parsing IANA RDAP data: " . json_last_error_msg());
-                        $rdapData = [];
-                    } else {
-                        if (!is_writable($cacheFile)) {
-                            debugLog("Warning: Cache file not writable, Permissions: " . substr(sprintf('%o', fileperms($cacheFile)), -4));
+                    if (!is_writable($cacheFile)) {
+                        debugLog("Warning: Cache file not writable, attempting to fix permissions");
+                        if (chmod($cacheFile, 0664) === false) {
+                            debugLog("Failed to change permissions, manual fix required");
                         } else {
-                            $bytesWritten = file_put_contents($cacheFile, $response);
-                            if ($bytesWritten === false) {
-                                debugLog("Failed to write to cache file");
-                            } else {
-                                debugLog("Cached IANA RDAP data, Bytes written: $bytesWritten");
-                            }
+                            debugLog("Permissions fixed to 0664");
                         }
+                    }
+                    $bytesWritten = file_put_contents($cacheFile, $response);
+                    if ($bytesWritten === false) {
+                        debugLog("Failed to write to cache file");
+                    } else {
+                        debugLog("Cached IANA RDAP data, Bytes written: $bytesWritten");
                     }
                 }
             }
-            curl_close($ch);
         }
+        curl_close($ch);
     }
     return $rdapData ?: [];
 }
@@ -91,7 +94,7 @@ function getRdapServer($domain, $ianaRdapData) {
         'com' => 'https://rdap.verisign.com/com/v1/',
         'net' => 'https://rdap.verisign.com/net/v1/',
         'org' => 'https://rdap.publicinterestregistry.net/rdap/org/',
-        'xyz' => 'https://rdap.centralnic.com/xyz/', // Updated for .xyz
+        'xyz' => 'https://rdap.centralnic.com/xyz/',
         'us' => 'https://rdap.usnic.net/',
         'info' => 'https://rdap.afilias.info/',
         'co' => 'https://rdap.nic.co/',
@@ -160,54 +163,121 @@ function performWhoisFallback($domain, &$whoisTime) {
     debugLog("WHOIS fallback time: " . number_format($whoisTime, 2) . " ms");
     debugLog("WHOIS data received: " . substr($response, 0, 200) . "...");
 
-    return $response;
+    // Enhanced WHOIS parsing
+    $parsedData = ['raw' => trim($response)];
+    $lines = explode("\r\n", $response);
+    $currentSection = '';
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (empty($line)) continue;
+
+        // Handle section headers or multi-line values
+        if (preg_match('/^(\w[\w\s]+):$/', $line, $matches)) {
+            $currentSection = strtolower(trim($matches[1]));
+            $parsedData[$currentSection] = [];
+            continue;
+        }
+
+        // Parse key-value pairs
+        if (preg_match('/^([^:]+):\s*(.+)$/', $line, $matches)) {
+            $key = strtolower(trim($matches[1]));
+            $value = trim($matches[2]);
+            if ($key === 'registrar' && empty($parsedData['registrar'])) {
+                $parsedData['registrar'] = $value;
+            } elseif ($key === 'registry expiry date') {
+                $parsedData['expiration_date'] = $value;
+            } elseif ($key === 'domain name') {
+                $parsedData['domain_name'] = $value;
+            } else {
+                $parsedData[$key] = $value;
+            }
+        } elseif ($currentSection && !isset($parsedData[$currentSection])) {
+            $parsedData[$currentSection] = $line;
+        }
+    }
+
+    // Ensure required fields are set
+    $parsedData['domain_name'] = $parsedData['domain_name'] ?? $domain;
+    $parsedData['registrar'] = $parsedData['registrar'] ?? 'Unknown';
+    $parsedData['expiration_date'] = $parsedData['expiration_date'] ?? 'N/A';
+
+    return json_encode(['whois_fallback' => $parsedData]);
 }
 
-// Function to perform RDAP lookup with retries
+// Function to perform RDAP lookup with optimized retries
 function performRdapLookup($domain, $rdapServer, &$rdapTime) {
     $maxRetries = 3;
     $retryDelay = 2000; // 2 seconds in milliseconds
     $rdapData = null;
 
-    for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $rdapServer);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_FAILONERROR, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: application/rdap+json',
-            'Content-Type: application/json',
-            'User-Agent: MyWHOISApp/1.0 (https://ipcow.com)'
-        ]);
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $rdapServer);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_FAILONERROR, false);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Accept: application/rdap+json',
+        'Content-Type: application/json',
+        'User-Agent: MyWHOISApp/1.0 (https://ipcow.com)'
+    ]);
 
-        $startTime = microtime(true);
-        $response = curl_exec($ch);
-        $rdapTime = (microtime(true) - $startTime) * 1000;
+    $startTime = microtime(true);
+    $response = curl_exec($ch);
+    $rdapTime = (microtime(true) - $startTime) * 1000;
 
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-        curl_close($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+    curl_close($ch);
 
-        debugLog("RDAP request - Attempt $attempt, Server: $rdapServer, Effective URL: $effectiveUrl, HTTP Code: $httpCode, Error: $error");
-        if ($response && !empty(trim($response))) {
-            debugLog("RDAP data received on attempt $attempt, Length: " . strlen($response));
-            $rdapData = $response;
-            break;
-        } else {
-            debugLog("RDAP attempt $attempt failed, HTTP $httpCode, Error: $error, Response: " . substr($response, 0, 200));
-            if ($attempt < $maxRetries) {
-                debugLog("Retrying in $retryDelay ms");
-                usleep($retryDelay * 1000);
+    debugLog("RDAP request - Initial attempt, Server: $rdapServer, Effective URL: $effectiveUrl, HTTP Code: $httpCode, Error: $error");
+    if ($response && !empty(trim($response))) {
+        debugLog("RDAP data received, Length: " . strlen($response));
+        $rdapData = $response;
+    } else if ($httpCode == 404 || strpos($error, 'Could not resolve host') !== false) {
+        debugLog("RDAP failed with 404 or host resolution error, skipping retries");
+    } else {
+        for ($attempt = 2; $attempt <= $maxRetries; $attempt++) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $rdapServer);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_FAILONERROR, false);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: application/rdap+json',
+                'Content-Type: application/json',
+                'User-Agent: MyWHOISApp/1.0 (https://ipcow.com)'
+            ]);
+
+            $startTime = microtime(true);
+            $response = curl_exec($ch);
+            $rdapTime = (microtime(true) - $startTime) * 1000;
+
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            debugLog("RDAP request - Attempt $attempt, Server: $rdapServer, HTTP Code: $httpCode, Error: $error");
+            if ($response && !empty(trim($response))) {
+                debugLog("RDAP data received on attempt $attempt, Length: " . strlen($response));
+                $rdapData = $response;
+                break;
+            } else {
+                debugLog("RDAP attempt $attempt failed, HTTP $httpCode, Error: $error");
+                if ($attempt < $maxRetries) {
+                    debugLog("Retrying in $retryDelay ms");
+                    usleep($retryDelay * 1000);
+                }
             }
         }
     }
 
     if (!$rdapData) {
-        debugLog("RDAP lookup failed after $maxRetries attempts");
+        debugLog("RDAP lookup failed after initial attempt and retries");
         return null;
     }
 
@@ -240,8 +310,7 @@ if ($rdapData === null) {
     debugLog("RDAP lookup failed, attempting WHOIS fallback");
     $whoisData = performWhoisFallback($domain, $whoisTime);
     if ($whoisData) {
-        // Return WHOIS data as a string (not JSON)
-        $rdapData = json_encode(['whois_fallback' => trim($whoisData)]);
+        $rdapData = $whoisData;
         $rdapTime = $whoisTime;
         debugLog("WHOIS fallback succeeded");
     } else {
