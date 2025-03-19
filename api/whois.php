@@ -97,8 +97,13 @@ function getRdapServer($domain, $ianaRdapData) {
         'xyz' => 'https://rdap.centralnic.com/xyz/',
         'us' => 'https://rdap.nic.us/',
         'co' => 'https://rdap.nic.co/',
+        'me' => null, // Force WHOIS fallback for .me domains
     ];
-    if (isset($manualServers[$tld])) {
+    if (array_key_exists($tld, $manualServers)) {
+        if ($manualServers[$tld] === null) {
+            debugLog("RDAP lookup skipped for TLD '$tld', forcing WHOIS fallback");
+            return null; // Return null to skip RDAP and force WHOIS fallback
+        }
         $rdapUrl = $manualServers[$tld];
         debugLog("Using manual RDAP server for TLD '$tld': $rdapUrl");
         return rtrim($rdapUrl, '/') . '/domain/' . urlencode($domain);
@@ -217,134 +222,155 @@ function performWhoisFallback($domain, &$whoisTime) {
 
 // Function to perform RDAP lookup with optimized retries
 function performRdapLookup($domain, $rdapServer, &$rdapTime) {
-    $maxRetries = 3;
-    $retryDelay = 2000; // 2 seconds in milliseconds
-    $rdapData = null;
+    try {
+        $maxRetries = 3;
+        $retryDelay = 2000; // 2 seconds in milliseconds
+        $rdapData = null;
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $rdapServer);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_FAILONERROR, false);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Accept: application/rdap+json',
-        'Content-Type: application/json',
-        'User-Agent: MyWHOISApp/1.0 (https://ipcow.com)'
-    ]);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $rdapServer);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_FAILONERROR, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/rdap+json',
+            'Content-Type: application/json',
+            'User-Agent: MyWHOISApp/1.0 (https://ipcow.com)'
+        ]);
 
-    $startTime = microtime(true);
-    $response = curl_exec($ch);
-    $rdapTime = (microtime(true) - $startTime) * 1000;
+        $startTime = microtime(true);
+        $response = curl_exec($ch);
+        $rdapTime = (microtime(true) - $startTime) * 1000;
 
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-    curl_close($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        curl_close($ch);
 
-    debugLog("RDAP request - Initial attempt, Server: $rdapServer, Effective URL: $effectiveUrl, HTTP Code: $httpCode, Error: $error");
-    if ($response && !empty(trim($response))) {
-        debugLog("RDAP data received, Length: " . strlen($response));
-        $rdapData = $response;
-    } else if ($httpCode == 404 || strpos($error, 'Could not resolve host') !== false) {
-        debugLog("RDAP failed with 404 or host resolution error, skipping retries");
-    } else {
-        for ($attempt = 2; $attempt <= $maxRetries; $attempt++) {
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $rdapServer);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_FAILONERROR, false);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Accept: application/rdap+json',
-                'Content-Type: application/json',
-                'User-Agent: MyWHOISApp/1.0 (https://ipcow.com)'
-            ]);
+        debugLog("RDAP request - Initial attempt, Server: $rdapServer, Effective URL: $effectiveUrl, HTTP Code: $httpCode, Error: $error");
+        if ($response && !empty(trim($response))) {
+            debugLog("RDAP data received, Length: " . strlen($response));
+            $rdapData = $response;
+        } else if ($httpCode == 404 || strpos($error, 'Could not resolve host') !== false) {
+            debugLog("RDAP failed with 404 or host resolution error, skipping retries");
+        } else {
+            for ($attempt = 2; $attempt <= $maxRetries; $attempt++) {
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $rdapServer);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_FAILONERROR, false);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Accept: application/rdap+json',
+                    'Content-Type: application/json',
+                    'User-Agent: MyWHOISApp/1.0 (https://ipcow.com)'
+                ]);
 
-            $startTime = microtime(true);
-            $response = curl_exec($ch);
-            $rdapTime = (microtime(true) - $startTime) * 1000;
+                $startTime = microtime(true);
+                $response = curl_exec($ch);
+                $rdapTime = (microtime(true) - $startTime) * 1000;
 
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $error = curl_error($ch);
-            curl_close($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $error = curl_error($ch);
+                curl_close($ch);
 
-            debugLog("RDAP request - Attempt $attempt, Server: $rdapServer, HTTP Code: $httpCode, Error: $error");
-            if ($response && !empty(trim($response))) {
-                debugLog("RDAP data received on attempt $attempt, Length: " . strlen($response));
-                $rdapData = $response;
-                break;
-            } else {
-                debugLog("RDAP attempt $attempt failed, HTTP $httpCode, Error: $error");
-                if ($attempt < $maxRetries) {
-                    debugLog("Retrying in $retryDelay ms");
-                    usleep($retryDelay * 1000);
+                debugLog("RDAP request - Attempt $attempt, Server: $rdapServer, HTTP Code: $httpCode, Error: $error");
+                if ($response && !empty(trim($response))) {
+                    debugLog("RDAP data received on attempt $attempt, Length: " . strlen($response));
+                    $rdapData = $response;
+                    break;
+                } else {
+                    debugLog("RDAP attempt $attempt failed, HTTP $httpCode, Error: $error");
+                    if ($attempt < $maxRetries) {
+                        debugLog("Retrying in $retryDelay ms");
+                        usleep($retryDelay * 1000);
+                    }
                 }
             }
         }
-    }
 
-    if (!$rdapData) {
-        debugLog("RDAP lookup failed after initial attempt and retries");
+        if (!$rdapData) {
+            debugLog("RDAP lookup failed after initial attempt and retries");
+            return null;
+        }
+
+        // Validate JSON
+        $jsonData = json_decode($rdapData, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            debugLog("Error parsing RDAP JSON: " . json_last_error_msg() . ", Raw response: " . substr($rdapData, 0, 200));
+            return null;
+        }
+        if (isset($jsonData['errorCode'])) {
+            debugLog("RDAP response contains error code: " . $jsonData['errorCode'] . ", Description: " . (json_encode($jsonData['description'] ?? 'N/A')));
+            return null;
+        }
+
+        // Add source indicator
+        $jsonData['source'] = 'rdap';
+        $rdapData = json_encode($jsonData);
+
+        debugLog("RDAP time: " . number_format($rdapTime, 2) . " ms");
+        debugLog("RDAP data received: " . substr($rdapData, 0, 200) . "...");
+        return $rdapData;
+    } catch (Exception $e) {
+        debugLog("Error in performRdapLookup: " . $e->getMessage());
         return null;
     }
-
-    // Validate JSON
-    $jsonData = json_decode($rdapData, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        debugLog("Error parsing RDAP JSON: " . json_last_error_msg() . ", Raw response: " . substr($rdapData, 0, 200));
-        return null;
-    }
-    if (isset($jsonData['errorCode'])) {
-        debugLog("RDAP response contains error code: " . $jsonData['errorCode'] . ", Description: " . ($jsonData['description'] ?? 'N/A'));
-        return null;
-    }
-
-    // Add source indicator
-    $jsonData['source'] = 'rdap';
-    $rdapData = json_encode($jsonData);
-
-    debugLog("RDAP time: " . number_format($rdapTime, 2) . " ms");
-    debugLog("RDAP data received: " . substr($rdapData, 0, 200) . "...");
-    return $rdapData;
 }
 
-// Fetch IANA RDAP data
-$ianaRdapData = getIanaRdapData();
-debugLog("IANA RDAP data loaded: " . (empty($ianaRdapData) ? 'Empty' : 'Populated'));
+// Main script wrapped in try-catch to catch any unhandled exceptions
+try {
+    // Fetch IANA RDAP data
+    $ianaRdapData = getIanaRdapData();
+    debugLog("IANA RDAP data loaded: " . (empty($ianaRdapData) ? 'Empty' : 'Populated'));
 
-// Perform RDAP lookup
-$rdapServer = getRdapServer($domain, $ianaRdapData);
-debugLog("RDAP server selected: $rdapServer");
-$rdapData = performRdapLookup($domain, $rdapServer, $rdapTime);
-
-if ($rdapData === null) {
-    debugLog("RDAP lookup failed, attempting WHOIS fallback");
-    $whoisData = performWhoisFallback($domain, $whoisTime);
-    if ($whoisData) {
-        $rdapData = $whoisData;
-        $rdapTime = $whoisTime;
-        debugLog("WHOIS fallback succeeded");
+    // Perform RDAP lookup
+    $rdapServer = getRdapServer($domain, $ianaRdapData);
+    debugLog("RDAP server selected: " . ($rdapServer ?? 'None (forcing WHOIS fallback)'));
+    
+    $rdapData = null;
+    $rdapTime = 0;
+    if ($rdapServer !== null) {
+        $rdapData = performRdapLookup($domain, $rdapServer, $rdapTime);
     } else {
-        debugLog("WHOIS fallback failed, returning null data");
+        debugLog("Skipping RDAP lookup, proceeding to WHOIS fallback");
     }
-} else {
-    debugLog("RDAP lookup succeeded");
+
+    if ($rdapData === null) {
+        debugLog("RDAP lookup failed or skipped, attempting WHOIS fallback");
+        $whoisData = performWhoisFallback($domain, $whoisTime);
+        if ($whoisData) {
+            $rdapData = json_encode($whoisData);
+            $rdapTime = $whoisTime;
+            debugLog("WHOIS fallback succeeded");
+        } else {
+            debugLog("WHOIS fallback failed, returning null data");
+        }
+    } else {
+        debugLog("RDAP lookup succeeded");
+    }
+
+    // Calculate total time
+    $totalTime = (microtime(true) - $scriptStartTime) * 1000;
+    debugLog("Total time: " . number_format($totalTime, 2) . " ms");
+
+    // Return response
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'domain' => $domain,
+        'whois' => $rdapData ? json_decode(trim($rdapData), true) : null,
+        'whois_time_ms' => $rdapTime ?? 0,
+        'total_time_ms' => $totalTime
+    ]);
+} catch (Exception $e) {
+    debugLog("Error in /api/whois.php: " . $e->getMessage());
+    http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Internal server error: ' . $e->getMessage()]);
+    exit;
 }
-
-// Calculate total time
-$totalTime = (microtime(true) - $scriptStartTime) * 1000;
-debugLog("Total time: " . number_format($totalTime, 2) . " ms");
-
-// Return response
-header('Content-Type: application/json');
-echo json_encode([
-    'success' => true,
-    'domain' => $domain,
-    'whois' => $rdapData ? json_decode(trim($rdapData), true) : null,
-    'whois_time_ms' => $rdapTime ?? 0,
-    'total_time_ms' => $totalTime
-]);
