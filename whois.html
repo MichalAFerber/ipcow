@@ -261,19 +261,19 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
           const data = await response.json();
           console.log('Received WHOIS response:', data);
   
-          const whoisData = data.whois || '';
+          const whoisData = data.whois || null;
+          // Check if whoisData is null or contains an error message in the raw field
           if (
             !whoisData ||
-            whoisData.trim() === '' ||
-            (typeof whoisData === 'string' && (
-              whoisData.toLowerCase().includes('no match') ||
-              whoisData.toLowerCase().includes('not found') ||
-              whoisData.toLowerCase().includes('no data') ||
-              whoisData.toLowerCase().includes('connection timeout') ||
-              whoisData.toLowerCase().includes('could not') ||
-              whoisData.toLowerCase().includes('error') ||
-              whoisData.toLowerCase().includes('retired') ||
-              whoisData.toLowerCase().includes('try again after')
+            (whoisData.raw && typeof whoisData.raw === 'string' && (
+              whoisData.raw.toLowerCase().includes('no match') ||
+              whoisData.raw.toLowerCase().includes('not found') ||
+              whoisData.raw.toLowerCase().includes('no data') ||
+              whoisData.raw.toLowerCase().includes('connection timeout') ||
+              whoisData.raw.toLowerCase().includes('could not') ||
+              whoisData.raw.toLowerCase().includes('error') ||
+              whoisData.raw.toLowerCase().includes('retired') ||
+              whoisData.raw.toLowerCase().includes('try again after')
             ))
           ) {
             resultsDiv.innerHTML = `
