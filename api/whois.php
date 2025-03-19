@@ -133,6 +133,10 @@ function performWhoisFallback($domain, &$whoisTime) {
     $whoisServers = [
         'me' => 'whois.nic.me',
         'xyz' => 'whois.nic.xyz',
+        'us' => 'whois.nic.us',
+        'info' => 'whois.afilias.net',
+        'co' => 'whois.nic.co',
+        'cc' => 'ccwhois.verisign-grs.com',
         'com' => 'whois.verisign-grs.com',
         'net' => 'whois.verisign-grs.com',
         'org' => 'whois.pir.org',
@@ -167,6 +171,8 @@ function performWhoisFallback($domain, &$whoisTime) {
     $parsedData = ['raw' => trim($response), 'source' => 'whois'];
     $lines = explode("\r\n", $response);
     $currentSection = '';
+    $nameServers = []; // To collect multiple Name Server entries
+
     foreach ($lines as $line) {
         $line = trim($line);
         if (empty($line)) continue;
@@ -188,6 +194,8 @@ function performWhoisFallback($domain, &$whoisTime) {
                 $parsedData['expiration_date'] = $value;
             } elseif ($key === 'domain name') {
                 $parsedData['domain_name'] = $value;
+            } elseif ($key === 'name server') {
+                $nameServers[] = $value; // Collect all Name Server entries
             } else {
                 $parsedData[$key] = $value;
             }
@@ -196,12 +204,17 @@ function performWhoisFallback($domain, &$whoisTime) {
         }
     }
 
+    // Add name servers as an array
+    if (!empty($nameServers)) {
+        $parsedData['name server'] = $nameServers;
+    }
+
     // Ensure required fields are set
     $parsedData['domain_name'] = $parsedData['domain_name'] ?? $domain;
     $parsedData['registrar'] = $parsedData['registrar'] ?? 'Unknown';
     $parsedData['expiration_date'] = $parsedData['expiration_date'] ?? 'N/A';
 
-    return json_encode($parsedData);
+    return $parsedData; // Return the parsed data directly as an array
 }
 
 // Function to perform RDAP lookup with optimized retries
