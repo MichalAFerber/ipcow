@@ -164,7 +164,7 @@ function performWhoisFallback($domain, &$whoisTime) {
     debugLog("WHOIS data received: " . substr($response, 0, 200) . "...");
 
     // Enhanced WHOIS parsing
-    $parsedData = ['raw' => trim($response)];
+    $parsedData = ['raw' => trim($response), 'source' => 'whois'];
     $lines = explode("\r\n", $response);
     $currentSection = '';
     foreach ($lines as $line) {
@@ -182,7 +182,7 @@ function performWhoisFallback($domain, &$whoisTime) {
         if (preg_match('/^([^:]+):\s*(.+)$/', $line, $matches)) {
             $key = strtolower(trim($matches[1]));
             $value = trim($matches[2]);
-            if ($key === 'registrar' && empty($parsedData['registrar'])) {
+            if ($key === 'registrar') {
                 $parsedData['registrar'] = $value;
             } elseif ($key === 'registry expiry date') {
                 $parsedData['expiration_date'] = $value;
@@ -201,7 +201,7 @@ function performWhoisFallback($domain, &$whoisTime) {
     $parsedData['registrar'] = $parsedData['registrar'] ?? 'Unknown';
     $parsedData['expiration_date'] = $parsedData['expiration_date'] ?? 'N/A';
 
-    return json_encode(['whois_fallback' => $parsedData]);
+    return json_encode($parsedData);
 }
 
 // Function to perform RDAP lookup with optimized retries
@@ -292,6 +292,10 @@ function performRdapLookup($domain, $rdapServer, &$rdapTime) {
         return null;
     }
 
+    // Add source indicator
+    $jsonData['source'] = 'rdap';
+    $rdapData = json_encode($jsonData);
+
     debugLog("RDAP time: " . number_format($rdapTime, 2) . " ms");
     debugLog("RDAP data received: " . substr($rdapData, 0, 200) . "...");
     return $rdapData;
@@ -329,7 +333,7 @@ header('Content-Type: application/json');
 echo json_encode([
     'success' => true,
     'domain' => $domain,
-    'whois' => $rdapData ? trim($rdapData) : null,
+    'whois' => $rdapData ? json_decode(trim($rdapData), true) : null,
     'whois_time_ms' => $rdapTime ?? 0,
     'total_time_ms' => $totalTime
 ]);

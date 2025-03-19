@@ -44,80 +44,110 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
       }
   
       function parseWhoisData(rawWhois, queriedDomain) {
-        let whoisData = { domain_name: queriedDomain, registrar: { name: 'Unknown' }, dates: {}, status: [], name_servers: [], registrant: {}, admin: {}, tech: {}, billing: {}, raw: {} };
-        console.log('Parsing RDAP data:', rawWhois);
+        let whoisData = { 
+          domain_name: queriedDomain, 
+          registrar: { name: 'Unknown' }, 
+          dates: {}, 
+          status: [], 
+          name_servers: [], 
+          registrant: {}, 
+          admin: {}, 
+          tech: {}, 
+          billing: {}, 
+          raw: {} 
+        };
+        console.log('Parsing WHOIS/RDAP data:', rawWhois);
   
         try {
-          const jsonData = JSON.parse(rawWhois);
-          console.log('Parsed JSON:', jsonData);
+          // The rawWhois is now a JavaScript object (not a JSON string)
+          const jsonData = rawWhois;
+          console.log('Parsed data:', jsonData);
   
-          // Extract basic domain info
-          if (jsonData.handle) whoisData.registry_domain_id = jsonData.handle;
-          if (jsonData.ldhName) whoisData.domain_name = jsonData.ldhName;
+          // Check the source of the data (RDAP or WHOIS)
+          if (jsonData.source === 'whois') {
+            // Handle WHOIS data
+            whoisData.domain_name = jsonData.domain_name || queriedDomain;
+            whoisData.registrar.name = jsonData.registrar || 'Unknown';
+            whoisData.dates.expiry = jsonData.expiration_date || '';
+            whoisData.dates.created = jsonData['creation date'] || '';
+            whoisData.dates.updated = jsonData['updated date'] || '';
+            whoisData.status = jsonData['domain status'] ? [jsonData['domain status']] : [];
+            whoisData.name_servers = [];
+            if (jsonData['name server']) {
+              whoisData.name_servers = Array.isArray(jsonData['name server']) 
+                ? jsonData['name server'] 
+                : [jsonData['name server']];
+            }
+            whoisData.raw = jsonData.raw || '';
+          } else {
+            // Handle RDAP data (existing logic)
+            if (jsonData.handle) whoisData.registry_domain_id = jsonData.handle;
+            if (jsonData.ldhName) whoisData.domain_name = jsonData.ldhName;
   
-          // Extract statuses
-          if (jsonData.status) whoisData.status = jsonData.status;
+            // Extract statuses
+            if (jsonData.status) whoisData.status = jsonData.status;
   
-          // Extract dates
-          if (jsonData.events) {
-            jsonData.events.forEach(event => {
-              if (event.eventAction === 'registration') whoisData.dates.created = event.eventDate;
-              else if (event.eventAction === 'expiration') whoisData.dates.expiry = event.eventDate;
-              else if (event.eventAction === 'last changed' || event.eventAction === 'last update of RDAP database') whoisData.dates.updated = event.eventDate;
-            });
-          }
+            // Extract dates
+            if (jsonData.events) {
+              jsonData.events.forEach(event => {
+                if (event.eventAction === 'registration') whoisData.dates.created = event.eventDate;
+                else if (event.eventAction === 'expiration') whoisData.dates.expiry = event.eventDate;
+                else if (event.eventAction === 'last changed' || event.eventAction === 'last update of RDAP database') whoisData.dates.updated = event.eventDate;
+              });
+            }
   
-          // Extract name servers
-          if (jsonData.nameservers) {
-            whoisData.name_servers = jsonData.nameservers.map(ns => ns.ldhName || ns);
-          }
+            // Extract name servers
+            if (jsonData.nameservers) {
+              whoisData.name_servers = jsonData.nameservers.map(ns => ns.ldhName || ns);
+            }
   
-          // Extract registrar
-          if (jsonData.entities) {
-            const registrarEntity = jsonData.entities.find(entity => entity.roles && entity.roles.includes('registrar'));
-            if (registrarEntity && registrarEntity.vcardArray) {
-              const vcard = registrarEntity.vcardArray[1];
-              const fnItem = vcard.find(item => item[0] === 'fn');
-              whoisData.registrar.name = fnItem ? fnItem[3] : whoisData.registrar.name;
-              if (registrarEntity.entities) {
-                const abuseEntity = registrarEntity.entities.find(e => e.roles?.includes('abuse'));
-                if (abuseEntity && abuseEntity.vcardArray) {
-                  const abuseVcard = abuseEntity.vcardArray[1];
-                  whoisData.registrar.abuse_contact_email = abuseVcard.find(item => item[0] === 'email')?.[3] || '';
-                  whoisData.registrar.abuse_contact_phone = abuseVcard.find(item => item[0] === 'tel')?.[3] || '';
+            // Extract registrar
+            if (jsonData.entities) {
+              const registrarEntity = jsonData.entities.find(entity => entity.roles && entity.roles.includes('registrar'));
+              if (registrarEntity && registrarEntity.vcardArray) {
+                const vcard = registrarEntity.vcardArray[1];
+                const fnItem = vcard.find(item => item[0] === 'fn');
+                whoisData.registrar.name = fnItem ? fnItem[3] : whoisData.registrar.name;
+                if (registrarEntity.entities) {
+                  const abuseEntity = registrarEntity.entities.find(e => e.roles?.includes('abuse'));
+                  if (abuseEntity && abuseEntity.vcardArray) {
+                    const abuseVcard = abuseEntity.vcardArray[1];
+                    whoisData.registrar.abuse_contact_email = abuseVcard.find(item => item[0] === 'email')?.[3] || '';
+                    whoisData.registrar.abuse_contact_phone = abuseVcard.find(item => item[0] === 'tel')?.[3] || '';
+                  }
                 }
               }
             }
-          }
   
-          // Extract contacts
-          if (jsonData.entities) {
-            jsonData.entities.forEach(entity => {
-              let target = {};
-              if (entity.roles?.includes('registrant')) target = whoisData.registrant;
-              else if (entity.roles?.includes('administrative')) target = whoisData.admin;
-              else if (entity.roles?.includes('technical')) target = whoisData.tech;
-              else if (entity.roles?.includes('billing')) target = whoisData.billing;
-              if (Object.keys(target).length && entity.vcardArray) {
-                const vcard = entity.vcardArray[1];
-                target.name = vcard.find(item => item[0] === 'fn')?.[3] || '';
-                vcard.forEach(item => {
-                  if (item[0] === 'adr' && item[1].label) target.street = item[1].label;
-                  else if (item[0] === 'email') target.email = item[3];
-                  else if (item[0] === 'tel') target.phone = item[3];
-                });
-              }
-            });
-          }
+            // Extract contacts
+            if (jsonData.entities) {
+              jsonData.entities.forEach(entity => {
+                let target = {};
+                if (entity.roles?.includes('registrant')) target = whoisData.registrant;
+                else if (entity.roles?.includes('administrative')) target = whoisData.admin;
+                else if (entity.roles?.includes('technical')) target = whoisData.tech;
+                else if (entity.roles?.includes('billing')) target = whoisData.billing;
+                if (Object.keys(target).length && entity.vcardArray) {
+                  const vcard = entity.vcardArray[1];
+                  target.name = vcard.find(item => item[0] === 'fn')?.[3] || '';
+                  vcard.forEach(item => {
+                    if (item[0] === 'adr' && item[1].label) target.street = item[1].label;
+                    else if (item[0] === 'email') target.email = item[3];
+                    else if (item[0] === 'tel') target.phone = item[3];
+                  });
+                }
+              });
+            }
   
-          // Store any unprocessed data
-          whoisData.raw = jsonData;
+            // Store any unprocessed data
+            whoisData.raw = jsonData;
+          }
         } catch (e) {
-          console.error('Error parsing RDAP JSON:', e);
+          console.error('Error parsing WHOIS/RDAP data:', e);
           whoisData.raw = rawWhois; // Fallback to raw data if parsing fails
         }
   
-        // Only delete empty objects after ensuring defaults
+        // Clean up empty objects
         if (Object.keys(whoisData.registrar).length === 1 && !whoisData.registrar.name) delete whoisData.registrar;
         if (!Object.keys(whoisData.dates).length) delete whoisData.dates;
         if (!whoisData.status.length) delete whoisData.status;
@@ -128,7 +158,7 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
         if (!Object.keys(whoisData.billing).length) delete whoisData.billing;
         if (!Object.keys(whoisData.raw).length) delete whoisData.raw;
   
-        console.log('Parsed RDAP data:', whoisData);
+        console.log('Parsed WHOIS/RDAP data:', whoisData);
         return whoisData;
       }
   
@@ -235,14 +265,16 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
           if (
             !whoisData ||
             whoisData.trim() === '' ||
-            whoisData.toLowerCase().includes('no match') ||
-            whoisData.toLowerCase().includes('not found') ||
-            whoisData.toLowerCase().includes('no data') ||
-            whoisData.toLowerCase().includes('connection timeout') ||
-            whoisData.toLowerCase().includes('could not') ||
-            whoisData.toLowerCase().includes('error') ||
-            whoisData.toLowerCase().includes('retired') ||
-            whoisData.toLowerCase().includes('try again after')
+            (typeof whoisData === 'string' && (
+              whoisData.toLowerCase().includes('no match') ||
+              whoisData.toLowerCase().includes('not found') ||
+              whoisData.toLowerCase().includes('no data') ||
+              whoisData.toLowerCase().includes('connection timeout') ||
+              whoisData.toLowerCase().includes('could not') ||
+              whoisData.toLowerCase().includes('error') ||
+              whoisData.toLowerCase().includes('retired') ||
+              whoisData.toLowerCase().includes('try again after')
+            ))
           ) {
             resultsDiv.innerHTML = `
               <div class="alert alert-primary alert-dismissible fade show" role="alert" aria-live="assertive">
@@ -252,7 +284,6 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
                 </button>
               </div>
             `;
-            // domainInput.value = '';
             domainInput.focus();
             return;
           }
@@ -309,7 +340,6 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
           const buttonContainer = resultsDiv.querySelector('.button-container');
           buttonContainer.appendChild(exportBtn);
   
-        // domainInput.value = '';
           domainInput.focus();
         } catch (error) {
           console.error('Error in WHOIS lookup:', error);
@@ -324,4 +354,4 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
         }
       });
     });
-  </script>
+</script>
