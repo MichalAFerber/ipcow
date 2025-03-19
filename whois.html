@@ -264,7 +264,7 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
               <section class="flush-container">
                 <p class="lead font-weight-bold">WHOIS Data</p>
                 <div class="flush-container">
-                  <table class="table table-striped">
+                  <table>
                     ${parsedWhois.domain_name ? `<tr><th>Domain Name</th><td>${parsedWhois.domain_name}</td></tr>` : ''}
                     ${parsedWhois.registry_domain_id ? `<tr><th>Registry Domain ID</th><td>${parsedWhois.registry_domain_id}</td></tr>` : ''}
                     ${parsedWhois.status && parsedWhois.status.length ? `<tr><th>Status</th><td>${parsedWhois.status.join(', ')}</td></tr>` : ''}
