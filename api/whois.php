@@ -37,7 +37,7 @@ function getIanaRdapData() {
     if ($rdapData === null) {
         if (file_exists($cacheFile) && (filemtime($cacheFile) > (time() - $cacheDuration))) {
             $rdapData = json_decode(file_get_contents($cacheFile), true);
-            debugLog("Loaded RDAP data from cache, Size: " . filesize($cacheFile) . " bytes");
+            debugLog("Loaded RDAP data from cache, Size: " . filesize($cacheFile) . " bytes, Last Modified: " . date('Y-m-d H:i:s', filemtime($cacheFile)));
         } else {
             $ianaUrl = 'https://data.iana.org/rdap/dns.json';
             $ch = curl_init();
@@ -46,7 +46,7 @@ function getIanaRdapData() {
             curl_setopt($ch, CURLOPT_TIMEOUT, 10);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'MyWHOISApp/1.0 (https://yourdomain.com)');
+            curl_setopt($ch, CURLOPT_USERAGENT, 'MyWHOISApp/1.0 (https://ipcow.com)');
             $response = curl_exec($ch);
             debugLog("IANA fetch completed, HTTP Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE));
             if (curl_errno($ch)) {
@@ -91,8 +91,7 @@ function getRdapServer($domain, $ianaRdapData) {
         'com' => 'https://rdap.verisign.com/com/v1/',
         'net' => 'https://rdap.verisign.com/net/v1/',
         'org' => 'https://rdap.publicinterestregistry.net/rdap/org/',
-        'me' => 'https://rdap.nic.me/',
-        'xyz' => 'https://rdap.nic.xyz/',
+        'xyz' => 'https://rdap.centralnic.com/xyz/', // Updated for .xyz
         'us' => 'https://rdap.usnic.net/',
         'info' => 'https://rdap.afilias.info/',
         'co' => 'https://rdap.nic.co/',
@@ -111,16 +110,57 @@ function getRdapServer($domain, $ianaRdapData) {
         }
     }
 
-    // Cloudflare fallback for known registrars
-    if (preg_match('/cloudflare/i', $domain) || in_array($tld, ['me', 'xyz'])) {
+    // Fallback for known registrars
+    if (preg_match('/cloudflare/i', $domain)) {
         $rdapUrl = 'https://rdap.cloudflare.com/rdap/v1/';
-        debugLog("Using Cloudflare RDAP fallback for TLD '$tld' or domain: $rdapUrl");
+        debugLog("Using Cloudflare RDAP fallback for domain: $rdapUrl");
         return rtrim($rdapUrl, '/') . 'domain/' . urlencode($domain);
     }
 
     $defaultServer = 'https://rdap.iana.org/domain/' . urlencode($domain);
     debugLog("No RDAP server found for TLD '$tld', using default: $defaultServer");
     return $defaultServer;
+}
+
+// Function to perform traditional WHOIS lookup as a fallback
+function performWhoisFallback($domain, &$whoisTime) {
+    $tld = strtolower(substr(strrchr($domain, '.'), 1));
+    debugLog("Attempting WHOIS fallback for domain: $domain, TLD: $tld");
+
+    $whoisServers = [
+        'me' => 'whois.nic.me',
+        'xyz' => 'whois.nic.xyz',
+        'com' => 'whois.verisign-grs.com',
+        'net' => 'whois.verisign-grs.com',
+        'org' => 'whois.pir.org',
+    ];
+
+    if (!isset($whoisServers[$tld])) {
+        debugLog("No WHOIS server defined for TLD '$tld'");
+        return null;
+    }
+
+    $whoisServer = $whoisServers[$tld];
+    $startTime = microtime(true);
+
+    $socket = @fsockopen($whoisServer, 43, $errno, $errstr, 10);
+    if ($socket === false) {
+        debugLog("WHOIS fallback failed: Could not connect to $whoisServer, Error: $errstr ($errno)");
+        return null;
+    }
+
+    fwrite($socket, "$domain\r\n");
+    $response = '';
+    while (!feof($socket)) {
+        $response .= fgets($socket, 128);
+    }
+    fclose($socket);
+
+    $whoisTime = (microtime(true) - $startTime) * 1000;
+    debugLog("WHOIS fallback time: " . number_format($whoisTime, 2) . " ms");
+    debugLog("WHOIS data received: " . substr($response, 0, 200) . "...");
+
+    return $response;
 }
 
 // Function to perform RDAP lookup with retries
@@ -133,14 +173,14 @@ function performRdapLookup($domain, $rdapServer, &$rdapTime) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $rdapServer);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30); // 30-second timeout
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_FAILONERROR, false);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: application/rdap+json',
             'Content-Type: application/json',
-            'User-Agent: MyWHOISApp/1.0 (https://yourdomain.com)'
+            'User-Agent: MyWHOISApp/1.0 (https://ipcow.com)'
         ]);
 
         $startTime = microtime(true);
@@ -161,7 +201,7 @@ function performRdapLookup($domain, $rdapServer, &$rdapTime) {
             debugLog("RDAP attempt $attempt failed, HTTP $httpCode, Error: $error, Response: " . substr($response, 0, 200));
             if ($attempt < $maxRetries) {
                 debugLog("Retrying in $retryDelay ms");
-                usleep($retryDelay * 1000); // Convert ms to microseconds
+                usleep($retryDelay * 1000);
             }
         }
     }
@@ -197,7 +237,16 @@ debugLog("RDAP server selected: $rdapServer");
 $rdapData = performRdapLookup($domain, $rdapServer, $rdapTime);
 
 if ($rdapData === null) {
-    debugLog("RDAP lookup failed, returning null rdap data");
+    debugLog("RDAP lookup failed, attempting WHOIS fallback");
+    $whoisData = performWhoisFallback($domain, $whoisTime);
+    if ($whoisData) {
+        // Return WHOIS data as a string (not JSON)
+        $rdapData = json_encode(['whois_fallback' => trim($whoisData)]);
+        $rdapTime = $whoisTime;
+        debugLog("WHOIS fallback succeeded");
+    } else {
+        debugLog("WHOIS fallback failed, returning null data");
+    }
 } else {
     debugLog("RDAP lookup succeeded");
 }
