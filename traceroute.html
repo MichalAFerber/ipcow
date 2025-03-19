@@ -3,13 +3,28 @@ layout: page
 title: Traceroute
 subtitle: Trace the route to any IP or website.
 share-description: "IP Cow’s free Traceroute tool shows the path your connection takes to any IP address or website, helping you troubleshoot network issues."
-full-width: true
+# full-width: true
 ---
-<form class="form-inline justify-content-center" method="GET" action="/api/traceroute.php">
-  <input type="text" class="form-control" id="target" name="target" placeholder="8.8.8.8 or google.com" required>
-  <button type="submit" class="btn btn-primary">Traceroute</button>
-</form>
-<div id="traceroute-results" class="center-results"></div>
+<div class="container justify-content-center">
+  <form method="GET" action="/api/traceroute.php">
+    <div class="form-label-group">
+      <input type="text" class="form-control" id="target" name="target" placeholder="google.com or 8.8.8.8" required autofocus>
+      <label for="target">google.com or 8.8.8.8</label>
+    </div>
+    <div class="form-group text-center">
+      <button type="submit" class="btn btn-lg btn-primary btn-block">Traceroute</button>
+    </div>
+    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
+      data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+  </form>
+</div>
+
+<div id="traceroute-results" style="display: none;"></div>
+
+<!-- Load hCaptcha and custom module -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script src="/assets/js/hcaptcha-module.js" defer></script>
+
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();

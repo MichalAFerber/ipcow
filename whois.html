@@ -6,12 +6,20 @@ share-description: "IP Cow is a free service that shows you the public IP addres
 about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
 # full-width: true
 ---
-<form class="form-inline justify-content-center" method="GET" action="/api/whois.php" novalidate>
-    <input type="text" class="form-control" id="domain" name="domain" placeholder="google.com" required>
-    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
-        data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
-    <button type="submit" class="btn btn-primary">Check WHOIS</button>
-</form>
+<div class="container justify-content-center">
+    <form method="GET" action="/api/whois.php">
+        <div class="form-label-group">
+            <input type="text" class="form-control" id="domain" name="domain" placeholder="example.com" required
+                autofocus>
+            <label for="domain">example.com</label>
+        </div>
+        <div class="form-group text-center">
+            <button type="submit" class="btn btn-lg btn-primary btn-block">Check WHOIS</button>
+        </div>
+        <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
+            data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+    </form>
+</div>
 
 <div id="whois-results" style="display: none;"></div>
 
@@ -244,7 +252,7 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
                 </button>
               </div>
             `;
-            domainInput.value = '';
+            // domainInput.value = '';
             domainInput.focus();
             return;
           }
@@ -301,7 +309,7 @@ about your computer and web browser. IP Cow also offers an Ookla Speedtest and o
           const buttonContainer = resultsDiv.querySelector('.button-container');
           buttonContainer.appendChild(exportBtn);
   
-          domainInput.value = '';
+        // domainInput.value = '';
           domainInput.focus();
         } catch (error) {
           console.error('Error in WHOIS lookup:', error);

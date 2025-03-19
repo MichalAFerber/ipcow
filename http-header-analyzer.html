@@ -5,11 +5,26 @@ subtitle: Analyze HTTP headers for any website.
 share-description: "IP Cow’s free HTTP Header Analyzer lets you review HTTP headers from any website, useful for troubleshooting or security checks."
 # full-width: true
 ---
-<form class="form-inline justify-content-center" method="GET">
-  <input type="text" class="form-control" id="url" name="url" placeholder="https://google.com" required>
-  <button type="submit" class="btn btn-primary">Analyze Headers</button>
-</form>
-<div id="header-results" class="center-results"></div>
+<div class="container justify-content-center">
+  <form method="GET">
+    <div class="form-label-group">
+      <input type="text" class="form-control" id="url" name="url" placeholder="https://example.com/" required autofocus>
+      <label for="url">https://example.com/</label>
+    </div>
+    <div class="form-group text-center">
+      <button type="submit" class="btn btn-lg btn-primary btn-block">Analyze Headers</button>
+    </div>
+    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
+      data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+  </form>
+</div>
+
+<div id="header-results" style="display: none;"></div>
+
+<!-- Load hCaptcha and custom module -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script src="/assets/js/hcaptcha-module.js" defer></script>
+
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();

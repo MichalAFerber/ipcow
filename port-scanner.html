@@ -5,12 +5,30 @@ subtitle: Check if ports are open on any IP or website.
 share-description: "IP Cow’s free Port Scanner lets you check if specific ports are open on an IP address or website, perfect for troubleshooting or security."
 # full-width: true
 ---
-<form class="form-inline justify-content-center" method="GET" action="/api/port-scanner.php">
-  <input type="text" class="form-control" id="target" name="target" placeholder="google.com or 8.8.8.8" required>
-  <input type="text" class="form-control" id="ports" name="ports" placeholder="80,443,21,22" required>
-  <button type="submit" class="btn btn-primary">Scan Ports</button>
-</form>
-<div id="port-scan-results" class="center-results"></div>
+<div class="container justify-content-center">
+  <form method="GET" action="/api/port-scanner.php">
+    <div class="form-label-group">
+      <input type="text" class="form-control" id="target" name="target" placeholder="google.com or 8.8.8.8" required autofocus>
+      <label for="target">google.com or 8.8.8.8</label>
+    </div>
+    <div class="form-label-group">
+      <input type="text" class="form-control" id="ports" name="ports" placeholder="80,443,21,22" required autofocus>
+      <label for="ports">80,443,21,22</label>
+    </div>
+    <div class="form-group text-center">
+      <button type="submit" class="btn btn-lg btn-primary btn-block">Scan Ports</button>
+    </div>
+    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
+      data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+  </form>
+</div>
+
+<div id="port-scan-results" style="display: none;"></div>
+
+<!-- Load hCaptcha and custom module -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script src="/assets/js/hcaptcha-module.js" defer></script>
+
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();

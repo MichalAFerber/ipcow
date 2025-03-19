@@ -28,7 +28,8 @@ if (!validateHcaptcha($hCaptchaResponse)) {
 debugLog("hCaptcha validation result: success");
 
 // Function to fetch and cache IANA RDAP data
-function getIanaRdapData() {
+function getIanaRdapData()
+{
     static $rdapData = null;
     $cacheFile = __DIR__ . '/iana-rdap-cache.json';
     $cacheDuration = 86400; // 24 hours in seconds
@@ -81,7 +82,8 @@ function getIanaRdapData() {
 }
 
 // Function to get RDAP server based on TLD using IANA data
-function getRdapServer($domain, $ianaRdapData) {
+function getRdapServer($domain, $ianaRdapData)
+{
     $tld = strtolower(substr(strrchr($domain, '.'), 1));
     debugLog("Extracted TLD: $tld");
 

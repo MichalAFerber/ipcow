@@ -5,11 +5,26 @@ subtitle: Find details about any IP address or network.
 share-description: "IP Cow’s free IP Lookup tool gives you easy-to-understand details about any IP address or network, like location and provider info."
 # full-width: true
 ---
-<form class="form-inline justify-content-center" method="GET">
-  <input type="text" class="form-control" id="query" name="query" placeholder="1.1.1.1 or AS15169" required>
-  <button type="submit" class="btn btn-primary">Lookup</button>
-</form>
-<div id="ip-lookup-results" class="center-results"></div>
+<div class="container justify-content-center">
+  <form method="GET">
+    <div class="form-label-group">
+      <input type="text" class="form-control" id="query" name="query" placeholder="1.1.1.1 or AS13335" required autofocus>
+      <label for="query">1.1.1.1 or AS13335</label>
+    </div>
+    <div class="form-group text-center">
+      <button type="submit" class="btn btn-lg btn-primary btn-block">Lookup</button>
+    </div>
+    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
+      data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+  </form>
+</div>
+
+<div id="ip-lookup-results" style="display: none;"></div>
+
+<!-- Load hCaptcha and custom module -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script src="/assets/js/hcaptcha-module.js" defer></script>
+
 <script>
   document.querySelector('form').addEventListener('submit', async (e) => {
     e.preventDefault();
