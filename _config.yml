@@ -188,9 +188,9 @@ include:
   - .htaccess
 
 plugins:
+  - jekyll-feed
   - jekyll-paginate
   - jekyll-sitemap
-  - jekyll-feed
   - jekyll-target-blank
 
 # Beautiful Jekyll / Dean Attali
