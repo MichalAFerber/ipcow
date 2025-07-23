@@ -33,7 +33,6 @@ include:
   - api/info.php
   - api/dns-checker.php
   - favicon.ico
-  - .htaccess
 
 plugins:
   - jekyll-feed
