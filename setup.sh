@@ -1,4 +1,3 @@
-cat > setup.sh << 'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -11,4 +10,3 @@ fi
 # Install gems from your Gemfile
 echo "👉 Running bundle install…"
 bundle install --local --jobs=4
-EOF
