@@ -1,0 +1,83 @@
+---
+layout: page
+title: Ping Test
+subtitle: Ping any host or IP address.
+share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
+# full-width: true
+---
+<div class="container justify-content-center">
+  <form method="GET" action="/api/ping.php">
+    <div class="form-label-group">
+      <input type="text" class="form-control" id="host" name="host" placeholder="google.com or 8.8.8.8" required autofocus>
+      <label for="host">google.com or 8.8.8.8</label>
+    </div>
+    <div class="form-group text-center">
+      <button type="submit" class="btn btn-lg btn-primary btn-block">Ping</button>
+    </div>
+    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
+      data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+  </form>
+</div>
+
+<div id="ping-results" style="display: none;"></div>
+
+<!-- Load hCaptcha and custom module -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script src="/assets/js/hcaptcha-module.js" defer></script>
+
+<script>
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let host = document.getElementById('host').value.trim();
+
+    // Clean the host: remove protocols, ports, and slashes
+    host = host.replace(/^https?:\/\//, ''); // Remove http:// or https://
+    host = host.replace(/:[0-9]+$/, '');     // Remove ports (e.g., :80)
+    host = host.replace(/[\/]+$/, '');       // Remove trailing slashes
+    host = host.split('/')[0];               // Remove anything after the first slash (e.g., /path)
+
+    const resultsDiv = document.getElementById('ping-results');
+    resultsDiv.innerHTML = 'Pinging...';
+
+    try {
+      const startTime = performance.now();
+      const response = await fetch(`/api/ping.php?host=${encodeURIComponent(host)}`);
+      const endTime = performance.now();
+      const latency = (endTime - startTime).toFixed(2);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Check for error messages
+      if (!data.success || data.error) {
+        resultsDiv.innerHTML = data.error || 'Ping failed.';
+        return;
+      }
+
+      // Build the table
+      let formatted = '<table>';
+      formatted += '<tr><th>Metric</th><th>Value</th></tr>';
+      formatted += `<tr><td>Host</td><td>${host}</td></tr>`;
+      formatted += `<tr><td>Status</td><td>Success</td></tr>`;
+      formatted += `<tr><td>Client Latency</td><td>${latency} ms</td></tr>`;
+      
+      if (data.average_rtt) {
+        formatted += `<tr><td>Average RTT</td><td>${data.average_rtt} ms</td></tr>`;
+      }
+      
+      if (data.output) {
+        formatted += `<tr><td>Details</td><td><pre>${data.output}</pre></td></tr>`;
+      }
+      
+      formatted += '</table>';
+      resultsDiv.innerHTML = formatted;
+
+    } catch (error) {
+      console.error('Error in ping:', error);
+      resultsDiv.innerHTML = `Error: ${error.message}. Please check the host and try again.`;
+    }
+  });
+</script>

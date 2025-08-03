@@ -1,36 +1,40 @@
 ---
-layout: default
-title: IPCow - Your IP Tools Hub
+layout: page
+title: IP Cow
+subtitle: Your IP Address
+share-description: "IP Cow is a free service that shows you the public IP address of your device along with information about your computer and web browser. IP Cow also offers an Ookla Speedtest and other network resources and tools."
+# full-width: true
 ---
-<h1>Welcome to IPCow</h1>
-<section id="connection-info">
-  <h2>Your Connection</h2>
-  <div id="error-message" style="display:none; color:red;">Error loading data. Please try again.</div>
-  <ul>
-    <li>IPv4: <span id="ipv4">Loading...</span></li>
-    <li>IPv6: <span id="ipv6">Loading...</span></li>
-    <li>User Agent: <span id="user-agent">Loading...</span></li>
-    <li>Hostname: <span id="hostname">Loading...</span></li>
-    <li>ISP: <span id="isp">Loading...</span></li>
-    <li>Browser: <span id="browser">Loading...</span></li>
-    <li>Browser Version: <span id="browser-version">Loading...</span></li>
-    <li>Operating System: <span id="os">Loading...</span></li>
-    <li>OS Version: <span id="os-version">Loading...</span></li>
-    <li>Device: <span id="device">Loading...</span></li>
-    <li>Screen Resolution: <span id="screen-resolution">Loading...</span></li>
-    <li>Viewport Size: <span id="viewport-size">Loading...</span></li>
-    <li>Cookies Enabled: <span id="cookies-enabled">Loading...</span></li>
-    <li>JavaScript Enabled: <span id="javascript-enabled">Loading...</span></li>
-    <li>Language: <span id="language">Loading...</span></li>
-    <li>Country: <span id="country">Loading...</span></li>
-    <li>Region: <span id="region">Loading...</span></li>
-    <li>City: <span id="city">Loading...</span></li>
-    <li>Latitude: <span id="latitude">Loading...</span></li>
-    <li>Longitude: <span id="longitude">Loading...</span></li>
-    <li>Timezone: <span id="timezone">Loading...</span></li>
+<div class="alert alert-danger" role="alert" style="display: none;">Error loading connection info.</div>
+<h3 class="text-center font-weight-normal">IPv4:<br><span id="ipv4-display" class="font-weight-bold">Loading...</span></h3>
+<h6 class="text-center font-weight-normal">IPv6:<br><span id="ipv6-display" class="font-weight-bold">Loading...</span></h6>
+<div class="main-explain-area jumbotron jumbotron-fluid">
+  <section>
+  <p class="lead font-weight-bold">Your Connection Info</p>
+  <ul class="list-unstyled">
+    <li>ISP: <span class="font-weight-bold" id="isp">Loading...</span></li>
+    <li>Country: <span class="font-weight-bold" id="country">Loading...</span></li>
+    <li>Region: <span class="font-weight-bold" id="region">Loading...</span></li>
+    <li>City: <span class="font-weight-bold" id="city">Loading...</span></li>
+    <li>Latitude: <span class="font-weight-bold" id="latitude">Loading...</span></li>
+    <li>Longitude: <span class="font-weight-bold" id="longitude">Loading...</span></li>
+    <li>Timezone: <span class="font-weight-bold" id="timezone">Loading...</span></li>
+    <li>User Agent: <span class="font-weight-bold" id="user-agent">Loading...</span></li>
+    <li>Browser: <span class="font-weight-bold" id="browser">Loading...</span></li>
+    <li>Browser Version: <span class="font-weight-bold" id="browser-version">Loading...</span></li>
+    <li>Operating System: <span class="font-weight-bold" id="os">Loading...</span></li>
+    <li>OS Version: <span class="font-weight-bold" id="os-version">Loading...</span></li>
+    <li>Device Type: <span class="font-weight-bold" id="device">Loading...</span></li>
+    <li>Device Vendor: <span class="font-weight-bold" id="device-vendor">Loading...</span></li>
+    <li>Device Model: <span class="font-weight-bold" id="device-model">Loading...</span></li>
+    <li>CPU Architecture: <span class="font-weight-bold" id="cpu-architecture">Loading...</span></li>
+    <li>Screen Resolution: <span class="font-weight-bold" id="screen-resolution">Loading...</span></li>
+    <li>Viewport Size: <span class="font-weight-bold" id="viewport-size">Loading...</span></li>
+    <li>Cookies Enabled: <span class="font-weight-bold" id="cookies-enabled">Loading...</span></li>
+    <li>JavaScript Enabled: <span class="font-weight-bold" id="javascript-enabled">Loading...</span></li>
+    <li>Language: <span class="font-weight-bold" id="language">Loading...</span></li>
   </ul>
-</section>
-<section id="speed-test">
-  <h2>Speed Test</h2>
-  <iframe src="https://ipcow.dualstack.speedtestcustom.com/" width="100%" height="650" frameborder="0"></iframe>
-</section>
+  </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1/dist/ua-parser.min.js"></script>
+<script src="{{ '/assets/js/connection-info.js' | relative_url }}"></script>

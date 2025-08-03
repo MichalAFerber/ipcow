@@ -1,0 +1,137 @@
+---
+layout: page
+title: IP Lookup
+subtitle: Find details about any IP address or network.
+share-description: "IP Cow’s free IP Lookup tool gives you easy-to-understand details about any IP address or network, like location and provider info."
+# full-width: true
+---
+<div class="container justify-content-center">
+  <form method="GET">
+    <div class="form-label-group">
+      <input type="text" class="form-control" id="query" name="query" placeholder="1.1.1.1 or AS13335" required autofocus>
+      <label for="query">1.1.1.1 or AS13335</label>
+    </div>
+    <div class="form-group text-center">
+      <button type="submit" class="btn btn-lg btn-primary btn-block">Lookup</button>
+    </div>
+    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
+      data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+  </form>
+</div>
+
+<div id="ip-lookup-results" style="display: none;"></div>
+
+<!-- Load hCaptcha and custom module -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script src="/assets/js/hcaptcha-module.js" defer></script>
+
+<script>
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const query = document.getElementById('query').value.trim();
+    const resultsDiv = document.getElementById('ip-lookup-results');
+    resultsDiv.innerHTML = 'Looking up...';
+
+    try {
+      const startTime = performance.now();
+      let url = `https://rdap.arin.net/registry/ip/${encodeURIComponent(query)}`;
+      if (query.toUpperCase().startsWith('AS')) {
+        const asn = query.replace(/[^0-9]/g, ''); // Extract number from AS prefix
+        url = `https://rdap.arin.net/registry/autnum/${encodeURIComponent(asn)}`;
+      }
+
+      const response = await fetch(url, { redirect: 'follow' });
+      const endTime = performance.now();
+      const latency = (endTime - startTime).toFixed(2);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Prepare export data
+      const exportData = {
+        query: query,
+        result: 'Found',
+        response_time: `${latency} ms`
+      };
+
+      // Build the table with user-friendly labels
+      let formatted = '<table>';
+      formatted += '<tr><th>Detail</th><th>Value</th></tr>';
+      formatted += `<tr><td>Lookup</td><td>${query}</td></tr>`;
+      formatted += `<tr><td>Result</td><td>Found</td></tr>`;
+      formatted += `<tr><td>Response Time</td><td>${latency} ms</td></tr>`;
+
+      // IP or Network details
+      if (data.objectClassName === 'ip network') {
+        formatted += `<tr><td>Type</td><td>${data.ipVersion === 'v6' ? 'IPv6' : 'IPv4'}</td></tr>`;
+        formatted += `<tr><td>IP Range</td><td>${data.startAddress} - ${data.endAddress}</td></tr>`;
+        formatted += `<tr><td>Network Size</td><td>${data.cidr0_cidrs?.map(c => `${c.v4prefix || c.v6prefix}/${c.length}`).join(', ') || 'N/A'}</td></tr>`;
+        formatted += `<tr><td>Network Name</td><td>${data.name || 'Not available'}</td></tr>`;
+        formatted += `<tr><td>ID</td><td>${data.handle || 'Not available'}</td></tr>`;
+
+        exportData.type = data.ipVersion === 'v6' ? 'IPv6' : 'IPv4';
+        exportData.ip_range = `${data.startAddress} - ${data.endAddress}`;
+        exportData.network_size = data.cidr0_cidrs?.map(c => `${c.v4prefix || c.v6prefix}/${c.length}`).join(', ') || 'N/A';
+        exportData.network_name = data.name || 'Not available';
+        exportData.id = data.handle || 'Not available';
+      } else if (data.objectClassName === 'autnum') {
+        formatted += `<tr><td>Network Number</td><td>${data.startAutnum || data.handle.replace('AS', '')}</td></tr>`;
+        formatted += `<tr><td>Network Name</td><td>${data.name || 'Not available'}</td></tr>`;
+
+        exportData.network_number = data.startAutnum || data.handle.replace('AS', '');
+        exportData.network_name = data.name || 'Not available';
+      }
+
+      // Registration info
+      if (data.events) {
+        const registration = data.events.find(e => e.eventAction === 'registration');
+        const lastChanged = data.events.find(e => e.eventAction === 'last changed');
+        if (registration) {
+          formatted += `<tr><td>Registered</td><td>${registration.eventDate.split('T')[0] || 'Not available'}</td></tr>`;
+          exportData.registered = registration.eventDate.split('T')[0] || 'Not available';
+        }
+        if (lastChanged) {
+          formatted += `<tr><td>Last Updated</td><td>${lastChanged.eventDate.split('T')[0] || 'Not available'}</td></tr>`;
+          exportData.last_updated = lastChanged.eventDate.split('T')[0] || 'Not available';
+        }
+      }
+
+      // Provider info
+      if (data.entities && data.entities.length > 0) {
+        const registrant = data.entities.find(e => e.roles.includes('registrant'));
+        if (registrant && registrant.vcardArray) {
+          const vcard = registrant.vcardArray[1];
+          const orgName = vcard.find(entry => entry[0] === 'fn')?.[3] || 'Not available';
+          formatted += `<tr><td>Provider</td><td>${orgName}</td></tr>`;
+          exportData.provider = orgName;
+        }
+      }
+
+      formatted += '</table>';
+      resultsDiv.innerHTML = formatted;
+
+      // Add export button
+      const exportBtn = document.createElement('button');
+      exportBtn.textContent = 'Download JSON';
+      exportBtn.style.marginTop = '20px';
+      exportBtn.className = 'btn btn-primary';
+      exportBtn.onclick = () => {
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${query}_ip_lookup.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+      resultsDiv.appendChild(exportBtn);
+
+    } catch (error) {
+      console.error('Error in IP lookup:', error);
+      resultsDiv.innerHTML = `Error: ${error.message}. Please check the IP or network number and try again.`;
+    }
+  });
+</script>

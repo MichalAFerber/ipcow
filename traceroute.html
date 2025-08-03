@@ -1,0 +1,111 @@
+---
+layout: page
+title: Traceroute
+subtitle: Trace the route to any IP or website.
+share-description: "IP Cow’s free Traceroute tool shows the path your connection takes to any IP address or website, helping you troubleshoot network issues."
+# full-width: true
+---
+<div class="container justify-content-center">
+  <form method="GET" action="/api/traceroute.php">
+    <div class="form-label-group">
+      <input type="text" class="form-control" id="target" name="target" placeholder="google.com or 8.8.8.8" required autofocus>
+      <label for="target">google.com or 8.8.8.8</label>
+    </div>
+    <div class="form-group text-center">
+      <button type="submit" class="btn btn-lg btn-primary btn-block">Traceroute</button>
+    </div>
+    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
+      data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+  </form>
+</div>
+
+<div id="traceroute-results" style="display: none;"></div>
+
+<!-- Load hCaptcha and custom module -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script src="/assets/js/hcaptcha-module.js" defer></script>
+
+<script>
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const target = document.getElementById('target').value.trim();
+    const resultsDiv = document.getElementById('traceroute-results');
+    resultsDiv.innerHTML = 'Tracing route...';
+
+    try {
+      const startTime = performance.now();
+      const response = await fetch(`/api/traceroute.php?target=${encodeURIComponent(target)}`);
+      const endTime = performance.now();
+      const latency = (endTime - startTime).toFixed(2);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Response data:', data); // Debug: Log the full response
+
+      // Check for error messages
+      if (!data.success || data.error) {
+        resultsDiv.innerHTML = data.error || 'Traceroute failed.';
+        return;
+      }
+
+      // Build the table
+      let formatted = '<table>';
+      formatted += '<tr><th>Detail</th><th>Value</th></tr>';
+      formatted += `<tr><td>Target</td><td>${target}</td></tr>`;
+      formatted += `<tr><td>Status</td><td>Completed</td></tr>`;
+      formatted += `<tr><td>Response Time</td><td>${latency} ms</td></tr>`;
+      formatted += `<tr><td>Total Hops</td><td>${data.data.hops.length}</td></tr>`;
+
+      // Traceroute hops (show all hops, including *)
+      if (data.data && data.data.hops && data.data.hops.length > 0) {
+        formatted += '<tr><td colspan="2"><strong>Route Hops</strong></td></tr>';
+        data.data.hops.forEach((hop, index) => {
+          if (hop.ip === '*' || hop.ip === 'N/A') {
+            formatted += `<tr><td>Hop ${hop.hop}</td><td>* (No response)</td></tr>`;
+          } else {
+            const isTarget = hop.ip === target || (data.data.resolved_ip && hop.ip === data.data.resolved_ip);
+            formatted += `<tr class="${isTarget ? 'target-hop' : ''}"><td>Hop ${hop.hop}</td><td>${hop.ip} (${hop.hostname}) - ${hop.latency} ms</td></tr>`;
+          }
+        });
+      } else {
+        formatted += `<tr><td>Result</td><td>No route data returned.</td></tr>`;
+      }
+
+      formatted += '</table>';
+      resultsDiv.innerHTML = formatted;
+
+      // Add export button if there are hops
+      if (data.data && data.data.hops && data.data.hops.length > 0) {
+        const exportBtn = document.createElement('button');
+        exportBtn.textContent = 'Download JSON';
+        exportBtn.style.marginTop = '20px';
+        exportBtn.className = 'btn btn-primary';
+        exportBtn.onclick = () => {
+          const exportData = {
+            target: target,
+            status: 'Completed',
+            response_time: `${latency} ms`,
+            total_hops: data.data.hops.length,
+            resolved_ip: data.data.resolved_ip || 'N/A',
+            hops: data.data.hops
+          };
+          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${target}_traceroute.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+        resultsDiv.appendChild(exportBtn);
+      }
+
+    } catch (error) {
+      console.error('Error in traceroute:', error);
+      resultsDiv.innerHTML = `Error: ${error.message}. Please check the target and try again.`;
+    }
+  });
+</script>

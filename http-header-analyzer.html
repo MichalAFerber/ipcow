@@ -1,0 +1,95 @@
+---
+layout: page
+title: HTTP Header Analyzer
+subtitle: Analyze HTTP headers for any website.
+share-description: "IP Cow’s free HTTP Header Analyzer lets you review HTTP headers from any website, useful for troubleshooting or security checks."
+# full-width: true
+---
+<div class="container justify-content-center">
+  <form method="GET">
+    <div class="form-label-group">
+      <input type="text" class="form-control" id="url" name="url" placeholder="https://example.com/" required autofocus>
+      <label for="url">https://example.com/</label>
+    </div>
+    <div class="form-group text-center">
+      <button type="submit" class="btn btn-lg btn-primary btn-block">Analyze Headers</button>
+    </div>
+    <div id="hcaptcha-widget" class="h-captcha" data-sitekey="1eb25e26-63d0-476a-bcb6-ae62a2b04752"
+      data-size="invisible" data-callback="hcaptchaVerifyCallback"></div>
+  </form>
+</div>
+
+<div id="header-results" style="display: none;"></div>
+
+<!-- Load hCaptcha and custom module -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script src="/assets/js/hcaptcha-module.js" defer></script>
+
+<script>
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = document.getElementById('url').value.trim();
+    const resultsDiv = document.getElementById('header-results');
+    resultsDiv.innerHTML = 'Analyzing headers...';
+
+    try {
+      const startTime = performance.now();
+      const response = await fetch(`/api/http-header-analyzer.php?url=${encodeURIComponent(url)}`);
+      const endTime = performance.now();
+      const latency = (endTime - startTime).toFixed(2);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success || data.error) {
+        resultsDiv.innerHTML = data.error || 'Failed to fetch headers.';
+        return;
+      }
+
+      // Prepare export data
+      const exportData = {
+        url: url,
+        status: data.status,
+        status_text: data.status_text,
+        response_time: `${latency} ms`,
+        headers: data.headers
+      };
+
+      // Build the table
+      let formatted = '<table>';
+      formatted += '<tr><th>Detail</th><th>Value</th></tr>';
+      formatted += `<tr><td>URL</td><td>${url}</td></tr>`;
+      formatted += `<tr><td>Status</td><td>${data.status} ${data.status_text}</td></tr>`;
+      formatted += `<tr><td>Response Time</td><td>${latency} ms</td></tr>`;
+      formatted += '<tr><td colspan="2"><strong>HTTP Headers</strong></td></tr>';
+      for (const [key, value] of Object.entries(data.headers)) {
+        formatted += `<tr><td>${key}</td><td>${value}</td></tr>`;
+      }
+      formatted += '</table>';
+      resultsDiv.innerHTML = formatted;
+
+      // Add export button
+      const exportBtn = document.createElement('button');
+      exportBtn.textContent = 'Download JSON';
+      exportBtn.style.marginTop = '20px';
+      exportBtn.className = 'btn btn-primary';
+      exportBtn.onclick = () => {
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${url.replace(/[^a-zA-Z0-9]/g, '_')}_http_headers.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+      resultsDiv.appendChild(exportBtn);
+
+    } catch (error) {
+      console.error('Error in header analysis:', error);
+      resultsDiv.innerHTML = `Error: ${error.message}. Please check the URL and try again.`;
+    }
+  });
+</script>
