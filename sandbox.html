@@ -6,9 +6,9 @@
     <title>🐮 IP Cow</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Bowser CDN -->
+    <!-- Bowser CDN (lowercase 'bowser' global) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bowser/2.11.0/bundled.min.js"></script>
-    <style>
+<style>
         body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background: #f9f9fb; color: #333; }
         h1 { text-align: center; color: #2c3e50; }
         .section { background: white; border-radius: 12px; padding: 20px; margin: 20px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -68,14 +68,12 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Replace with your free key
+        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Replace with your free ipstack.com key
 
-        const IPV4_ENDPOINT = 'https://ipv4.jsonip.com/';
-        const IPV6_ENDPOINT = 'https://ipv6.jsonip.com/';
-
-        let ipv4 = null;
-        let ipv6 = null;
-        let geoData = null;
+        // Reliable free IP services with proper CORS support
+        const DUAL_ENDPOINT = 'https://api.ipify.org?format=json';     // Dual-stack: prefers IPv6 if available
+        const IPV4_ENDPOINT = 'https://api4.ipify.org?format=json';   // Forces IPv4 (has A record only)
+        const IPV6_ENDPOINT = 'https://api64.ipify.org?format=json';  // Forces IPv6 (has AAAA record only)
 
         async function fetchIPv4() {
             const container = document.getElementById('ipv4-container');
@@ -85,12 +83,11 @@
                 const response = await fetch(IPV4_ENDPOINT, { signal: AbortSignal.timeout(8000) });
                 if (!response.ok) throw new Error();
                 const data = await response.json();
-                ipv4 = data.ip || 'Unknown';
-                ipEl.textContent = ipv4;
+                ipEl.textContent = data.ip || 'Unknown';
                 container.classList.remove('loading', 'error');
                 container.classList.add('success');
             } catch (err) {
-                ipEl.textContent = 'Unable to fetch';
+                ipEl.textContent = 'Unable to fetch (no IPv4 connectivity)';
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
             }
@@ -104,29 +101,32 @@
                 const response = await fetch(IPV6_ENDPOINT, { signal: AbortSignal.timeout(8000) });
                 if (response.ok) {
                     const data = await response.json();
-                    ipv6 = data.ip || 'Unknown';
-                    ipEl.textContent = ipv6;
+                    ipEl.textContent = data.ip || 'Unknown';
                     container.classList.remove('loading', 'error');
                     container.classList.add('success');
                 } else {
                     throw new Error();
                 }
+
+                // Full geolocation (prefers IPv6 connection if available)
+                const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`, { signal: AbortSignal.timeout(8000) });
+                if (!geoResponse.ok) throw new Error();
+                const geoData = await geoResponse.json();
+                displayIPDetails(geoData);
+
             } catch (err) {
-                ipv6 = null; // No IPv6
                 ipEl.textContent = 'Not available (no IPv6 connectivity)';
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
-            }
 
-            // Always fetch geo (uses the connection protocol of the page load, usually IPv4 fallback)
-            try {
-                const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`, { signal: AbortSignal.timeout(8000) });
-                if (!geoResponse.ok) throw new Error();
-                geoData = await geoResponse.json();
-                displayIPDetails(geoData);
-                initMap(geoData.latitude, geoData.longitude);
-            } catch (geoErr) {
-                // Geo failed completely
+                // Fallback geo via dual-stack (usually IPv4)
+                try {
+                    const fallbackGeo = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
+                    const fallbackData = await fallbackGeo.json();
+                    displayIPDetails(fallbackData);
+                } catch (fallbackErr) {
+                    // Silent
+                }
             }
         }
 
@@ -178,6 +178,8 @@
                 document.getElementById('ipv6-container').classList.remove('success');
                 document.getElementById('ipv6-container').classList.add('error');
             }
+
+            document.getElementById('ip-details').style.display = 'block';
         }
 
         function initMap(lat, lng) {
@@ -247,9 +249,7 @@
         }
 
         // Run on load
-        Promise.allSettled([fetchIPv4(), fetchIPv6AndGeo()]).finally(() => {
-            parseClientInfo();
-        });
+        Promise.allSettled([fetchIPv4(), fetchIPv6AndGeo()]).finally(parseClientInfo);
     </script>
 </body>
 </html>
