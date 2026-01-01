@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐮 IP Cow</title>
-    <!-- Fixed Bowser CDN: use the bundled version that exposes the global Bowser object -->
-    <script src="https://cdn.jsdelivr.net/npm/bowser@latest/bundled.js"></script>
+    <!-- Reliable Bowser CDN that exposes global 'bowser' (lowercase) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bowser/2.11.0/bundled.min.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -98,7 +98,7 @@
         const TOKEN = 'b94b3cf0e305f1'; // Replace with your own token for better reliability
 
         async function fetchIP(version) {
-            // Fixed endpoints: v4. and v6. subdomains for the Lite API
+            // Correct subdomains for Lite API: v4.api.ipinfo.io and v6.api.ipinfo.io
             const subdomain = version === 4 ? 'v4' : 'v6';
             const endpoint = `https://${subdomain}.api.ipinfo.io/lite/me?token=${TOKEN}`;
 
@@ -115,7 +115,6 @@
                 container.classList.remove('loading', 'error');
                 container.classList.add('success');
 
-                // Use IPv4 data for shared details (ASN, country, ISP, etc.)
                 if (version === 4) displayIPDetails(data);
 
             } catch (err) {
@@ -150,7 +149,6 @@
                 }
             }
 
-            // Note about missing fields
             const noteRow = table.insertRow();
             const noteCell = noteRow.insertCell(0);
             noteCell.colSpan = 2;
@@ -160,7 +158,8 @@
         }
 
         function parseClientInfo() {
-            const parser = Bowser.getParser(navigator.userAgent);
+            // Bowser exposes lowercase 'bowser' globally in bundled version
+            const parser = bowser.getParser(navigator.userAgent);
             const browser = parser.getBrowser();
             const os = parser.getOS();
             const engine = parser.getEngine();
@@ -198,7 +197,7 @@
                 }
             });
 
-            // Added client-side fields you requested
+            // Client-side fields
             const clientFields = {
                 'Viewport Size': `${window.innerWidth} × ${window.innerHeight}`,
                 'Screen Resolution': `${screen.width} × ${screen.height}`
@@ -212,7 +211,7 @@
             }
         }
 
-        // Run everything on page load
+        // Run on load
         Promise.allSettled([fetchIP(4), fetchIP(6)]).finally(parseClientInfo);
     </script>
 </body>
