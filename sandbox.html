@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐮 IP Cow</title>
-    <!-- Bowser from jsDelivr CDN (latest) -->
+    <!-- Fixed Bowser CDN: use the bundled version that exposes the global Bowser object -->
     <script src="https://cdn.jsdelivr.net/npm/bowser@latest/bundled.js"></script>
     <style>
         body {
@@ -95,9 +95,10 @@
     </div>
 
     <script>
-        const TOKEN = 'b94b3cf0e305f1'; // Replace with your own token for reliability
+        const TOKEN = 'b94b3cf0e305f1'; // Replace with your own token for better reliability
 
         async function fetchIP(version) {
+            // Fixed endpoints: v4. and v6. subdomains for the Lite API
             const subdomain = version === 4 ? 'v4' : 'v6';
             const endpoint = `https://${subdomain}.api.ipinfo.io/lite/me?token=${TOKEN}`;
 
@@ -114,7 +115,7 @@
                 container.classList.remove('loading', 'error');
                 container.classList.add('success');
 
-                // Use IPv4 response for shared details (country, ASN, etc.)
+                // Use IPv4 data for shared details (ASN, country, ISP, etc.)
                 if (version === 4) displayIPDetails(data);
 
             } catch (err) {
@@ -146,15 +147,14 @@
                     row.insertCell(0).textContent = fields[key];
                     const valueCell = row.insertCell(1);
                     valueCell.textContent = data[key] || '-';
-                    valueCell.innerHTML += ` <span class="ua-value">${data[key] || '-'}</span>`;
                 }
             }
 
-            // Add note about limited fields
+            // Note about missing fields
             const noteRow = table.insertRow();
             const noteCell = noteRow.insertCell(0);
             noteCell.colSpan = 2;
-            noteCell.innerHTML = '<div class="note">Note: Latitude, Longitude, and Timezone are not available in the free Lite API. Upgrade to a paid plan for city/region/timezone/loc data.</div>';
+            noteCell.innerHTML = '<div class="note">Note: Latitude, Longitude, and Timezone require a paid ipinfo.io plan (Lite API only provides country & ASN data).</div>';
 
             document.getElementById('ip-details').style.display = 'block';
         }
@@ -198,7 +198,7 @@
                 }
             });
 
-            // Add client-side only fields
+            // Added client-side fields you requested
             const clientFields = {
                 'Viewport Size': `${window.innerWidth} × ${window.innerHeight}`,
                 'Screen Resolution': `${screen.width} × ${screen.height}`
@@ -212,7 +212,7 @@
             }
         }
 
-        // Run on load
+        // Run everything on page load
         Promise.allSettled([fetchIP(4), fetchIP(6)]).finally(parseClientInfo);
     </script>
 </body>
