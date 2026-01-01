@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Cow - Your IP Address</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f9f9fb;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .ip-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .label {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #34495e;
+        }
+        .ip-display {
+            font-family: monospace;
+            font-size: 1.4em;
+            padding: 12px;
+            background: #f1f1f1;
+            border-radius: 8px;
+            min-height: 20px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress {
+            height: 100%;
+            width: 0%;
+            background: #3498db;
+            transition: width 0.3s ease;
+        }
+        .loading .progress { width: 100%; animation: pulse 1.5s infinite; }
+        .success .progress { background: #27ae60; width: 100%; }
+        .error .progress { background: #e74c3c; width: 100%; }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🐮 IP Cow</h1>
+
+    <div class="ip-container">
+        <div class="label">Your IPv4 Address</div>
+        <div id="ipv4-display" class="ip-display loading">
+            Loading...
+            <div class="progress-bar"><div class="progress"></div></div>
+        </div>
+    </div>
+
+    <div class="ip-container">
+        <div class="label">Your IPv6 Address</div>
+        <div id="ipv6-display" class="ip-display loading">
+            Loading...
+            <div class="progress-bar"><div class="progress"></div></div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchIP(version) {
+            const endpoint = version === 4 
+                ? 'https://v4.api.ipinfo.io/ip' 
+                : 'https://v6.api.ipinfo.io/ip';
+
+            const displayEl = document.getElementById(`ipv${version}-display`);
+            const progressEl = displayEl.querySelector('.progress');
+
+            try {
+                const response = await fetch(endpoint, { 
+                    method: 'GET',
+                    // Optional: add timeout to prevent hanging on IPv6 if not available
+                    signal: AbortSignal.timeout(8000) // 8 second timeout
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch');
+
+                const ip = (await response.text()).trim();
+
+                // Success
+                displayEl.textContent = ip;
+                displayEl.classList.remove('loading', 'error');
+                displayEl.classList.add('success');
+            } catch (err) {
+                // Error or no IPv6 support
+                const message = version === 6 ? 'Not available (no IPv6)' : 'Unable to fetch';
+                displayEl.textContent = message;
+                displayEl.classList.remove('loading', 'success');
+                displayEl.classList.add('error');
+            }
+        }
+
+        // Fetch both in parallel
+        Promise.allSettled([
+            fetchIP(4),
+            fetchIP(6)
+        ]);
+    </script>
+</body>
+</html>
