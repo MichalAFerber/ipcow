@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - IP Cow</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="manifest" href="/assets/favicon/site.webmanifest">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+
+<body>
+    <header onclick="window.location.href='/'" style="cursor:pointer;">
+        <h1><img src="/assets/favicon/apple-touch-icon.png" width="32px" height="32px" alt="Cow Head"> IP Cow <img src="/assets/favicon/cow.png" width="40px" height="40px" alt="Cow"></h1>
+        <h2>30-Year Anniversary — Est. 1995</h2>
+    </header>
+
+    <div class="section">
+        <h3>Privacy Policy</h3>
+        <p>At IP Cow, we are committed to protecting your privacy. This privacy policy explains how we collect, use, and safeguard your information when you use our website.</p>
+
+        <h4>Information We Collect</h4>
+        <p>We collect the following information for display purposes only:</p>
+        <ul>
+            <li>Your IP address (IPv4 and IPv6)</li>
+            <li>Approximate location based on IP geolocation</li>
+            <li>ISP and organization information</li>
+            <li>Device and browser details (screen resolution, browser type, operating system, etc.)</li>
+        </ul>
+
+        <h4>How We Use Your Information</h4>
+        <p>The information collected is used solely to provide you with details about your internet connection and device. We do not store, share, sell, or use this information for any other purposes.</p>
+
+        <h4>Data Storage and Security</h4>
+        <p>All data is fetched in real-time from your browser and external APIs. We do not store any personal information on our servers. The data is processed locally in your browser and is not transmitted to us except for the necessary API calls to retrieve IP and location information.</p>
+
+        <h4>Third-Party Services</h4>
+        <p>We use the following third-party services:</p>
+        <ul>
+            <li><strong>ipify.org</strong>: For retrieving your IP addresses</li>
+            <li><strong>IPStack</strong>: For geolocation and ISP information</li>
+            <li><strong>OpenStreetMap/Leaflet</strong>: For displaying the map</li>
+        </ul>
+        <p>These services have their own privacy policies, which we encourage you to review.</p>
+
+        <h4>Cookies and Local Storage</h4>
+        <p>We use local storage to remember your theme preference (light/dark mode). No other cookies or tracking mechanisms are used.</p>
+
+        <h4>Your Rights</h4>
+        <p>You have the right to know what information is collected and how it is used. Since we do not store any data, there is no data to delete or modify.</p>
+
+        <h4>Changes to This Policy</h4>
+        <p>We may update this privacy policy from time to time. Any changes will be reflected on this page.</p>
+
+        <h4>Contact Us</h4>
+        <p>If you have any questions about this privacy policy, please contact us at [contact information].</p>
+
+        <p><em>Last updated: January 1, 2026</em></p>
+    </div>
+
+    <footer>
+        &copy; 2026 IP Cow | <a href="/">Home</a>
+    </footer>
+
+    <div class="theme-toggle" id="themeToggle" title="Toggle dark mode"></div>
+
+    <script>
+        // Dark mode logic
+        const toggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        function setTheme(theme) {
+            html.setAttribute('data-theme', theme);
+            localStorage.setItem('ipcow-theme', theme);
+        }
+
+        const savedTheme = localStorage.getItem('ipcow-theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setTheme('dark');
+        }
+
+        toggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme') || 'light';
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        });
+    </script>
+</body>
+
+</html>
