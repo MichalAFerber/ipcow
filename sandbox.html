@@ -117,6 +117,9 @@
             left: 50%;
             transform: translateX(-50%);
             opacity: 0;
+            visibility: hidden; /* Added */
+            transition: opacity 0.2s ease, visibility 0.2s; /* Added */
+            z-index: 999; /* Ensure it stays above section shadows */
             pointer-events: none;
             transition: opacity 0.2s;
             white-space: nowrap;
@@ -355,23 +358,21 @@
         });
 
         function copyIP(element) {
-            // Targets the first text node only (the IP), ignoring the tooltip span
             const ipText = element.firstChild.textContent.trim();
 
-            // Ensure we aren't copying the "Loading..." placeholder
             if (ipText && !ipText.includes('Loading') && !ipText.includes('Unable')) {
                 navigator.clipboard.writeText(ipText).then(() => {
                     const tooltip = element.querySelector('.tooltip');
                     if (tooltip) {
-                        tooltip.style.opacity = '1'; // Valid opacity value
+                        tooltip.style.opacity = '1';
+                        tooltip.style.visibility = 'visible';
 
                         setTimeout(() => {
                             tooltip.style.opacity = '0';
+                            tooltip.style.visibility = 'hidden';
                         }, 1500);
                     }
-                }).catch(err => {
-                    console.error('Clipboard error:', err);
-                });
+                }).catch(err => console.error('Secure context/Clipboard error:', err));
             }
         }
 
