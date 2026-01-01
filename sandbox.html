@@ -28,7 +28,7 @@
             --bg: #121212;
             --section-bg: #1e1e1e;
             --text: #e0e0e0;
-            --header: #bb86fc;
+            --header: #e0e0e0;
             --label: #cfcfcf;
             --table-border: #333;
             --table-header-bg: #2d2d2d;
@@ -39,7 +39,7 @@
         body {
             font-family: system-ui, -apple-system, sans-serif;
             max-width: 900px;
-            margin: 20px auto 40px; /* Reduced top margin */
+            margin: 20px auto 40px;
             padding: 20px;
             background: var(--bg);
             color: var(--text);
@@ -227,16 +227,17 @@
     </style>
 </head>
 <body>
-    <h1>🐮 IP Cow</h1>
+    <header onclick="window.location.href='/'" style="cursor:pointer;">
+        <h1>🐮 IP Cow</h1>
+    </header>
 
     <div class="section">
-        <div class="label">Your IP Addresses</div>
         <div id="ipv4-container" class="loading">
-            <div class="ip-display" id="ipv4-ip">Loading IPv4...<span class="tooltip">Copied!</span></div>
+            <div class="ip-display">ipv4: </div><div class="ip-display" id="ipv4-ip" onclick="copyIP(this)">Loading IPv4...<span class="tooltip">Copied!</span></div>
             <div class="progress-bar"><div class="progress"></div></div>
         </div>
         <div id="ipv6-container" class="loading" style="margin-top:20px;">
-            <div class="ip-display" id="ipv6-ip">Loading IPv6...<span class="tooltip">Copied!</span></div>
+            <div class="ip-display">ipv6: </div><div class="ip-display" id="ipv6-ip" onclick="copyIP(this)">Loading IPv6...<span class="tooltip">Copied!</span></div>
             <div class="progress-bar"><div class="progress"></div></div>
         </div>
         <div id="ip-details" style="margin-top:30px; display:none;">
@@ -284,7 +285,6 @@
             localStorage.setItem('ipcow-theme', theme);
         }
 
-        // Load saved preference or system preference
         const savedTheme = localStorage.getItem('ipcow-theme');
         if (savedTheme) {
             setTheme(savedTheme);
@@ -292,20 +292,38 @@
             setTheme('dark');
         }
 
-        // Toggle on click
         toggle.addEventListener('click', () => {
-            const current = html.getAttribute('data-theme');
+            const current = html.getAttribute('data-theme') || 'light';
             setTheme(current === 'dark' ? 'light' : 'dark');
         });
 
-        // Copy to clipboard function with tooltip
         function copyIP(element) {
-            const ipText = element.textContent.replace('Copied!', '').trim();
-            if (ipText && ipText !== 'Loading IPv4...' && ipText !== 'Loading IPv6...' && !ipText.includes('Not available') && !ipText.includes('Unable to fetch')) {
+            // 1. Get the IP text while excluding the "Copied!" tooltip text
+            // .firstChild.textContent specifically gets "Loading..." or the IP, ignoring the <span>
+            const ipText = element.firstChild.textContent.trim();
+
+            // 2. Validate that it's a real IP and not a loading/error state
+            const isReady = ipText && 
+                            !ipText.includes('Loading') && 
+                            !ipText.includes('Unable') && 
+                            !ipText.includes('available');
+
+            if (isReady) {
                 navigator.clipboard.writeText(ipText).then(() => {
                     const tooltip = element.querySelector('.tooltip');
-                    tooltip.style.opacity = '1';
-                    setTimeout(() => { tooltip.style.opacity = '0'; }, 1500);
+                    if (tooltip) {
+                        // 3. FIX: Opacity must be '1', not '100'
+                        tooltip.style.opacity = '1';
+                        
+                        // 4. Force a high z-index to ensure it sits above the section shadows
+                        tooltip.style.zIndex = '9999';
+
+                        setTimeout(() => {
+                            tooltip.style.opacity = '0';
+                        }, 1500);
+                    }
+                }).catch(err => {
+                    console.error('Clipboard copy failed:', err);
                 });
             }
         }
@@ -366,7 +384,7 @@
             }
 
             if (ipv4 && ipv6 && ipv4 === ipv6) {
-                document.getElementById('ipv6-ip').textContent = 'Not available (same as IPv4)';
+                document.getElementById('ipv6-ip').textContent = 'Not available (no IPv6 connectivity)';
                 document.getElementById('ipv6-container').classList.remove('success');
                 document.getElementById('ipv6-container').classList.add('error');
             }
@@ -376,7 +394,6 @@
             const table = document.getElementById('ip-table');
             table.innerHTML = '';
 
-            // Raw User-Agent
             const uaRow = table.insertRow();
             uaRow.insertCell(0).textContent = 'User-Agent String';
             const uaCell = uaRow.insertCell(1);
@@ -464,7 +481,7 @@
                 headerCell.textContent = section.title;
                 headerCell.colSpan = 2;
                 headerCell.style.fontWeight = 'bold';
-                headerCell.style.background = var(--table-header-bg);
+                headerCell.style.background = 'var(--table-header-bg)';
 
                 for (const key in section.data) {
                     const value = section.data[key];
