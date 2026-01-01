@@ -117,8 +117,6 @@
             left: 50%;
             transform: translateX(-50%);
             opacity: 0;
-            visibility: hidden; /* Added */
-            transition: opacity 0.2s ease, visibility 0.2s; /* Added */
             z-index: 999; /* Ensure it stays above section shadows */
             pointer-events: none;
             transition: opacity 0.2s;
@@ -285,16 +283,16 @@
     <div class="section">
         <div id="ipv4-container" class="loading">
             <div class="ip-display">ipv4: </div>
-            <div class="ip-display" id="ipv4-ip" onclick="copyIP(this)">Loading IPv4...<span
-                    class="tooltip">Copied!</span></div>
+            <div class="ip-display" id="ipv4-ip" onclick="copyIP(this)">Loading IPv4...</div><span
+                    class="tooltip">Copied!</span>
             <div class="progress-bar">
                 <div class="progress"></div>
             </div>
         </div>
         <div id="ipv6-container" class="loading" style="margin-top:20px;">
             <div class="ip-display">ipv6: </div>
-            <div class="ip-display" id="ipv6-ip" onclick="copyIP(this)">Loading IPv6...<span
-                    class="tooltip">Copied!</span></div>
+            <div class="ip-display" id="ipv6-ip" onclick="copyIP(this)">Loading IPv6...</div><span
+                    class="tooltip">Copied!</span>
             <div class="progress-bar">
                 <div class="progress"></div>
             </div>
@@ -362,14 +360,12 @@
 
             if (ipText && !ipText.includes('Loading') && !ipText.includes('Unable')) {
                 navigator.clipboard.writeText(ipText).then(() => {
-                    const tooltip = element.querySelector('.tooltip');
-                    if (tooltip) {
+                    const tooltip = element.nextElementSibling;
+                    if (tooltip && tooltip.classList.contains('tooltip')) {
                         tooltip.style.opacity = '1';
-                        tooltip.style.visibility = 'visible';
 
                         setTimeout(() => {
                             tooltip.style.opacity = '0';
-                            tooltip.style.visibility = 'hidden';
                         }, 1500);
                     }
                 }).catch(err => console.error('Secure context/Clipboard error:', err));
