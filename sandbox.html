@@ -50,11 +50,11 @@
     </div>
 
     <script>
-        // Best free CORS-enabled services for separate IPv4/IPv6 detection (2026)
-        const IPV4_ENDPOINT = 'https://ipv4.jsonip.com';     // Forces IPv4, CORS enabled
-        const IPV6_ENDPOINT = 'https://ipv6.jsonip.com';     // Forces IPv6 (fails if no IPv6), CORS enabled
+        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Free from ipstack.com
 
-        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Free tier works great
+        // Reliable free services with proper CORS and protocol forcing (2026)
+        const IPV4_ENDPOINT = 'https://api4.ipify.org?format=json';  // Forces IPv4, CORS enabled
+        const IPV6_ENDPOINT = 'https://api6.ipify.org?format=json';  // Forces IPv6 (fails if no IPv6), CORS enabled
 
         async function fetchIPv4() {
             const container = document.getElementById('ipv4-container');
@@ -79,23 +79,20 @@
             const ipEl = document.getElementById('ipv6-ip');
 
             try {
-                // First try IPv6-only endpoint
-                let response = await fetch(IPV6_ENDPOINT, { signal: AbortSignal.timeout(8000) });
-                let ipData = {};
+                const response = await fetch(IPV6_ENDPOINT, { signal: AbortSignal.timeout(8000) });
                 if (response.ok) {
-                    ipData = await response.json();
-                    ipEl.textContent = ipData.ip || 'Unknown';
+                    const data = await response.json();
+                    ipEl.textContent = data.ip || 'Unknown';
                     container.classList.remove('loading', 'error');
                     container.classList.add('success');
                 } else {
                     throw new Error();
                 }
 
-                // Now fetch full geolocation (dual-stack, prefers IPv6 if available)
-                response = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`, { signal: AbortSignal.timeout(8000) });
-                if (!response.ok) throw new Error();
-                const geoData = await response.json();
-
+                // Full geolocation from ipstack (dual-stack, prefers IPv6 if connected)
+                const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`, { signal: AbortSignal.timeout(8000) });
+                if (!geoResponse.ok) throw new Error();
+                const geoData = await geoResponse.json();
                 displayIPDetails(geoData);
 
             } catch (err) {
@@ -103,13 +100,13 @@
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
 
-                // Fallback: use ipstack for IPv4 geo if IPv6 failed
+                // Fallback geolocation via ipstack (will use IPv4)
                 try {
-                    const fallbackResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
-                    const fallbackData = await fallbackResponse.json();
+                    const fallbackGeo = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
+                    const fallbackData = await fallbackGeo.json();
                     displayIPDetails(fallbackData);
                 } catch (fallbackErr) {
-                    // If everything fails, just leave details empty
+                    // Silent fallback failure
                 }
             }
         }
