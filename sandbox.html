@@ -118,7 +118,7 @@
 
         async function fetchIP(version) {
             const subdomain = version === 4 ? 'v4' : 'v6';
-            const endpoint = `https://${subdomain}.api.ipinfo.io/lite/?token=${TOKEN}`;
+            const endpoint = `https://${subdomain}.api.ipinfo.io/lite/me?token=${TOKEN}`;
 
             const ipContainer = document.getElementById(`ipv${version}-container`);
             const ipEl = document.getElementById(`ipv${version}-ip`);
