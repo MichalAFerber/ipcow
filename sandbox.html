@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IP Cow - Your IP & Device Info</title>
+    <!-- UAParser.js from jsDelivr CDN (latest version) -->
     <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@latest/dist/ua-parser.min.js"></script>
     <style>
         body {
@@ -47,9 +48,15 @@
             width: 30%;
         }
         .ip-display {
-            font-size: 1.4em;
+            font-size: 1.6em;
             font-weight: bold;
             color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .status {
+            font-size: 0.9em;
+            color: #e74c3c;
+            font-weight: bold;
         }
         .progress-bar {
             width: 100%;
@@ -79,6 +86,12 @@
             color: #666;
             margin-top: 20px;
         }
+        .ua-value {
+            font-family: monospace;
+            background: #f8f8f8;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -87,11 +100,11 @@
     <div class="section">
         <div class="label">Your IP Addresses (via ipinfo.io Lite API)</div>
         <div id="ipv4-container" class="loading">
-            <span class="ip-display" id="ipv4-ip">Loading IPv4...</span>
+            <div class="ip-display" id="ipv4-ip">Loading IPv4...</div>
             <div class="progress-bar"><div class="progress"></div></div>
         </div>
         <div id="ipv6-container" class="loading" style="margin-top:20px;">
-            <span class="ip-display" id="ipv6-ip">Loading IPv6...</span>
+            <div class="ip-display" id="ipv6-ip">Loading IPv6...</div>
             <div class="progress-bar"><div class="progress"></div></div>
         </div>
         <div id="ip-details" style="margin-top:30px; display:none;">
@@ -106,14 +119,20 @@
         </div>
     </div>
 
+    <div class="note">
+        <p>• IP data comes from <a href="https://ipinfo.io" target="_blank">ipinfo.io</a> Lite API (free, unlimited requests).</p>
+        <p>• Replace the token with your own for higher limits or more fields.</p>
+        <p>• Device/browser info is parsed client-side from your User-Agent string.</p>
+    </div>
+
     <script>
-        const TOKEN = 'b94b3cf0e305f1'; // Your ipinfo.io token
+        const TOKEN = 'b94b3cf0e305f1'; // Replace with your own token
 
         async function fetchIP(version) {
             const subdomain = version === 4 ? 'v4' : 'v6';
             const endpoint = `https://${subdomain}.api.ipinfo.io/lite/me?token=${TOKEN}`;
 
-            const ipContainer = document.getElementById(`ipv${version}-container`);
+            const container = document.getElementById(`ipv${version}-container`);
             const ipEl = document.getElementById(`ipv${version}-ip`);
 
             try {
@@ -122,14 +141,10 @@
 
                 const data = await response.json();
 
-                // Show IP
                 ipEl.textContent = data.ip || 'Unknown';
+                container.classList.remove('loading', 'error');
+                container.classList.add('success');
 
-                // Mark success
-                ipContainer.classList.remove('loading', 'error');
-                ipContainer.classList.add('success');
-
-                // If IPv4 succeeded, show shared details (ASN, location, etc.)
                 if (version === 4) {
                     displayIPDetails(data);
                 }
@@ -138,14 +153,15 @@
             } catch (err) {
                 const message = version === 6 ? 'Not available (no IPv6 connectivity)' : 'Unable to fetch';
                 ipEl.textContent = message;
-                ipContainer.classList.remove('loading', 'success');
-                ipContainer.classList.add('error');
+                ipEl.classList.add('status');
+                container.classList.remove('loading', 'success');
+                container.classList.add('error');
             }
         }
 
         function displayIPDetails(data) {
             const table = document.getElementById('ip-table');
-            table.innerHTML = ''; // Clear
+            table.innerHTML = '';
 
             const fields = {
                 ip: 'IP Address',
@@ -176,39 +192,39 @@
             const table = document.getElementById('ua-table');
             table.innerHTML = '';
 
-            const sections = {
-                'Browser': result.browser,
-                'Engine': result.engine,
-                'OS': result.os,
-                'Device': result.device,
-                'CPU': result.cpu
-            };
+            const sections = [
+                { title: 'Browser', data: { Name: result.browser.name, Version: result.browser.version, Major: result.browser.major } },
+                { title: 'Engine', data: { Name: result.engine.name, Version: result.engine.version } },
+                { title: 'OS', data: { Name: result.os.name, Version: result.os.version } },
+                { title: 'Device', data: { Model: result.device.model, Vendor: result.device.vendor, Type: result.device.type } },
+                { title: 'CPU', data: { Architecture: result.cpu.architecture } }
+            ];
 
-            for (const section in sections) {
-                const obj = sections[section];
-                if (Object.keys(obj).some(k => obj[k])) {
-                    const headerRow = table.insertRow();
-                    const headerCell = headerRow.insertCell(0);
-                    headerCell.textContent = section;
-                    headerCell.colSpan = 2;
-                    headerCell.style.fontWeight = 'bold';
-                    headerCell.style.background = '#f1f1f1';
+            sections.forEach(section => {
+                // Only add section if there's at least one non-empty value
+                const hasValue = Object.values(section.data).some(v => v);
+                if (!hasValue) return;
 
-                    for (const key in obj) {
-                        if (obj[key]) {
-                            const row = table.insertRow();
-                            row.insertCell(0).textContent = key.charAt(0).toUpperCase() + key.slice(1);
-                            row.insertCell(1).textContent = obj[key];
-                        }
+                const headerRow = table.insertRow();
+                const headerCell = headerRow.insertCell(0);
+                headerCell.textContent = section.title;
+                headerCell.colSpan = 2;
+                headerCell.style.fontWeight = 'bold';
+                headerCell.style.background = '#f1f1f1';
+
+                for (const key in section.data) {
+                    if (section.data[key]) {
+                        const row = table.insertRow();
+                        row.insertCell(0).textContent = key;
+                        const valueCell = row.insertCell(1);
+                        valueCell.innerHTML = `<span class="ua-value">${section.data[key]}</span>`;
                     }
                 }
-            }
+            });
         }
 
         // Run everything
-        Promise.allSettled([fetchIP(4), fetchIP(6)]).finally(() => {
-            parseUserAgent();
-        });
+        Promise.allSettled([fetchIP(4), fetchIP(6)]).finally(parseUserAgent);
     </script>
 </body>
 </html>
