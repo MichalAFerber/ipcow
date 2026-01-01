@@ -50,52 +50,67 @@
     </div>
 
     <script>
-        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Get free at ipstack.com
+        // Best free CORS-enabled services for separate IPv4/IPv6 detection (2026)
+        const IPV4_ENDPOINT = 'https://ipv4.jsonip.com';     // Forces IPv4, CORS enabled
+        const IPV6_ENDPOINT = 'https://ipv6.jsonip.com';     // Forces IPv6 (fails if no IPv6), CORS enabled
 
-        // Fetch IPv4 (forced via IPv4-only service)
+        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Free tier works great
+
         async function fetchIPv4() {
             const container = document.getElementById('ipv4-container');
             const ipEl = document.getElementById('ipv4-ip');
 
             try {
-                const response = await fetch('https://ipv4.seeip.org/json', { signal: AbortSignal.timeout(8000) });
+                const response = await fetch(IPV4_ENDPOINT, { signal: AbortSignal.timeout(8000) });
                 if (!response.ok) throw new Error();
                 const data = await response.json();
                 ipEl.textContent = data.ip || 'Unknown';
                 container.classList.remove('loading', 'error');
                 container.classList.add('success');
-                return data.ip;
             } catch (err) {
-                ipEl.textContent = 'Unable to fetch (IPv4-only)';
+                ipEl.textContent = 'Unable to fetch (no IPv4 connectivity)';
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
             }
         }
 
-        // Fetch primary IP (IPv6 if available) + full geolocation via ipstack
-        async function fetchPrimary() {
+        async function fetchIPv6AndGeo() {
             const container = document.getElementById('ipv6-container');
             const ipEl = document.getElementById('ipv6-ip');
 
             try {
-                const response = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`, { signal: AbortSignal.timeout(8000) });
+                // First try IPv6-only endpoint
+                let response = await fetch(IPV6_ENDPOINT, { signal: AbortSignal.timeout(8000) });
+                let ipData = {};
+                if (response.ok) {
+                    ipData = await response.json();
+                    ipEl.textContent = ipData.ip || 'Unknown';
+                    container.classList.remove('loading', 'error');
+                    container.classList.add('success');
+                } else {
+                    throw new Error();
+                }
+
+                // Now fetch full geolocation (dual-stack, prefers IPv6 if available)
+                response = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`, { signal: AbortSignal.timeout(8000) });
                 if (!response.ok) throw new Error();
-                const data = await response.json();
+                const geoData = await response.json();
 
-                // Primary IP (IPv6 preferred if connected via IPv6)
-                const primaryIP = data.ip || 'Unknown';
-                ipEl.textContent = primaryIP;
+                displayIPDetails(geoData);
 
-                // If primary is IPv6, label clearly; else show as fallback
-                container.classList.remove('loading', 'error');
-                container.classList.add('success');
-
-                displayIPDetails(data);
-                return primaryIP;
             } catch (err) {
-                ipEl.textContent = 'Not available';
+                ipEl.textContent = 'Not available (no IPv6 connectivity)';
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
+
+                // Fallback: use ipstack for IPv4 geo if IPv6 failed
+                try {
+                    const fallbackResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
+                    const fallbackData = await fallbackResponse.json();
+                    displayIPDetails(fallbackData);
+                } catch (fallbackErr) {
+                    // If everything fails, just leave details empty
+                }
             }
         }
 
@@ -104,7 +119,7 @@
             table.innerHTML = '';
 
             const fields = {
-                ip: 'IP Address (Primary)',
+                ip: 'IP Address (Detected)',
                 type: 'IP Type',
                 continent_name: 'Continent',
                 country_name: 'Country',
@@ -195,7 +210,7 @@
         }
 
         // Run on load
-        Promise.allSettled([fetchIPv4(), fetchPrimary()]).finally(parseClientInfo);
+        Promise.allSettled([fetchIPv4(), fetchIPv6AndGeo()]).finally(parseClientInfo);
     </script>
 </body>
 </html>
