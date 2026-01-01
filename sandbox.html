@@ -9,27 +9,220 @@
     <!-- Bowser CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bowser/2.11.0/bundled.min.js"></script>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background: #f9f9fb; color: #333; }
-        h1 { text-align: center; color: #2c3e50; }
-        .section { background: white; border-radius: 12px; padding: 20px; margin: 20px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .label { font-weight: bold; font-size: 1.2em; margin-bottom: 12px; color: #34495e; }
-        table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 1em; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f1f1f1; width: 30%; }
-        .ip-display { font-size: 1.6em; font-weight: bold; color: #2c3e50; margin-bottom: 8px; word-break: break-all; }
-        .progress-bar { width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 10px; }
-        .progress { height: 100%; width: 0%; background: #3498db; transition: width 0.3s ease; }
+        :root {
+            --bg: #f9f9fb;
+            --section-bg: white;
+            --text: #333;
+            --header: #2c3e50;
+            --label: #34495e;
+            --table-border: #eee;
+            --table-header-bg: #f1f1f1;
+            --ua-bg: #f8f8f8;
+            --progress-loading: #3498db;
+            --progress-success: #27ae60;
+            --progress-error: #e74c3c;
+            --hover-bg: #e8f4fd;
+        }
+
+        [data-theme="dark"] {
+            --bg: #121212;
+            --section-bg: #1e1e1e;
+            --text: #e0e0e0;
+            --header: #bb86fc;
+            --label: #cfcfcf;
+            --table-border: #333;
+            --table-header-bg: #2d2d2d;
+            --ua-bg: #2a2a2a;
+            --hover-bg: #2c3e50;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 20px auto 40px; /* Reduced top margin */
+            padding: 20px;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--header);
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: var(--section-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: background 0.3s;
+        }
+
+        .label {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 12px;
+            color: var(--label);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: monospace;
+            font-size: 1em;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--table-border);
+        }
+
+        th {
+            background: var(--table-header-bg);
+            width: 30%;
+        }
+
+        .ip-display {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: var(--text);
+            margin-bottom: 8px;
+            word-break: break-all;
+            cursor: pointer;
+            position: relative;
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .ip-display:hover { background: var(--hover-bg); }
+
+        .tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            margin-bottom: 6px;
+        }
+
+        [data-theme="dark"] .tooltip {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+        [data-theme="dark"] .tooltip::after {
+            border-color: #f0f0f0 transparent transparent transparent;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        [data-theme="dark"] .progress-bar { background: #333; }
+
+        .progress {
+            height: 100%;
+            width: 0%;
+            background: var(--progress-loading);
+            transition: width 0.3s ease;
+        }
+
         .loading .progress { width: 100%; animation: pulse 1.5s infinite; }
-        .success .progress { background: #27ae60; width: 100%; }
-        .error .progress { background: #e74c3c; width: 100%; }
+        .success .progress { background: var(--progress-success); width: 100%; }
+        .error .progress { background: var(--progress-error); width: 100%; }
+
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-        .ua-value { font-family: monospace; background: #f8f8f8; padding: 2px 6px; border-radius: 4px; }
+
+        .ua-value {
+            font-family: monospace;
+            background: var(--ua-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
         #map { height: 300px; border-radius: 12px; margin-top: 20px; }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--section-bg);
+            border: 1px solid var(--table-border);
+            border-radius: 50px;
+            width: 60px;
+            height: 34px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            transition: background 0.3s;
+        }
+
+        .theme-toggle::before {
+            content: '🌙';
+            font-size: 20px;
+            transition: transform 0.3s;
+        }
+
+        [data-theme="dark"] .theme-toggle::before {
+            content: '☀️';
+            transform: translateX(26px);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        footer a {
+            color: var(--label);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
         @media (max-width: 600px) {
             .ip-display { font-size: 1.3em; }
             table { font-size: 0.9em; }
             th { width: 40%; }
             #map { height: 250px; }
+            body { margin: 10px auto 60px; }
         }
     </style>
 </head>
@@ -39,11 +232,11 @@
     <div class="section">
         <div class="label">Your IP Addresses</div>
         <div id="ipv4-container" class="loading">
-            <div class="ip-display" id="ipv4-ip">Loading IPv4...</div>
+            <div class="ip-display" id="ipv4-ip">Loading IPv4...<span class="tooltip">Copied!</span></div>
             <div class="progress-bar"><div class="progress"></div></div>
         </div>
         <div id="ipv6-container" class="loading" style="margin-top:20px;">
-            <div class="ip-display" id="ipv6-ip">Loading IPv6...</div>
+            <div class="ip-display" id="ipv6-ip">Loading IPv6...<span class="tooltip">Copied!</span></div>
             <div class="progress-bar"><div class="progress"></div></div>
         </div>
         <div id="ip-details" style="margin-top:30px; display:none;">
@@ -64,7 +257,13 @@
         </div>
     </div>
 
-    <!-- Leaflet JS (must load after the map div exists) -->
+    <footer>
+        &copy; 2026 IP Cow • <a href="privacy.html">Privacy Policy</a>
+    </footer>
+
+    <div class="theme-toggle" id="themeToggle" title="Toggle dark mode"></div>
+
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
@@ -75,6 +274,41 @@
 
         let ipv4 = null;
         let ipv6 = null;
+
+        // Dark mode logic
+        const toggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        function setTheme(theme) {
+            html.setAttribute('data-theme', theme);
+            localStorage.setItem('ipcow-theme', theme);
+        }
+
+        // Load saved preference or system preference
+        const savedTheme = localStorage.getItem('ipcow-theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setTheme('dark');
+        }
+
+        // Toggle on click
+        toggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        });
+
+        // Copy to clipboard function with tooltip
+        function copyIP(element) {
+            const ipText = element.textContent.replace('Copied!', '').trim();
+            if (ipText && ipText !== 'Loading IPv4...' && ipText !== 'Loading IPv6...' && !ipText.includes('Not available') && !ipText.includes('Unable to fetch')) {
+                navigator.clipboard.writeText(ipText).then(() => {
+                    const tooltip = element.querySelector('.tooltip');
+                    tooltip.style.opacity = '1';
+                    setTimeout(() => { tooltip.style.opacity = '0'; }, 1500);
+                });
+            }
+        }
 
         async function fetchIPv4() {
             const container = document.getElementById('ipv4-container');
@@ -93,13 +327,13 @@
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
             }
+
+            ipEl.onclick = () => copyIP(ipEl);
         }
 
         async function fetchIPv6AndGeo() {
             const container = document.getElementById('ipv6-container');
             const ipEl = document.getElementById('ipv6-ip');
-
-            let geoData = null;
 
             try {
                 const response = await fetch(IPV6_ENDPOINT, { signal: AbortSignal.timeout(8000) });
@@ -119,18 +353,18 @@
                 container.classList.add('error');
             }
 
-            // Always try to get geolocation
+            ipEl.onclick = () => copyIP(ipEl);
+
             try {
                 const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
                 if (!geoResponse.ok) throw new Error();
-                geoData = await geoResponse.json();
+                const geoData = await geoResponse.json();
                 displayIPDetails(geoData);
-                initMap(geoData.latitude, geoData.longitude); // NOW CALLED!
+                initMap(geoData.latitude, geoData.longitude);
             } catch (geoErr) {
                 console.error('Geolocation failed:', geoErr);
             }
 
-            // Handle duplicate IP case (very rare, but possible with NAT64)
             if (ipv4 && ipv6 && ipv4 === ipv6) {
                 document.getElementById('ipv6-ip').textContent = 'Not available (same as IPv4)';
                 document.getElementById('ipv6-container').classList.remove('success');
@@ -141,6 +375,12 @@
         function displayIPDetails(data) {
             const table = document.getElementById('ip-table');
             table.innerHTML = '';
+
+            // Raw User-Agent
+            const uaRow = table.insertRow();
+            uaRow.insertCell(0).textContent = 'User-Agent String';
+            const uaCell = uaRow.insertCell(1);
+            uaCell.innerHTML = `<span class="ua-value" style="word-break:break-all; display:block;">${navigator.userAgent}</span>`;
 
             const fields = {
                 ip: 'IP Address (Detected)',
@@ -183,7 +423,7 @@
 
         function initMap(lat, lng) {
             if (!lat || !lng) {
-                document.getElementById('map').innerHTML = '<p style="text-align:center; color:#999; padding:40px;">Location data not available</p>';
+                document.getElementById('map').innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
                 return;
             }
 
@@ -224,7 +464,7 @@
                 headerCell.textContent = section.title;
                 headerCell.colSpan = 2;
                 headerCell.style.fontWeight = 'bold';
-                headerCell.style.background = '#f1f1f1';
+                headerCell.style.background = var(--table-header-bg);
 
                 for (const key in section.data) {
                     const value = section.data[key];
