@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IP Cow - Your IP Address</title>
+    <title>IP Cow - Your IP & Device Info</title>
+    <!-- UAParser.js from jsDelivr CDN (latest version) -->
+    <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@latest/dist/ua-parser.min.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 40px auto;
             padding: 20px;
             background: #f9f9fb;
@@ -17,7 +19,7 @@
             text-align: center;
             color: #2c3e50;
         }
-        .ip-container {
+        .section {
             background: white;
             border-radius: 12px;
             padding: 20px;
@@ -26,17 +28,29 @@
         }
         .label {
             font-weight: bold;
-            font-size: 1.1em;
-            margin-bottom: 8px;
+            font-size: 1.2em;
+            margin-bottom: 12px;
             color: #34495e;
         }
-        .ip-display {
+        table {
+            width: 100%;
+            border-collapse: collapse;
             font-family: monospace;
-            font-size: 1.4em;
-            padding: 12px;
+            font-size: 1em;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
             background: #f1f1f1;
-            border-radius: 8px;
-            min-height: 20px;
+            width: 30%;
+        }
+        .ip-display {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #2c3e50;
         }
         .progress-bar {
             width: 100%;
@@ -61,65 +75,147 @@
             50% { opacity: 1; }
             100% { opacity: 0.6; }
         }
+        .note {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <h1>🐮 IP Cow</h1>
 
-    <div class="ip-container">
-        <div class="label">Your IPv4 Address</div>
-        <div id="ipv4-display" class="ip-display loading">
-            Loading...
+    <div class="section">
+        <div class="label">Your IP Addresses (via ipinfo.io Lite API)</div>
+        <div id="ipv4-container" class="loading">
+            <span class="ip-display" id="ipv4-ip">Loading IPv4...</span>
             <div class="progress-bar"><div class="progress"></div></div>
+        </div>
+        <div id="ipv6-container" class="loading" style="margin-top:20px;">
+            <span class="ip-display" id="ipv6-ip">Loading IPv6...</span>
+            <div class="progress-bar"><div class="progress"></div></div>
+        </div>
+        <div id="ip-details" style="margin-top:30px; display:none;">
+            <table id="ip-table"></table>
         </div>
     </div>
 
-    <div class="ip-container">
-        <div class="label">Your IPv6 Address</div>
-        <div id="ipv6-display" class="ip-display loading">
-            Loading...
-            <div class="progress-bar"><div class="progress"></div></div>
+    <div class="section">
+        <div class="label">Your Device & Browser (via UAParser.js)</div>
+        <div id="ua-container">
+            <table id="ua-table"></table>
         </div>
+    </div>
+
+    <div class="note">
+        <p>• IP data comes from <a href="https://ipinfo.io" target="_blank">ipinfo.io</a> Lite API (free, unlimited requests).</p>
+        <p>• Replace <code>b94b3cf0e305f1</code> with your own token for higher rate limits or more fields.</p>
+        <p>• Device/browser info is parsed client-side from your User-Agent string using <a href="https://docs.uaparser.dev" target="_blank">UAParser.js</a>.</p>
     </div>
 
     <script>
-        async function fetchIP(version) {
-            const endpoint = version === 4 
-                ? 'https://v4.api.ipinfo.io/ip' 
-                : 'https://v6.api.ipinfo.io/ip';
+        const TOKEN = 'b94b3cf0e305f1'; // Your ipinfo.io token (example one provided)
 
-            const displayEl = document.getElementById(`ipv${version}-display`);
-            const progressEl = displayEl.querySelector('.progress');
+        async function fetchIP(version) {
+            const subdomain = version === 4 ? 'v4' : 'v6';
+            const endpoint = `https://${subdomain}.api.ipinfo.io/lite/?token=${TOKEN}`;
+
+            const ipContainer = document.getElementById(`ipv${version}-container`);
+            const ipEl = document.getElementById(`ipv${version}-ip`);
 
             try {
-                const response = await fetch(endpoint, { 
-                    method: 'GET',
-                    // Optional: add timeout to prevent hanging on IPv6 if not available
-                    signal: AbortSignal.timeout(8000) // 8 second timeout
-                });
+                const response = await fetch(endpoint, { signal: AbortSignal.timeout(8000) });
+                if (!response.ok) throw new Error('Failed');
 
-                if (!response.ok) throw new Error('Failed to fetch');
+                const data = await response.json();
 
-                const ip = (await response.text()).trim();
+                // Show IP
+                ipEl.textContent = data.ip || 'Unknown';
 
-                // Success
-                displayEl.textContent = ip;
-                displayEl.classList.remove('loading', 'error');
-                displayEl.classList.add('success');
+                // Mark success
+                ipContainer.classList.remove('loading', 'error');
+                ipContainer.classList.add('success');
+
+                // If IPv4 succeeded, show shared details (ASN, location, etc.)
+                if (version === 4) {
+                    displayIPDetails(data);
+                }
+
+                return data.ip;
             } catch (err) {
-                // Error or no IPv6 support
-                const message = version === 6 ? 'Not available (no IPv6)' : 'Unable to fetch';
-                displayEl.textContent = message;
-                displayEl.classList.remove('loading', 'success');
-                displayEl.classList.add('error');
+                const message = version === 6 ? 'Not available (no IPv6 connectivity)' : 'Unable to fetch';
+                ipEl.textContent = message;
+                ipContainer.classList.remove('loading', 'success');
+                ipContainer.classList.add('error');
             }
         }
 
-        // Fetch both in parallel
-        Promise.allSettled([
-            fetchIP(4),
-            fetchIP(6)
-        ]);
+        function displayIPDetails(data) {
+            const table = document.getElementById('ip-table');
+            table.innerHTML = ''; // Clear
+
+            const fields = {
+                ip: 'IP Address',
+                asn: 'ASN',
+                as_name: 'ASN Name',
+                as_domain: 'ASN Domain',
+                country_code: 'Country Code',
+                country: 'Country',
+                continent_code: 'Continent Code',
+                continent: 'Continent'
+            };
+
+            for (const key in fields) {
+                if (data[key] !== undefined) {
+                    const row = table.insertRow();
+                    row.insertCell(0).textContent = fields[key];
+                    row.insertCell(1).textContent = data[key] || '-';
+                }
+            }
+
+            document.getElementById('ip-details').style.display = 'block';
+        }
+
+        function parseUserAgent() {
+            const parser = new UAParser();
+            const result = parser.getResult();
+
+            const table = document.getElementById('ua-table');
+            table.innerHTML = '';
+
+            const sections = {
+                'Browser': result.browser,
+                'Engine': result.engine,
+                'OS': result.os,
+                'Device': result.device,
+                'CPU': result.cpu
+            };
+
+            for (const section in sections) {
+                const obj = sections[section];
+                if (Object.keys(obj).some(k => obj[k])) {
+                    const headerRow = table.insertRow();
+                    const headerCell = headerRow.insertCell(0);
+                    headerCell.textContent = section;
+                    headerCell.colSpan = 2;
+                    headerCell.style.fontWeight = 'bold';
+                    headerCell.style.background = '#f1f1f1';
+
+                    for (const key in obj) {
+                        if (obj[key]) {
+                            const row = table.insertRow();
+                            row.insertCell(0).textContent = key.charAt(0).toUpperCase() + key.slice(1);
+                            row.insertCell(1).textContent = obj[key];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Run everything
+        Promise.allSettled([fetchIP(4), fetchIP(6)]).finally(() => {
+            parseUserAgent();
+        });
     </script>
 </body>
 </html>
