@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IP Cow - Your IP & Device Info</title>
-    <!-- UAParser.js from jsDelivr CDN (latest version) -->
     <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@latest/dist/ua-parser.min.js"></script>
     <style>
         body {
@@ -107,14 +106,8 @@
         </div>
     </div>
 
-    <div class="note">
-        <p>• IP data comes from <a href="https://ipinfo.io" target="_blank">ipinfo.io</a> Lite API (free, unlimited requests).</p>
-        <p>• Replace <code>b94b3cf0e305f1</code> with your own token for higher rate limits or more fields.</p>
-        <p>• Device/browser info is parsed client-side from your User-Agent string using <a href="https://docs.uaparser.dev" target="_blank">UAParser.js</a>.</p>
-    </div>
-
     <script>
-        const TOKEN = 'b94b3cf0e305f1'; // Your ipinfo.io token (example one provided)
+        const TOKEN = 'b94b3cf0e305f1'; // Your ipinfo.io token
 
         async function fetchIP(version) {
             const subdomain = version === 4 ? 'v4' : 'v6';
