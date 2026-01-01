@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐮 IP Cow</title>
-    <!-- Bowser CDN (lowercase 'bowser' global) -->
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Bowser CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bowser/2.11.0/bundled.min.js"></script>
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background: #f9f9fb; color: #333; }
@@ -14,7 +16,7 @@
         table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 1em; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #f1f1f1; width: 30%; }
-        .ip-display { font-size: 1.6em; font-weight: bold; color: #2c3e50; margin-bottom: 8px; }
+        .ip-display { font-size: 1.6em; font-weight: bold; color: #2c3e50; margin-bottom: 8px; word-break: break-all; }
         .progress-bar { width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 10px; }
         .progress { height: 100%; width: 0%; background: #3498db; transition: width 0.3s ease; }
         .loading .progress { width: 100%; animation: pulse 1.5s infinite; }
@@ -22,6 +24,13 @@
         .error .progress { background: #e74c3c; width: 100%; }
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
         .ua-value { font-family: monospace; background: #f8f8f8; padding: 2px 6px; border-radius: 4px; }
+        #map { height: 300px; border-radius: 12px; margin-top: 20px; }
+        @media (max-width: 600px) {
+            .ip-display { font-size: 1.3em; }
+            table { font-size: 0.9em; }
+            th { width: 40%; }
+            #map { height: 250px; }
+        }
     </style>
 </head>
 <body>
@@ -43,19 +52,30 @@
     </div>
 
     <div class="section">
+        <div class="label">Your Approximate Location</div>
+        <div id="map"></div>
+        <p style="font-size:0.9em; color:#777; margin-top:10px;">Location is approximate based on IP geolocation (not GPS).</p>
+    </div>
+
+    <div class="section">
         <div class="label">Your Device & Browser (via Bowser + Browser APIs)</div>
         <div id="ua-container">
             <table id="ua-table"></table>
         </div>
     </div>
 
-    <script>
-        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Replace with your free ipstack.com key
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        // Reliable free IP services with proper CORS support
-        const DUAL_ENDPOINT = 'https://api.ipify.org?format=json';     // Dual-stack: prefers IPv6 if available
-        const IPV4_ENDPOINT = 'https://api4.ipify.org?format=json';   // Forces IPv4 (has A record only)
-        const IPV6_ENDPOINT = 'https://api64.ipify.org?format=json';  // Forces IPv6 (has AAAA record only)
+    <script>
+        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Replace with your free key
+
+        const IPV4_ENDPOINT = 'https://ipv4.jsonip.com/';
+        const IPV6_ENDPOINT = 'https://ipv6.jsonip.com/';
+
+        let ipv4 = null;
+        let ipv6 = null;
+        let geoData = null;
 
         async function fetchIPv4() {
             const container = document.getElementById('ipv4-container');
@@ -65,11 +85,12 @@
                 const response = await fetch(IPV4_ENDPOINT, { signal: AbortSignal.timeout(8000) });
                 if (!response.ok) throw new Error();
                 const data = await response.json();
-                ipEl.textContent = data.ip || 'Unknown';
+                ipv4 = data.ip || 'Unknown';
+                ipEl.textContent = ipv4;
                 container.classList.remove('loading', 'error');
                 container.classList.add('success');
             } catch (err) {
-                ipEl.textContent = 'Unable to fetch (no IPv4 connectivity)';
+                ipEl.textContent = 'Unable to fetch';
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
             }
@@ -83,32 +104,29 @@
                 const response = await fetch(IPV6_ENDPOINT, { signal: AbortSignal.timeout(8000) });
                 if (response.ok) {
                     const data = await response.json();
-                    ipEl.textContent = data.ip || 'Unknown';
+                    ipv6 = data.ip || 'Unknown';
+                    ipEl.textContent = ipv6;
                     container.classList.remove('loading', 'error');
                     container.classList.add('success');
                 } else {
                     throw new Error();
                 }
-
-                // Full geolocation (prefers IPv6 connection if available)
-                const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`, { signal: AbortSignal.timeout(8000) });
-                if (!geoResponse.ok) throw new Error();
-                const geoData = await geoResponse.json();
-                displayIPDetails(geoData);
-
             } catch (err) {
+                ipv6 = null; // No IPv6
                 ipEl.textContent = 'Not available (no IPv6 connectivity)';
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
+            }
 
-                // Fallback geo via dual-stack (usually IPv4)
-                try {
-                    const fallbackGeo = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
-                    const fallbackData = await fallbackGeo.json();
-                    displayIPDetails(fallbackData);
-                } catch (fallbackErr) {
-                    // Silent
-                }
+            // Always fetch geo (uses the connection protocol of the page load, usually IPv4 fallback)
+            try {
+                const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`, { signal: AbortSignal.timeout(8000) });
+                if (!geoResponse.ok) throw new Error();
+                geoData = await geoResponse.json();
+                displayIPDetails(geoData);
+                initMap(geoData.latitude, geoData.longitude);
+            } catch (geoErr) {
+                // Geo failed completely
             }
         }
 
@@ -153,6 +171,27 @@
             }
 
             document.getElementById('ip-details').style.display = 'block';
+
+            // Hide duplicate IPv6 if same as IPv4
+            if (ipv4 && ipv6 && ipv4 === ipv6) {
+                document.getElementById('ipv6-ip').textContent = 'Not available (same as IPv4)';
+                document.getElementById('ipv6-container').classList.remove('success');
+                document.getElementById('ipv6-container').classList.add('error');
+            }
+        }
+
+        function initMap(lat, lng) {
+            if (!lat || !lng) return;
+
+            const map = L.map('map').setView([lat, lng], 10);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('Your approximate location')
+                .openPopup();
         }
 
         function parseClientInfo() {
@@ -208,7 +247,9 @@
         }
 
         // Run on load
-        Promise.allSettled([fetchIPv4(), fetchIPv6AndGeo()]).finally(parseClientInfo);
+        Promise.allSettled([fetchIPv4(), fetchIPv6AndGeo()]).finally(() => {
+            parseClientInfo();
+        });
     </script>
 </body>
 </html>
