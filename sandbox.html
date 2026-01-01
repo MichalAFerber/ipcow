@@ -50,11 +50,12 @@
     </div>
 
     <script>
-        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Free from ipstack.com
+        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef'; // Replace with your free ipstack.com key
 
-        // Reliable free services with proper CORS and protocol forcing (as of 2026)
-        const IPV4_ENDPOINT = 'https://ipv4.jsonip.com';     // IPv4-only hostname, CORS enabled
-        const IPV6_ENDPOINT = 'https://ipv6.jsonip.com';     // IPv6-only hostname, CORS enabled
+        // Reliable free IP services with proper CORS support
+        const DUAL_ENDPOINT = 'https://api.ipify.org?format=json';     // Dual-stack: prefers IPv6 if available
+        const IPV4_ENDPOINT = 'https://api4.ipify.org?format=json';   // Forces IPv4 (has A record only)
+        const IPV6_ENDPOINT = 'https://api64.ipify.org?format=json';  // Forces IPv6 (has AAAA record only)
 
         async function fetchIPv4() {
             const container = document.getElementById('ipv4-container');
@@ -89,7 +90,7 @@
                     throw new Error();
                 }
 
-                // Full geolocation from ipstack (dual-stack, prefers IPv6 if connected)
+                // Full geolocation (prefers IPv6 connection if available)
                 const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`, { signal: AbortSignal.timeout(8000) });
                 if (!geoResponse.ok) throw new Error();
                 const geoData = await geoResponse.json();
@@ -100,7 +101,7 @@
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
 
-                // Fallback geolocation via ipstack (will use IPv4)
+                // Fallback geo via dual-stack (usually IPv4)
                 try {
                     const fallbackGeo = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
                     const fallbackData = await fallbackGeo.json();
