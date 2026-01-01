@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -57,7 +58,7 @@
             border-radius: 12px;
             padding: 20px;
             margin: 20px 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: background 0.3s;
         }
 
@@ -75,7 +76,8 @@
             font-size: 1em;
         }
 
-        th, td {
+        th,
+        td {
             padding: 10px;
             text-align: left;
             border-bottom: 1px solid var(--table-border);
@@ -100,7 +102,9 @@
             transition: background 0.2s;
         }
 
-        .ip-display:hover { background: var(--hover-bg); }
+        .ip-display:hover {
+            background: var(--hover-bg);
+        }
 
         .tooltip {
             position: absolute;
@@ -148,7 +152,9 @@
             margin-top: 10px;
         }
 
-        [data-theme="dark"] .progress-bar { background: #333; }
+        [data-theme="dark"] .progress-bar {
+            background: #333;
+        }
 
         .progress {
             height: 100%;
@@ -157,11 +163,34 @@
             transition: width 0.3s ease;
         }
 
-        .loading .progress { width: 100%; animation: pulse 1.5s infinite; }
-        .success .progress { background: var(--progress-success); width: 100%; }
-        .error .progress { background: var(--progress-error); width: 100%; }
+        .loading .progress {
+            width: 100%;
+            animation: pulse 1.5s infinite;
+        }
 
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        .success .progress {
+            background: var(--progress-success);
+            width: 100%;
+        }
+
+        .error .progress {
+            background: var(--progress-error);
+            width: 100%;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
 
         .ua-value {
             font-family: monospace;
@@ -170,7 +199,11 @@
             border-radius: 4px;
         }
 
-        #map { height: 300px; border-radius: 12px; margin-top: 20px; }
+        #map {
+            height: 300px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
 
         .theme-toggle {
             position: fixed;
@@ -182,7 +215,7 @@
             width: 60px;
             height: 34px;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             display: flex;
             align-items: center;
             padding: 4px;
@@ -218,14 +251,29 @@
         }
 
         @media (max-width: 600px) {
-            .ip-display { font-size: 1.3em; }
-            table { font-size: 0.9em; }
-            th { width: 40%; }
-            #map { height: 250px; }
-            body { margin: 10px auto 60px; }
+            .ip-display {
+                font-size: 1.3em;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            th {
+                width: 40%;
+            }
+
+            #map {
+                height: 250px;
+            }
+
+            body {
+                margin: 10px auto 60px;
+            }
         }
     </style>
 </head>
+
 <body>
     <header onclick="window.location.href='/'" style="cursor:pointer;">
         <h1>🐮 IP Cow</h1>
@@ -233,12 +281,20 @@
 
     <div class="section">
         <div id="ipv4-container" class="loading">
-            <div class="ip-display">ipv4: </div><div class="ip-display" id="ipv4-ip" onclick="copyIP(this)">Loading IPv4...<span class="tooltip">Copied!</span></div>
-            <div class="progress-bar"><div class="progress"></div></div>
+            <div class="ip-display">ipv4: </div>
+            <div class="ip-display" id="ipv4-ip" onclick="copyIP(this)">Loading IPv4...<span
+                    class="tooltip">Copied!</span></div>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
         </div>
         <div id="ipv6-container" class="loading" style="margin-top:20px;">
-            <div class="ip-display">ipv6: </div><div class="ip-display" id="ipv6-ip" onclick="copyIP(this)">Loading IPv6...<span class="tooltip">Copied!</span></div>
-            <div class="progress-bar"><div class="progress"></div></div>
+            <div class="ip-display">ipv6: </div>
+            <div class="ip-display" id="ipv6-ip" onclick="copyIP(this)">Loading IPv6...<span
+                    class="tooltip">Copied!</span></div>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
         </div>
         <div id="ip-details" style="margin-top:30px; display:none;">
             <table id="ip-table"></table>
@@ -248,7 +304,8 @@
     <div class="section">
         <div class="label">Your Approximate Location</div>
         <div id="map"></div>
-        <p style="font-size:0.9em; color:#777; margin-top:10px;">Location is approximate based on IP geolocation (not GPS).</p>
+        <p style="font-size:0.9em; color:#777; margin-top:10px;">Location is approximate based on IP geolocation (not
+            GPS).</p>
     </div>
 
     <div class="section">
@@ -298,32 +355,22 @@
         });
 
         function copyIP(element) {
-            // 1. Get the IP text while excluding the "Copied!" tooltip text
-            // .firstChild.textContent specifically gets "Loading..." or the IP, ignoring the <span>
+            // Targets the first text node only (the IP), ignoring the tooltip span
             const ipText = element.firstChild.textContent.trim();
 
-            // 2. Validate that it's a real IP and not a loading/error state
-            const isReady = ipText && 
-                            !ipText.includes('Loading') && 
-                            !ipText.includes('Unable') && 
-                            !ipText.includes('available');
-
-            if (isReady) {
+            // Ensure we aren't copying the "Loading..." placeholder
+            if (ipText && !ipText.includes('Loading') && !ipText.includes('Unable')) {
                 navigator.clipboard.writeText(ipText).then(() => {
                     const tooltip = element.querySelector('.tooltip');
                     if (tooltip) {
-                        // 3. FIX: Opacity must be '1', not '100'
-                        tooltip.style.opacity = '1';
-                        
-                        // 4. Force a high z-index to ensure it sits above the section shadows
-                        tooltip.style.zIndex = '9999';
+                        tooltip.style.opacity = '1'; // Valid opacity value
 
                         setTimeout(() => {
                             tooltip.style.opacity = '0';
                         }, 1500);
                     }
                 }).catch(err => {
-                    console.error('Clipboard copy failed:', err);
+                    console.error('Clipboard error:', err);
                 });
             }
         }
@@ -511,4 +558,5 @@
         Promise.allSettled([fetchIPv4(), fetchIPv6AndGeo()]).finally(parseClientInfo);
     </script>
 </body>
+
 </html>
