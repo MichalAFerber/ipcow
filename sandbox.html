@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐮 IP Cow</title>
-    <!-- Reliable Bowser CDN that exposes global 'bowser' (lowercase) -->
+    <!-- Reliable Bowser CDN (lowercase 'bowser' global) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bowser/2.11.0/bundled.min.js"></script>
     <style>
         body {
@@ -66,14 +66,13 @@
         .error .progress { background: #e74c3c; width: 100%; }
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
         .ua-value { font-family: monospace; background: #f8f8f8; padding: 2px 6px; border-radius: 4px; }
-        .note { font-size: 0.9em; color: #777; margin-top: 10px; }
     </style>
 </head>
 <body>
     <h1>🐮 IP Cow</h1>
 
     <div class="section">
-        <div class="label">Your IP Addresses (via ipinfo.io Lite API)</div>
+        <div class="label">Your IP Addresses (via ipstack.com API)</div>
         <div id="ipv4-container" class="loading">
             <div class="ip-display" id="ipv4-ip">Loading IPv4...</div>
             <div class="progress-bar"><div class="progress"></div></div>
@@ -95,12 +94,12 @@
     </div>
 
     <script>
-        const TOKEN = 'b94b3cf0e305f1'; // Replace with your own token for better reliability
+        const ACCESS_KEY = '34df1070bcc7d00920472b33404843ef'; // Sign up at ipstack.com for a free key
 
         async function fetchIP(version) {
-            // Correct subdomains for Lite API: v4.api.ipinfo.io and v6.api.ipinfo.io
-            const subdomain = version === 4 ? 'v4' : 'v6';
-            const endpoint = `https://${subdomain}.api.ipinfo.io/lite/me?token=${TOKEN}`;
+            // Force IPv4 or IPv6 using dedicated hostnames (ipstack supports this)
+            const host = version === 4 ? 'api4.ipstack.com' : 'api6.ipstack.com';
+            const endpoint = `http://${host}/check?access_key=${ACCESS_KEY}`;
 
             const container = document.getElementById(`ipv${version}-container`);
             const ipEl = document.getElementById(`ipv${version}-ip`);
@@ -111,10 +110,13 @@
 
                 const data = await response.json();
 
+                if (data.error) throw new Error(data.error.info || 'API Error');
+
                 ipEl.textContent = data.ip || 'Unknown';
                 container.classList.remove('loading', 'error');
                 container.classList.add('success');
 
+                // Use IPv4 data for detailed geolocation (more reliable fallback)
                 if (version === 4) displayIPDetails(data);
 
             } catch (err) {
@@ -131,34 +133,48 @@
 
             const fields = {
                 ip: 'IP Address',
-                asn: 'ASN',
-                as_name: 'ISP / Organization',
-                as_domain: 'ASN Domain',
-                country_code: 'Country Code',
-                country: 'Country',
-                continent_code: 'Continent Code',
-                continent: 'Continent'
+                type: 'IP Type',
+                continent_name: 'Continent',
+                country_name: 'Country',
+                region_name: 'Region',
+                city: 'City',
+                zip: 'ZIP Code',
+                latitude: 'Latitude',
+                longitude: 'Longitude',
+                time_zone: { name: 'Timezone', current_time: 'Current Time', offset: 'GMT Offset' }
             };
 
+            // Simple fields
             for (const key in fields) {
-                if (data[key] !== undefined) {
+                if (typeof fields[key] === 'string' && data[key]) {
                     const row = table.insertRow();
                     row.insertCell(0).textContent = fields[key];
-                    const valueCell = row.insertCell(1);
-                    valueCell.textContent = data[key] || '-';
+                    const cell = row.insertCell(1);
+                    cell.innerHTML = `<span class="ua-value">${data[key]}</span>`;
                 }
             }
 
-            const noteRow = table.insertRow();
-            const noteCell = noteRow.insertCell(0);
-            noteCell.colSpan = 2;
-            noteCell.innerHTML = '<div class="note">Note: Latitude, Longitude, and Timezone require a paid ipinfo.io plan (Lite API only provides country & ASN data).</div>';
+            // Connection (ISP/Organization)
+            if (data.connection) {
+                const row = table.insertRow();
+                row.insertCell(0).textContent = 'ISP / Organization';
+                const cell = row.insertCell(1);
+                cell.innerHTML = `<span class="ua-value">${data.connection.org || data.connection.isp || 'Unknown'}</span>`;
+            }
+
+            // Timezone object
+            if (data.time_zone) {
+                const tz = data.time_zone;
+                const row = table.insertRow();
+                row.insertCell(0).textContent = 'Timezone Info';
+                const cell = row.insertCell(1);
+                cell.innerHTML = `<span class="ua-value">${tz.name} (Current: ${tz.current_time}, Offset: GMT${tz.offset >= 0 ? '+' : ''}${tz.offset})</span>`;
+            }
 
             document.getElementById('ip-details').style.display = 'block';
         }
 
         function parseClientInfo() {
-            // Bowser exposes lowercase 'bowser' globally in bundled version
             const parser = bowser.getParser(navigator.userAgent);
             const browser = parser.getBrowser();
             const os = parser.getOS();
