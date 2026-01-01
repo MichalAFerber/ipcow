@@ -98,7 +98,7 @@
 
         async function fetchIP(version) {
             // Force IPv4 or IPv6 using dedicated hostnames (ipstack supports this)
-            const host = version === 4 ? 'api4.ipstack.com' : 'api6.ipstack.com';
+            const host = version === 4 ? 'api.ipstack.com' : 'api.ipstack.com';
             const endpoint = `https://${host}/check?access_key=${ACCESS_KEY}`;
 
             const container = document.getElementById(`ipv${version}-container`);
