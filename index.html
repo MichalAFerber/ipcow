@@ -1,90 +1,798 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="description" content="" />
-        <meta name="author" content="" />
-        <title>IP Cow [What is my IP Address? Free IP tools!]</title>
-        <link rel="icon" type="image/x-icon" href="favicon.ico" />
-        <!-- Font Awesome icons (free version)-->
-        <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
-        <!-- Google fonts-->
-        <link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet" />
-        <!-- Core theme CSS (includes Bootstrap)-->
-        <link href="assets/css/styles.css" rel="stylesheet" />
-    </head>
-    <body id="page-top">
-        <!-- Navigation-->
-        <nav class="navbar fixed-top bg-body-tertiary">
-        <div class="container-fluid">
-            <a class="navbar-brand text-white" href="/"><i class="fa-solid fa-cow"></i> IP Cow</a>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Cow [What is my IP Address?]</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐮</text></svg>">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Bowser CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bowser/2.11.0/bundled.min.js"></script>
+    <style>
+        :root {
+            --bg: #f9f9fb;
+            --section-bg: white;
+            --text: #333;
+            --header: #2c3e50;
+            --label: #34495e;
+            --table-border: #eee;
+            --table-header-bg: #f1f1f1;
+            --ua-bg: #f8f8f8;
+            --progress-loading: #3498db;
+            --progress-success: #27ae60;
+            --progress-error: #e74c3c;
+            --hover-bg: #e8f4fd;
+        }
+
+        [data-theme="dark"] {
+            --bg: #121212;
+            --section-bg: #1e1e1e;
+            --text: #e0e0e0;
+            --header: #e0e0e0;
+            --label: #cfcfcf;
+            --table-border: #333;
+            --table-header-bg: #2d2d2d;
+            --ua-bg: #2a2a2a;
+            --hover-bg: #2c3e50;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 20px auto 40px;
+            padding: 20px;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--header);
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        header {
+            background: var(--section-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        header:hover {
+            background: var(--hover-bg);
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--label);
+            font-size: 1em;
+            font-weight: normal;
+            margin: 5px 0 20px;
+        }
+
+        .section {
+            background: var(--section-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s;
+        }
+
+        .label {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 12px;
+            color: var(--label);
+        }
+
+        h3 {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 12px;
+            color: var(--label);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: monospace;
+            font-size: 1em;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--table-border);
+        }
+
+        th {
+            background: var(--table-header-bg);
+            width: 30%;
+        }
+
+        td:nth-child(1) {
+            white-space: nowrap;
+        }
+
+        .ip-display {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: var(--text);
+            margin-bottom: 8px;
+            word-break: break-all;
+            cursor: pointer;
+            position: relative;
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .ip-display:hover {
+            background: var(--hover-bg);
+        }
+
+        #ipv4-container, #ipv6-container {
+            text-align: center;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            z-index: 999;
+            /* Ensure it stays above section shadows */
+            pointer-events: none;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            margin-bottom: 6px;
+        }
+
+        [data-theme="dark"] .tooltip {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+        [data-theme="dark"] .tooltip::after {
+            border-color: #f0f0f0 transparent transparent transparent;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e0e0e0;
+            border-top: 3px solid var(--progress-loading);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-top: 10px;
+        }
+
+        [data-theme="dark"] .spinner {
+            border-color: #333;
+        }
+
+        .loading .spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ua-value {
+            font-family: monospace;
+            background: var(--ua-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .info-icon {
+            opacity: 0.7;
+            font-size: 0.8em;
+            margin-left: 4px;
+        }
+
+        .info-icon:hover {
+            opacity: 1;
+        }
+
+        #map {
+            height: 300px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--section-bg);
+            border: 1px solid var(--table-border);
+            border-radius: 50px;
+            width: 60px;
+            height: 34px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            transition: background 0.3s;
+        }
+
+        .theme-toggle::before {
+            content: '🌙';
+            font-size: 20px;
+            transition: transform 0.3s;
+        }
+
+        [data-theme="dark"] .theme-toggle::before {
+            content: '☀️';
+            transform: translateX(26px);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        footer a {
+            color: var(--label);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .ip-display {
+                font-size: 1.3em;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            th {
+                width: 40%;
+            }
+
+            #map {
+                height: 250px;
+            }
+
+            body {
+                margin: 10px auto 60px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header onclick="window.location.href='/'" style="cursor:pointer;">
+        <h1>🐮 IP Cow</h1>
+        <h2>30-Year Anniversary — Est. 1995</h2>
+    </header>
+
+    <div class="section">
+        <div id="ipv4-container" class="loading">
+            <div class="ip-display" id="ipv4-ip" onclick="copyIP(this)">Loading IPv4...</div><div
+                class="tooltip">Copied!</div>
+            <div class="spinner"></div>
         </div>
-        </nav>
-        <!-- Masthead-->
-        <header class="masthead">
-            <div class="container px-4 px-lg-5 d-flex h-100 align-items-center justify-content-center">
-                <div class="d-flex justify-content-center">
-                    <div class="text-center">
-                        <h1 class="mx-auto my-0 text-uppercase">192.168.50.10</h1>
-                        <h2 class="text-white-50 mx-auto mt-2 mb-5 text-uppercase">Your IP Address</h2>
-                        <a class="btn btn-primary" href="#about">More Info</a>
-                    </div>
-                </div>
-            </div>
-        </header>
-        <!-- More Info-->
-        <section class="about-section text-center" id="about">
-            <div class="container px-4 px-lg-5">
-                <div class="row gx-4 gx-lg-5 justify-content-center">
-                    <div class="col-lg-8">
+        <div id="ipv6-container" class="loading" style="margin-top:20px;">
+            <div class="ip-display" id="ipv6-ip" onclick="copyIP(this)">Loading IPv6...</div><div
+                class="tooltip">Copied!</div>
+            <div class="spinner"></div>
+        </div>
+    </div>
 
-<div class="alert alert-danger" role="alert" style="display: none;">Error loading connection info.</div>
-<h3 class="text-center font-weight-normal">IPv4:<br><span id="ipv4-display" class="font-weight-bold">Loading...</span></h3>
-<h6 class="text-center font-weight-normal">IPv6:<br><span id="ipv6-display" class="font-weight-bold">Loading...</span></h6>
-<div class="main-explain-area jumbotron jumbotron-fluid">
-  <section>
-  <p class="lead font-weight-bold">Your Connection Info</p>
-  <ul class="list-unstyled">
-    <li>ISP: <span class="font-weight-bold" id="isp">Loading...</span></li>
-    <li>Country: <span class="font-weight-bold" id="country">Loading...</span></li>
-    <li>Region: <span class="font-weight-bold" id="region">Loading...</span></li>
-    <li>City: <span class="font-weight-bold" id="city">Loading...</span></li>
-    <li>Latitude: <span class="font-weight-bold" id="latitude">Loading...</span></li>
-    <li>Longitude: <span class="font-weight-bold" id="longitude">Loading...</span></li>
-    <li>Timezone: <span class="font-weight-bold" id="timezone">Loading...</span></li>
-    <li>User Agent: <span class="font-weight-bold" id="user-agent">Loading...</span></li>
-    <li>Browser: <span class="font-weight-bold" id="browser">Loading...</span></li>
-    <li>Browser Version: <span class="font-weight-bold" id="browser-version">Loading...</span></li>
-    <li>Operating System: <span class="font-weight-bold" id="os">Loading...</span></li>
-    <li>OS Version: <span class="font-weight-bold" id="os-version">Loading...</span></li>
-    <li>Device Type: <span class="font-weight-bold" id="device">Loading...</span></li>
-    <li>Device Vendor: <span class="font-weight-bold" id="device-vendor">Loading...</span></li>
-    <li>Device Model: <span class="font-weight-bold" id="device-model">Loading...</span></li>
-    <li>CPU Architecture: <span class="font-weight-bold" id="cpu-architecture">Loading...</span></li>
-    <li>Screen Resolution: <span class="font-weight-bold" id="screen-resolution">Loading...</span></li>
-    <li>Viewport Size: <span class="font-weight-bold" id="viewport-size">Loading...</span></li>
-    <li>Cookies Enabled: <span class="font-weight-bold" id="cookies-enabled">Loading...</span></li>
-    <li>JavaScript Enabled: <span class="font-weight-bold" id="javascript-enabled">Loading...</span></li>
-    <li>Language: <span class="font-weight-bold" id="language">Loading...</span></li>
-  </ul>
-  </section>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/ua-parser-js@1/dist/ua-parser.min.js"></script>
-<script src="assets/js/connection-info.js"></script>                        
+    <div class="section">
+        <h3>Your ISP Information</h3>
+        <div id="ip-details" style="margin-top:30px; display:none;">
+            <table id="details-table"></table>
+        </div>
+    </div>
 
-                        <h2 class="text-white mb-4">Built with Bootstrap 5</h2>
-                        <p class="text-white-50">
-                            Grayscale is a free Bootstrap theme created by Start Bootstrap. It can be yours right now, simply download the template on
-                            <a href="https://startbootstrap.com/theme/grayscale/">the preview page.</a>
-                            The theme is open source, and you can use it for any purpose, personal or commercial.
-                        </p>
-                        <p class="text-white-50">Copyright &copy; Your Website 2023</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
+    <div class="section">
+        <h3>Your Approximate Location</h3>
+        <div id="map"></div>
+        <p style="font-size:0.6em; color:#777; margin-top:8px;">Location is approximate based on IP geolocation (not
+            GPS).</p>
+    </div>
+
+    <div class="section">
+        <h3>Your Device & Browser</h3>
+        <div id="ua-container">
+            <table id="ua-table"></table>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 IP Cow | <a href="privacy.html">Privacy Policy</a>
+        <button id="export-btn" style="margin-left: 20px; padding: 8px 16px; background: var(--progress-success); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">Export Data</button>
+    </footer>
+
+    <div class="theme-toggle" id="themeToggle" title="Toggle dark mode"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef';
+
+        const IPV4_ENDPOINT = 'https://api4.ipify.org?format=json';
+        const IPV6_ENDPOINT = 'https://api64.ipify.org?format=json';
+
+        let ipv4 = null;
+        let ipv6 = null;
+        let geoData = {};
+        let batteryLevel = 'Loading...';
+
+        // Dark mode logic
+        const toggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        function setTheme(theme) {
+            html.setAttribute('data-theme', theme);
+            localStorage.setItem('ipcow-theme', theme);
+        }
+
+        const savedTheme = localStorage.getItem('ipcow-theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setTheme('dark');
+        }
+
+        toggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme') || 'light';
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        });
+
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const data = {
+                ips: {
+                    ipv4,
+                    ipv6
+                },
+                location: {
+                    continent: geoData.continent_name,
+                    country: geoData.country_name,
+                    region: geoData.region_name,
+                    city: geoData.city,
+                    zipCode: geoData.zip,
+                    latitude: geoData.latitude,
+                    longitude: geoData.longitude
+                },
+                isp: {
+                    organization: geoData.connection ? geoData.connection.org || geoData.connection.isp : 'Unknown',
+                    timezone: geoData.time_zone ? {
+                        id: geoData.time_zone.id,
+                        offset: geoData.time_zone.gmt_offset / 3600,
+                        currentTime: new Intl.DateTimeFormat('en-US', { timeZone: geoData.time_zone.id, dateStyle: 'full', timeStyle: 'medium' }).format(new Date())
+                    } : null
+                },
+                device: (() => {
+                    const fieldValues = {
+                        'Screen Resolution': `${screen.width} × ${screen.height}`,
+                        'Viewport Size': `${window.innerWidth} × ${window.innerHeight}`,
+                        'Connection Type': navigator.connection ? navigator.connection.effectiveType || 'Unknown' : 'Unknown',
+                        'Hardware Concurrency': navigator.hardwareConcurrency || 'Unknown',
+                        'Device Memory': navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'Unknown',
+                        'Language': navigator.language || 'Unknown',
+                        'Platform': navigator.platform || 'Unknown',
+                        'Screen Color Depth': `${screen.colorDepth} bits`,
+                        'Max Touch Points': navigator.maxTouchPoints || 'Unknown',
+                        'Cookies Enabled': navigator.cookieEnabled ? 'Yes' : 'No',
+                        'Do Not Track': navigator.doNotTrack || 'Not set',
+                        'Geolocation Available': 'geolocation' in navigator ? 'Yes' : 'No',
+                        'WebRTC Available': 'RTCPeerConnection' in window ? 'Yes' : 'No',
+                        'Vibration API': 'vibrate' in navigator ? 'Yes' : 'No',
+                        'Service Worker': 'serviceWorker' in navigator ? 'Yes' : 'No',
+                        'WebGL Support': (() => { try { const canvas = document.createElement('canvas'); const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl'); return gl ? 'Yes' : 'No'; } catch { return 'No'; } })(),
+                        'Web Audio API': 'AudioContext' in window || 'webkitAudioContext' in window ? 'Yes' : 'No',
+                        'Web Speech API': 'speechSynthesis' in window ? 'Yes' : 'No',
+                        'IndexedDB': 'indexedDB' in window ? 'Yes' : 'No',
+                        'Web Workers': 'Worker' in window ? 'Yes' : 'No',
+                        'WebSockets': 'WebSocket' in window ? 'Yes' : 'No',
+                        'Canvas Support': (() => { const c = document.createElement('canvas'); return c.getContext ? 'Yes' : 'No'; })(),
+                        'Touch Events': 'ontouchstart' in window ? 'Yes' : 'No',
+                        'Screen Orientation': screen.orientation ? screen.orientation.type : 'Unknown',
+                        'Timezone Offset': `${new Date().getTimezoneOffset()} minutes`
+                    };
+
+                    const groups = [
+                        { title: 'Display', fields: ['Screen Resolution', 'Viewport Size', 'Screen Color Depth', 'Device Pixel Ratio', 'Screen Orientation'] },
+                        { title: 'Hardware', fields: ['Hardware Concurrency', 'Device Memory', 'Max Touch Points'] },
+                        { title: 'Network', fields: ['Connection Type'] },
+                        { title: 'Localization', fields: ['Language', 'Timezone Offset'] },
+                        { title: 'Capabilities', fields: ['Cookies Enabled', 'Do Not Track', 'Geolocation Available', 'WebRTC Available', 'Vibration API', 'Service Worker', 'WebGL Support', 'Web Audio API', 'Web Speech API', 'IndexedDB', 'Web Workers', 'WebSockets', 'Canvas Support', 'Touch Events'] }
+                    ];
+
+                    const device = {
+                        browser: {
+                            name: bowser.getParser(navigator.userAgent).getBrowser().name,
+                            version: bowser.getParser(navigator.userAgent).getBrowser().version,
+                            userAgent: navigator.userAgent
+                        },
+                        os: {
+                            name: bowser.getParser(navigator.userAgent).getOS().name,
+                            version: bowser.getParser(navigator.userAgent).getOS().versionName
+                        },
+                        platform: {
+                            type: bowser.getParser(navigator.userAgent).getPlatform().type
+                        }
+                    };
+
+                    groups.forEach(group => {
+                        device[group.title.toLowerCase()] = {};
+                        group.fields.forEach(key => {
+                            device[group.title.toLowerCase()][key] = fieldValues[key];
+                        });
+                    });
+
+                    device.power = { 'Battery Level': batteryLevel };
+
+                    return device;
+                })()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ip-cow-data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        function copyIP(element) {
+            const ipText = element.firstChild.textContent.trim();
+
+            if (ipText) {
+                const tooltip = element.nextElementSibling;
+                if (tooltip) {
+                    tooltip.textContent = 'Copying...';
+                    tooltip.style.opacity = '1';
+
+                    navigator.clipboard.writeText(ipText).then(() => {
+                        tooltip.textContent = 'Copied!';
+                        setTimeout(() => {
+                            tooltip.style.opacity = '0';
+                        }, 1500);
+                    }).catch(err => {
+                        console.error('Secure context/Clipboard error:', err);
+                        tooltip.textContent = 'Failed to copy';
+                        setTimeout(() => {
+                            tooltip.style.opacity = '0';
+                        }, 1500);
+                    });
+                }
+            }
+        }
+
+        async function fetchIPv4() {
+            const container = document.getElementById('ipv4-container');
+            const ipEl = document.getElementById('ipv4-ip');
+
+            try {
+                const response = await fetch(IPV4_ENDPOINT, { signal: AbortSignal.timeout(8000) });
+                if (!response.ok) throw new Error();
+                const data = await response.json();
+                ipv4 = data.ip;
+                ipEl.textContent = ipv4;
+                container.classList.remove('loading', 'error');
+                container.classList.add('success');
+            } catch (err) {
+                ipEl.textContent = 'Unable to fetch';
+                container.classList.remove('loading', 'success');
+                container.classList.add('error');
+            }
+
+            ipEl.onclick = () => copyIP(ipEl);
+        }
+
+        async function fetchIPv6AndGeo() {
+            const container = document.getElementById('ipv6-container');
+            const ipEl = document.getElementById('ipv6-ip');
+
+            try {
+                const response = await fetch(IPV6_ENDPOINT, { signal: AbortSignal.timeout(8000) });
+                if (response.ok) {
+                    const data = await response.json();
+                    ipv6 = data.ip;
+                    ipEl.textContent = ipv6;
+                    container.classList.remove('loading', 'error');
+                    container.classList.add('success');
+                } else {
+                    throw new Error();
+                }
+            } catch (err) {
+                ipv6 = null;
+                container.style.display = 'none';
+            }
+
+            ipEl.onclick = () => copyIP(ipEl);
+
+            try {
+                const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
+                if (!geoResponse.ok) throw new Error();
+                geoData = await geoResponse.json();
+                displayIPDetails(geoData);
+                initMap(geoData.latitude, geoData.longitude);
+            } catch (geoErr) {
+                console.error('Geolocation failed:', geoErr);
+            }
+
+            if (ipv4 && ipv6 && ipv4 === ipv6) {
+                document.getElementById('ipv6-container').style.display = 'none';
+            }
+        }
+
+        function displayIPDetails(data) {
+            const table = document.getElementById('details-table');
+            table.innerHTML = '';
+
+            const locationFields = {
+                continent_name: 'Continent',
+                country_name: 'Country',
+                region_name: 'Region',
+                city: 'City',
+                zip: 'ZIP Code',
+                latitude: 'Latitude',
+                longitude: 'Longitude',
+            };
+
+            for (const key in locationFields) {
+                if (data[key] !== undefined && data[key] !== null) {
+                    const row = table.insertRow();
+                    row.insertCell(0).textContent = locationFields[key];
+                    const cell = row.insertCell(1);
+                    cell.innerHTML = `<span class="ua-value">${data[key]}</span>`;
+                }
+            }
+
+            if (data.connection) {
+                const row = table.insertRow();
+                row.insertCell(0).textContent = 'ISP / Organization';
+                const cell = row.insertCell(1);
+                cell.innerHTML = `<span class="ua-value">${data.connection.org || data.connection.isp || 'Unknown'}</span>`;
+            }
+
+            if (data.time_zone) {
+                const tz = data.time_zone;
+                const offsetHours = tz.gmt_offset ? tz.gmt_offset / 3600 : 0;
+                const row = table.insertRow();
+                row.insertCell(0).textContent = 'Timezone';
+                const cell = row.insertCell(1);
+                cell.innerHTML = `<span class="ua-value">${tz.id || 'Unknown'} (Offset: GMT${offsetHours >= 0 ? '+' : ''}${offsetHours})</span>`;
+
+                const timeRow = table.insertRow();
+                timeRow.insertCell(0).textContent = 'Current Time';
+                const timeCell = timeRow.insertCell(1);
+                const currentTime = new Intl.DateTimeFormat('en-US', { timeZone: tz.id, dateStyle: 'full', timeStyle: 'medium' }).format(new Date());
+                timeCell.innerHTML = `<span class="ua-value">${currentTime}</span>`;
+            }
+
+            document.getElementById('ip-details').style.display = 'block';
+        }
+
+        function initMap(lat, lng) {
+            if (!lat || !lng) {
+                document.getElementById('map').innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
+                return;
+            }
+
+            const map = L.map('map', {
+                center: [lat, lng],
+                zoom: 10
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            L.marker([lat, lng]).addTo(map).openPopup();
+        }
+
+        function parseClientInfo() {
+            const explanations = {
+                'Name': 'The name of your browser.',
+                'Version': 'The version number of your browser.',
+                'User-Agent String': 'The full user-agent string sent by your browser to websites.',
+                'Type': 'The type of platform your device is running on.',
+                'Screen Resolution': 'The width and height of your screen in pixels.',
+                'Viewport Size': 'The width and height of the browser window viewport.',
+                'Screen Color Depth': 'The number of bits used to represent the color of each pixel.',
+                'Device Pixel Ratio': 'The ratio of physical pixels to CSS pixels on your device.',
+                'Screen Orientation': 'The current orientation of your screen (portrait or landscape).',
+                'Hardware Concurrency': 'The number of logical processors available to run threads.',
+                'Device Memory': 'The amount of device memory (RAM) available.',
+                'Max Touch Points': 'The maximum number of simultaneous touch points supported.',
+                'Connection Type': 'An estimate of connection speed categorized as 2g/3g/4g (not the actual network type like cable or DSL).',
+                'Online Status': 'Whether your device is currently online.',
+                'Timezone Offset': 'The offset in minutes from UTC for your timezone.',
+                'Cookies Enabled': 'Whether cookies are enabled in your browser.',
+                'Do Not Track': 'Your browser\'s do-not-track preference.',
+                'Geolocation Available': 'Whether geolocation API is available.',
+                'WebRTC Available': 'Whether WebRTC (real-time communication) is supported.',
+                'Vibration API': 'Whether the device can vibrate.',
+                'Service Worker': 'Whether service workers are supported for background tasks.',
+                'WebGL Support': 'Whether WebGL is supported for 3D graphics.',
+                'Web Audio API': 'Whether the Web Audio API is supported for audio processing.',
+                'Web Speech API': 'Whether speech synthesis and recognition are supported.',
+                'IndexedDB': 'Whether IndexedDB is supported for client-side storage.',
+                'Web Workers': 'Whether web workers are supported for background scripts.',
+                'WebSockets': 'Whether WebSocket connections are supported.',
+                'Canvas Support': 'Whether HTML5 Canvas is supported for drawing.',
+                'Touch Events': 'Whether touch events are supported.',
+                'Battery Level': 'The current battery level of your device.'
+            };
+
+            const parser = bowser.getParser(navigator.userAgent);
+            const browser = parser.getBrowser();
+            const os = parser.getOS();
+            // const engine = parser.getEngine();
+            const platform = parser.getPlatform();
+
+            const table = document.getElementById('ua-table');
+            table.innerHTML = '';
+
+            const sections = [
+                { title: 'Browser', data: { Name: browser.name, Version: browser.version } },
+                // { title: 'Engine', data: { Name: engine.name, Version: engine.version } },
+                { title: 'OS', data: { Name: os.name, Version: os.version || os.versionName } },
+                { title: 'Platform', data: { Type: platform.type } }
+            ];
+
+            sections.forEach(section => {
+                const hasValue = Object.values(section.data).some(v => v);
+                if (!hasValue) return;
+
+                const headerRow = table.insertRow();
+                const headerCell = headerRow.insertCell(0);
+                headerCell.textContent = section.title;
+                headerCell.colSpan = 2;
+                headerCell.style.fontWeight = 'bold';
+                headerCell.style.background = 'var(--table-header-bg)';
+
+                if (section.title === 'Browser') {
+                    const uaRow = table.insertRow();
+                    const uaCell = uaRow.insertCell(0);
+                    uaCell.innerHTML = `User-Agent String <span class="info-icon" title="${explanations['User-Agent String']}"><i class="fa fa-question-circle"></i></span>`;
+                    const uaValueCell = uaRow.insertCell(1);
+                    uaValueCell.innerHTML = `<span class="ua-value" style="word-break:break-all; display:block;">${navigator.userAgent}</span>`;
+                }
+
+                for (const key in section.data) {
+                    const value = section.data[key];
+                    if (value) {
+                        const row = table.insertRow();
+                        const cell = row.insertCell(0);
+                        cell.innerHTML = `${key} <span class="info-icon" title="${explanations[key]}"><i class="fa fa-question-circle"></i></span>`;
+                        const valueCell = row.insertCell(1);
+                        valueCell.innerHTML = `<span class="ua-value">${value}</span>`;
+                    }
+                }
+            });
+
+            const fieldValues = {
+                'Screen Resolution': `${screen.width} × ${screen.height}`,
+                'Viewport Size': `${window.innerWidth} × ${window.innerHeight}`,
+                'Connection Type': navigator.connection ? navigator.connection.effectiveType || 'Unknown' : 'Unknown',
+                'Hardware Concurrency': navigator.hardwareConcurrency || 'Unknown',
+                'Device Memory': navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'Unknown',
+                'Language': navigator.language || 'Unknown',
+                'Platform': navigator.platform || 'Unknown',
+                'Screen Color Depth': `${screen.colorDepth} bits`,
+                'Device Pixel Ratio': window.devicePixelRatio || 'Unknown',
+                'Max Touch Points': navigator.maxTouchPoints || 'Unknown',
+                'Cookies Enabled': navigator.cookieEnabled ? 'Yes' : 'No',
+                'Do Not Track': navigator.doNotTrack || 'Not set',
+                'Geolocation Available': 'geolocation' in navigator ? 'Yes' : 'No',
+                'WebRTC Available': 'RTCPeerConnection' in window ? 'Yes' : 'No',
+                'Vibration API': 'vibrate' in navigator ? 'Yes' : 'No',
+                'Service Worker': 'serviceWorker' in navigator ? 'Yes' : 'No',
+                'WebGL Support': (() => { try { const canvas = document.createElement('canvas'); const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl'); return gl ? 'Yes' : 'No'; } catch { return 'No'; } })(),
+                'Web Audio API': 'AudioContext' in window || 'webkitAudioContext' in window ? 'Yes' : 'No',
+                'Web Speech API': 'speechSynthesis' in window ? 'Yes' : 'No',
+                'IndexedDB': 'indexedDB' in window ? 'Yes' : 'No',
+                'Web Workers': 'Worker' in window ? 'Yes' : 'No',
+                'WebSockets': 'WebSocket' in window ? 'Yes' : 'No',
+                'Canvas Support': (() => { const c = document.createElement('canvas'); return c.getContext ? 'Yes' : 'No'; })(),
+                'Touch Events': 'ontouchstart' in window ? 'Yes' : 'No',
+                'Screen Orientation': screen.orientation ? screen.orientation.type : 'Unknown',
+                'Timezone Offset': `${new Date().getTimezoneOffset()} minutes`
+            };
+
+            const groups = [
+                { title: 'Display', fields: ['Screen Resolution', 'Viewport Size', 'Screen Color Depth', 'Device Pixel Ratio', 'Screen Orientation'] },
+                { title: 'Hardware', fields: ['Hardware Concurrency', 'Device Memory', 'Max Touch Points'] },
+                { title: 'Network', fields: ['Connection Type'] },
+                { title: 'Localization', fields: ['Language', 'Timezone Offset'] },
+                { title: 'Capabilities', fields: ['Cookies Enabled', 'Do Not Track', 'Geolocation Available', 'WebRTC Available', 'Vibration API', 'Service Worker', 'WebGL Support', 'Web Audio API', 'Web Speech API', 'IndexedDB', 'Web Workers', 'WebSockets', 'Canvas Support', 'Touch Events'] }
+            ];
+
+            groups.forEach(group => {
+                const headerRow = table.insertRow();
+                const headerCell = headerRow.insertCell(0);
+                headerCell.textContent = group.title;
+                headerCell.colSpan = 2;
+                headerCell.style.fontWeight = 'bold';
+                headerCell.style.background = 'var(--table-header-bg)';
+
+                group.fields.forEach(key => {
+                    const row = table.insertRow();
+                    const cell = row.insertCell(0);
+                    cell.innerHTML = `${key} <span class="info-icon" title="${explanations[key]}"><i class="fa fa-question-circle"></i></span>`;
+                    const valueCell = row.insertCell(1);
+                    valueCell.innerHTML = `<span class="ua-value">${fieldValues[key]}</span>`;
+                });
+            });
+
+            // Add Power section header
+            const powerHeader = table.insertRow();
+            const powerCell = powerHeader.insertCell(0);
+            powerCell.textContent = 'Power';
+            powerCell.colSpan = 2;
+            powerCell.style.fontWeight = 'bold';
+            powerCell.style.background = 'var(--table-header-bg)';
+
+            // Add battery level asynchronously
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    batteryLevel = `${Math.round(battery.level * 100)}%`;
+                    const row = table.insertRow();
+                    const cell = row.insertCell(0);
+                    cell.innerHTML = `Battery Level <span class="info-icon" title="${explanations['Battery Level']}"><i class="fa fa-question-circle"></i></span>`;
+                    const valueCell = row.insertCell(1);
+                    valueCell.innerHTML = `<span class="ua-value">${batteryLevel}</span>`;
+                }).catch(() => {
+                    batteryLevel = 'Unavailable';
+                });
+            } else {
+                batteryLevel = 'Not supported';
+            }
+        }
+
+        // Run everything
+        Promise.allSettled([fetchIPv4(), fetchIPv6AndGeo()]).finally(parseClientInfo);
+    </script>
+</body>
+
 </html>
