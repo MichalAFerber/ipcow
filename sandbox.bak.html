@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐮 IP Cow</title>
-    <!-- Bowser from jsDelivr CDN (latest) -->
-    <script src="https://cdn.jsdelivr.net/npm/bowser@latest/bundled.js"></script>
+    <title>IP Cow - Your IP & Device Info</title>
+    <!-- UAParser.js from jsDelivr CDN (latest version) -->
+    <script src="https://cdn.jsdelivr.net/npm/ua-parser-js@latest/dist/ua-parser.min.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -15,7 +15,10 @@
             background: #f9f9fb;
             color: #333;
         }
-        h1 { text-align: center; color: #2c3e50; }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
         .section {
             background: white;
             border-radius: 12px;
@@ -40,12 +43,20 @@
             text-align: left;
             border-bottom: 1px solid #eee;
         }
-        th { background: #f1f1f1; width: 30%; }
+        th {
+            background: #f1f1f1;
+            width: 30%;
+        }
         .ip-display {
             font-size: 1.6em;
             font-weight: bold;
             color: #2c3e50;
             margin-bottom: 8px;
+        }
+        .status {
+            font-size: 0.9em;
+            color: #e74c3c;
+            font-weight: bold;
         }
         .progress-bar {
             width: 100%;
@@ -64,9 +75,23 @@
         .loading .progress { width: 100%; animation: pulse 1.5s infinite; }
         .success .progress { background: #27ae60; width: 100%; }
         .error .progress { background: #e74c3c; width: 100%; }
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-        .ua-value { font-family: monospace; background: #f8f8f8; padding: 2px 6px; border-radius: 4px; }
-        .note { font-size: 0.9em; color: #777; margin-top: 10px; }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .note {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 20px;
+        }
+        .ua-value {
+            font-family: monospace;
+            background: #f8f8f8;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -88,14 +113,14 @@
     </div>
 
     <div class="section">
-        <div class="label">Your Device & Browser (via Bowser + Browser APIs)</div>
+        <div class="label">Your Device & Browser (via UAParser.js)</div>
         <div id="ua-container">
             <table id="ua-table"></table>
         </div>
     </div>
 
     <script>
-        const TOKEN = 'b94b3cf0e305f1'; // Replace with your own token for reliability
+        const TOKEN = 'b94b3cf0e305f1'; // Replace with your own token
 
         async function fetchIP(version) {
             const subdomain = version === 4 ? 'v4' : 'v6';
@@ -114,12 +139,15 @@
                 container.classList.remove('loading', 'error');
                 container.classList.add('success');
 
-                // Use IPv4 response for shared details (country, ASN, etc.)
-                if (version === 4) displayIPDetails(data);
+                if (version === 4) {
+                    displayIPDetails(data);
+                }
 
+                return data.ip;
             } catch (err) {
                 const message = version === 6 ? 'Not available (no IPv6 connectivity)' : 'Unable to fetch';
                 ipEl.textContent = message;
+                ipEl.classList.add('status');
                 container.classList.remove('loading', 'success');
                 container.classList.add('error');
             }
@@ -132,7 +160,7 @@
             const fields = {
                 ip: 'IP Address',
                 asn: 'ASN',
-                as_name: 'ISP / Organization',
+                as_name: 'ASN Name',
                 as_domain: 'ASN Domain',
                 country_code: 'Country Code',
                 country: 'Country',
@@ -144,39 +172,30 @@
                 if (data[key] !== undefined) {
                     const row = table.insertRow();
                     row.insertCell(0).textContent = fields[key];
-                    const valueCell = row.insertCell(1);
-                    valueCell.textContent = data[key] || '-';
-                    valueCell.innerHTML += ` <span class="ua-value">${data[key] || '-'}</span>`;
+                    row.insertCell(1).textContent = data[key] || '-';
                 }
             }
-
-            // Add note about limited fields
-            const noteRow = table.insertRow();
-            const noteCell = noteRow.insertCell(0);
-            noteCell.colSpan = 2;
-            noteCell.innerHTML = '<div class="note">Note: Latitude, Longitude, and Timezone are not available in the free Lite API. Upgrade to a paid plan for city/region/timezone/loc data.</div>';
 
             document.getElementById('ip-details').style.display = 'block';
         }
 
-        function parseClientInfo() {
-            const parser = Bowser.getParser(navigator.userAgent);
-            const browser = parser.getBrowser();
-            const os = parser.getOS();
-            const engine = parser.getEngine();
-            const platform = parser.getPlatform();
+        function parseUserAgent() {
+            const parser = new UAParser();
+            const result = parser.getResult();
 
             const table = document.getElementById('ua-table');
             table.innerHTML = '';
 
             const sections = [
-                { title: 'Browser', data: { Name: browser.name, Version: browser.version } },
-                { title: 'Engine', data: { Name: engine.name, Version: engine.version } },
-                { title: 'OS', data: { Name: os.name, Version: os.version || os.versionName } },
-                { title: 'Platform', data: { Type: platform.type } }
+                { title: 'Browser', data: { Name: result.browser.name, Version: result.browser.version, Major: result.browser.major } },
+                { title: 'Engine', data: { Name: result.engine.name, Version: result.engine.version } },
+                { title: 'OS', data: { Name: result.os.name, Version: result.os.version } },
+                { title: 'Device', data: { Model: result.device.model, Vendor: result.device.vendor, Type: result.device.type } },
+                { title: 'CPU', data: { Architecture: result.cpu.architecture } }
             ];
 
             sections.forEach(section => {
+                // Only add section if there's at least one non-empty value
                 const hasValue = Object.values(section.data).some(v => v);
                 if (!hasValue) return;
 
@@ -188,32 +207,18 @@
                 headerCell.style.background = '#f1f1f1';
 
                 for (const key in section.data) {
-                    const value = section.data[key];
-                    if (value) {
+                    if (section.data[key]) {
                         const row = table.insertRow();
                         row.insertCell(0).textContent = key;
-                        const cell = row.insertCell(1);
-                        cell.innerHTML = `<span class="ua-value">${value}</span>`;
+                        const valueCell = row.insertCell(1);
+                        valueCell.innerHTML = `<span class="ua-value">${section.data[key]}</span>`;
                     }
                 }
             });
-
-            // Add client-side only fields
-            const clientFields = {
-                'Viewport Size': `${window.innerWidth} × ${window.innerHeight}`,
-                'Screen Resolution': `${screen.width} × ${screen.height}`
-            };
-
-            for (const label in clientFields) {
-                const row = table.insertRow();
-                row.insertCell(0).textContent = label;
-                const cell = row.insertCell(1);
-                cell.innerHTML = `<span class="ua-value">${clientFields[label]}</span>`;
-            }
         }
 
-        // Run on load
-        Promise.allSettled([fetchIP(4), fetchIP(6)]).finally(parseClientInfo);
+        // Run everything
+        Promise.allSettled([fetchIP(4), fetchIP(6)]).finally(parseUserAgent);
     </script>
 </body>
 </html>
