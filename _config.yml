@@ -1,0 +1,34 @@
+# Site settings
+title: "IP Cow"
+description: "A modern, privacy-focused web application that displays your IP address, geolocation, ISP information, and device details"
+url: "https://ipcow.com"
+baseurl: ""
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+# Collections
+collections:
+  pages:
+    output: true
+    permalink: /:name/
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - .bundle/
+  - .sass-cache/
+  - .jekyll-cache/
+  - gemfiles/
+  - .bundle
+
+# Include files
+include:
+  - _pages
+
+# Custom variables
+author: "Michal Ferber"
+email: "michal@techguywithabeard.com"

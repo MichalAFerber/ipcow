@@ -1,0 +1,56 @@
+---
+layout: default
+title: Privacy Policy - IP Cow
+description: Privacy policy for IP Cow - Learn how we collect, use, and protect your information when using our IP address lookup tool.
+---
+
+<div class="section">
+    <h3>Privacy Policy</h3>
+    <p>At IP Cow, we are committed to protecting your privacy. This privacy policy explains how we collect, use, and safeguard your information when you use our website.</p>
+
+    <h4>Information We Collect</h4>
+    <p>We collect the following information for display purposes only:</p>
+    <ul>
+        <li>Your IP address (IPv4 and IPv6)</li>
+        <li>Approximate location based on IP geolocation</li>
+        <li>ISP and organization information</li>
+        <li>Device and browser details (screen resolution, browser type, operating system, etc.)</li>
+    </ul>
+
+    <h4>How We Use Your Information</h4>
+    <p>The information collected is used solely to provide you with details about your internet connection and device. We do not store, share, sell, or use this information for any other purposes.</p>
+
+    <h4>Data Storage and Security</h4>
+    <p>All data is fetched in real-time from your browser and external APIs. We do not store any personal information on our servers. The data is processed locally in your browser and is not transmitted to us except for the necessary API calls to retrieve IP and location information.</p>
+
+    <h4>Third-Party Services</h4>
+    <p>We use the following third-party services:</p>
+    <ul>
+        <li><strong>ipify.org</strong>: For retrieving your IP addresses</li>
+        <li><strong>IPStack</strong>: For geolocation and ISP information</li>
+        <li><strong>OpenStreetMap/Leaflet</strong>: For displaying the map</li>
+        <li><strong>Google AdSense</strong>: For displaying advertisements</li>
+    </ul>
+    <p>These services have their own privacy policies, which we encourage you to review.</p>
+
+    <h4>Advertising</h4>
+    <p>We use Google AdSense to display advertisements on our website. Google AdSense may use cookies and web beacons to collect information about your visit to this site and other sites in order to provide advertisements about goods and services of interest to you.</p>
+
+    <p>Google's use of advertising cookies enables it and its partners to serve ads to you based on your visit to our site and/or other sites on the Internet. You may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank">Google's Ads Settings</a>.</p>
+
+    <p>For more information about how Google uses data when you use our partners' sites or apps, please visit <a href="https://policies.google.com/technologies/partner-sites" target="_blank">Google's Privacy Policy</a>.</p>
+
+    <h4>Cookies and Local Storage</h4>
+    <p>We use local storage to remember your theme preference (light/dark mode). Additionally, Google AdSense may use cookies for advertising purposes as described in the Advertising section above. No other cookies or tracking mechanisms are used by IP Cow itself.</p>
+
+    <h4>Your Rights</h4>
+    <p>You have the right to know what information is collected and how it is used. Since we do not store any data, there is no data to delete or modify.</p>
+
+    <h4>Changes to This Policy</h4>
+    <p>We may update this privacy policy from time to time. Any changes will be reflected on this page.</p>
+
+    <h4>Contact Us</h4>
+    <p>If you have any questions about this privacy policy, please contact us at [contact information].</p>
+
+    <p><em>Last updated: January 3, 2026</em></p>
+</div>
