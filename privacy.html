@@ -16,10 +16,7 @@
 </head>
 
 <body>
-    <header onclick="window.location.href='/'" style="cursor:pointer;">
-        <h1><img src="/assets/favicon/apple-touch-icon.png" width="32px" height="32px" alt="Cow Head"> IP Cow <img src="/assets/favicon/cow.png" width="40px" height="40px" alt="Cow"></h1>
-        <h2>30-Year Anniversary — Est. 1995</h2>
-    </header>
+    <div id="header-container"></div>
 
     <div class="section">
         <h3>Privacy Policy</h3>
@@ -72,34 +69,9 @@
         <p><em>Last updated: January 3, 2026</em></p>
     </div>
 
-    <footer>
-        &copy; 2026 IP Cow | <a href="/">Home</a>
-    </footer>
+    <div id="footer-container"></div>
 
-    <div class="theme-toggle" id="themeToggle" title="Toggle dark mode"></div>
-
-    <script>
-        // Dark mode logic
-        const toggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
-
-        function setTheme(theme) {
-            html.setAttribute('data-theme', theme);
-            localStorage.setItem('ipcow-theme', theme);
-        }
-
-        const savedTheme = localStorage.getItem('ipcow-theme');
-        if (savedTheme) {
-            setTheme(savedTheme);
-        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            setTheme('dark');
-        }
-
-        toggle.addEventListener('click', () => {
-            const current = html.getAttribute('data-theme') || 'light';
-            setTheme(current === 'dark' ? 'light' : 'dark');
-        });
-    </script>
+    <script src="assets/js/includes.js"></script>
 </body>
 
 </html>

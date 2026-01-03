@@ -19,11 +19,7 @@
 </head>
 
 <body>
-    <header onclick="window.location.href='/'" style="cursor:pointer;">
-        <h1><img src="assets/favicon/apple-touch-icon.png" width="32px" height="32px" alt="Cow Head"> IP Cow <img
-                src="assets/favicon/cow.png" width="40px" height="40px" alt="Cow"></h1>
-        <h2>30-Year Anniversary — Est. 1995</h2>
-    </header>
+    <div id="header-container"></div>
 
     <div class="section">
         <div id="ipv4-container" class="loading">
@@ -59,16 +55,10 @@
         </div>
     </div>
 
-    <footer>
-        &copy; 2026 IP Cow | <a href="privacy.html">Privacy Policy</a>
-        <button id="export-btn"
-            style="margin-left: 20px; padding: 8px 16px; background: var(--progress-success); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">Export
-            Data</button>
-    </footer>
-
-    <div class="theme-toggle" id="themeToggle" title="Toggle dark mode" style="position: fixed !important; top: 20px !important; right: 40px !important; z-index: 1000 !important;"></div>
+    <div id="footer-container"></div>
     <script async src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script async src="assets/js/ipcow.js"></script>
+    <script src="assets/js/includes.js"></script>
 </body>
 
 </html>

@@ -42,6 +42,9 @@ coverage/
 dist/
 build/
 
+# Include fragments (not meant to be accessed directly)
+includes/
+
 # Environment variables
 .env
 .env.local

@@ -6,27 +6,6 @@ let ipv6 = null;
 let geoData = {};
 let batteryLevel = 'Loading...';
 
-// Dark mode logic
-const toggle = document.getElementById('themeToggle');
-const html = document.documentElement;
-
-function setTheme(theme) {
-    html.setAttribute('data-theme', theme);
-    localStorage.setItem('ipcow-theme', theme);
-}
-
-const savedTheme = localStorage.getItem('ipcow-theme');
-if (savedTheme) {
-    setTheme(savedTheme);
-} else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    setTheme('dark');
-}
-
-toggle.addEventListener('click', () => {
-    const current = html.getAttribute('data-theme') || 'light';
-    setTheme(current === 'dark' ? 'light' : 'dark');
-});
-
 // Handle info icon clicks for tooltip display
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('info-icon')) {
