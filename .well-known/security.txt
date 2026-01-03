@@ -1,0 +1,11 @@
+# IP Cow Security Policy
+# RFC 9116 - https://tools.ietf.org/html/rfc9116
+
+Contact: mailto:security@ipcow.com
+Expires: 2027-01-03T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://ipcow.com/.well-known/security.txt
+
+# This is a static website with no server-side processing
+# Security issues should be reported to the contact above
+# No bounties are offered at this time

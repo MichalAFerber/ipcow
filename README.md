@@ -133,6 +133,16 @@ This project uses free tiers of the following APIs:
 - **IPStack**: https://ipstack.com/ (10,000 free requests/month)
 - **OpenStreetMap**: https://www.openstreetmap.org/ (free to use)
 
+## 📋 Site Files
+
+- **ads.txt** - Google AdSense verification
+- **robots.txt** - Search engine crawling instructions
+- **sitemap.xml** - Search engine indexing
+- **humans.txt** - Site credits and information
+- **security.txt** - Security contact information (RFC 9116)
+- **.well-known/** - Standard web discovery files
+- **.htaccess** - Apache server configuration
+
 ## 🔒 Privacy & Security
 
 - **No Data Collection**: All processing happens client-side

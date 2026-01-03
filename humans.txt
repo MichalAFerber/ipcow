@@ -1,0 +1,24 @@
+/* TEAM */
+Creator: Michal Ferber
+Contact: michal@techguywithabeard.com
+Location: United States
+Twitter: @yourhandle
+
+/* SITE */
+Last update: 2026/01/03
+Language: English
+Standards: HTML5, CSS3, ES6+
+Components: Leaflet, Bowser, ipify, IPStack
+IDE: VS Code
+
+/* THANKS */
+ipify: For IP detection API
+IPStack: For geolocation services
+Leaflet: For mapping library
+Bowser: For browser detection
+OpenStreetMap: For map data
+
+/* NOTE */
+This is a privacy-focused tool that displays
+your IP address and device information.
+No data is stored or tracked.
