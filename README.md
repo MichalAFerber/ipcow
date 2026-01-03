@@ -45,6 +45,7 @@ All data processing happens in your browser - no server-side tracking or data st
 - **Node.js**: Development server and package management
 - **Git**: Version control
 - **VS Code**: Development environment
+- **Dynamic Includes**: Custom JavaScript system for reusable header/footer components
 
 ## 📱 Screenshots
 
@@ -115,6 +116,7 @@ Contributions are welcome! This project aims to be a helpful tool for developers
 - Ensure responsive design works on all screen sizes
 - Keep the codebase clean and well-documented
 - Respect user privacy - no tracking or data collection
+- **Header/Footer Changes**: Update `includes/header.html` and `includes/footer.html` for site-wide changes
 
 ### Areas for Contribution
 
