@@ -46,6 +46,7 @@ All data processing happens in your browser - no server-side tracking or data st
 - **Git**: Version control
 - **VS Code**: Development environment
 - **Dynamic Includes**: Custom JavaScript system for reusable header/footer components
+- **Manual Head Includes**: Consistent head content maintained across pages (see `includes/README.md`)
 
 ## 📱 Screenshots
 
