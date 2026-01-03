@@ -72,8 +72,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const IPSTACK_KEY = '34df1070bcc7d00920472b33404843ef';
-
         const IPV4_ENDPOINT = 'https://api4.ipify.org?format=json';
         const IPV6_ENDPOINT = 'https://api64.ipify.org?format=json';
 
@@ -267,14 +265,27 @@
 
             ipEl.onclick = () => copyIP(ipEl);
 
+            // try {
+            //     const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
+            //     if (!geoResponse.ok) throw new Error();
+            //     geoData = await geoResponse.json();
+            //     displayIPDetails(geoData);
+            //     initMap(geoData.latitude, geoData.longitude);
+            // } catch (geoErr) {
+            //     console.error('Geolocation failed:', geoErr);
+            // }
+
             try {
-                const geoResponse = await fetch(`https://api.ipstack.com/check?access_key=${IPSTACK_KEY}`);
+                // Replace with your actual worker URL after deployment
+                const geoResponse = await fetch('https://ipcow-geo-proxy.techguywithabeard.workers.dev/', { signal: AbortSignal.timeout(10000) });
                 if (!geoResponse.ok) throw new Error();
                 geoData = await geoResponse.json();
                 displayIPDetails(geoData);
                 initMap(geoData.latitude, geoData.longitude);
             } catch (geoErr) {
                 console.error('Geolocation failed:', geoErr);
+                // Optional: fallback message
+                document.getElementById('ip-details').innerHTML = '<p style="color:#999;">Location data unavailable</p>';
             }
 
             if (ipv4 && ipv6 && ipv4 === ipv6) {
