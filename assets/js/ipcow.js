@@ -27,6 +27,30 @@ toggle.addEventListener('click', () => {
     setTheme(current === 'dark' ? 'light' : 'dark');
 });
 
+// Handle info icon clicks for tooltip display
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('info-icon')) {
+        const title = e.target.getAttribute('title');
+        if (title) {
+            let tooltip = document.querySelector('.custom-tooltip');
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.className = 'custom-tooltip';
+                document.body.appendChild(tooltip);
+            }
+            tooltip.textContent = title;
+            const rect = e.target.getBoundingClientRect();
+            tooltip.style.left = (rect.left + rect.width / 2 - 50) + 'px'; // center above
+            tooltip.style.top = (rect.top - 35) + 'px';
+            tooltip.style.display = 'block';
+            // Hide after 3 seconds
+            setTimeout(() => {
+                tooltip.style.display = 'none';
+            }, 3000);
+        }
+    }
+});
+
 document.getElementById('export-btn').addEventListener('click', () => {
     const data = {
         ips: {
@@ -193,7 +217,7 @@ async function fetchIPv6AndGeo() {
 
     try {
         // Replace with your actual worker URL after deployment
-        const geoResponse = await fetch('https://ipcow-geo-proxy.techguywithabeard.workers.dev/', { signal: AbortSignal.timeout(10000) });
+        const geoResponse = await fetch('https://ipcow-geo-proxy.techguywithabeard.workers.dev', { signal: AbortSignal.timeout(10000) });
         if (!geoResponse.ok) throw new Error();
         geoData = await geoResponse.json();
         displayIPDetails(geoData);
@@ -312,6 +336,7 @@ function parseClientInfo() {
     const parser = bowser.getParser(navigator.userAgent);
     const browser = parser.getBrowser();
     const os = parser.getOS();
+    const platform = parser.getPlatform();
 
     const table = document.getElementById('ua-table');
     if (!table) return;
@@ -319,7 +344,8 @@ function parseClientInfo() {
 
     const sections = [
         { title: 'Browser', data: { Name: browser.name, Version: browser.version } },
-
+        { title: 'OS', data: { Name: os.name, Version: os.version || os.versionName } },
+        { title: 'Platform', data: { Type: platform.type } }
     ];
 
     sections.forEach(section => {

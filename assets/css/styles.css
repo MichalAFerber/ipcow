@@ -212,27 +212,54 @@
           opacity: 1;
         }
 
-        #map {
-          height: 300px;
+        .custom-tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            z-index: 1000;
+            display: none;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        [data-theme="dark"] .custom-tooltip {
+            background: #f0f0f0;
+            color: #333;
+        }
           border-radius: 12px;
           margin-top: 20px;
         }
 
         .theme-toggle {
-          position: fixed;
-          bottom: 20px;
-          right: 20px;
-          background: var(--section-bg);
-          border: 1px solid var(--table-border);
-          border-radius: 50px;
-          width: 60px;
-          height: 34px;
-          cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-          display: flex;
-          align-items: center;
-          padding: 4px;
-          transition: background 0.3s;
+            position: fixed !important;
+            top: 20px !important;
+            right: 40px !important;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            width: 60px;
+            height: 34px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            transition: all 0.3s ease;
+            z-index: 1000 !important;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        [data-theme="dark"] .theme-toggle:hover {
+            background: rgba(0, 0, 0, 0.3);
         }
 
         .theme-toggle::before {
@@ -282,5 +309,10 @@
 
           body {
             margin: 10px auto 60px;
+          }
+
+          .info-icon {
+            font-size: 1.2em;
+            margin-left: 6px;
           }
         }
