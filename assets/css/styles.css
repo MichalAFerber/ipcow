@@ -383,3 +383,23 @@ footer {
     margin-left: 6px;
   }
 }
+
+#export-btn {
+    padding: 10px 20px !important;     /* Vertical 10px, horizontal 20px – common comfortable button padding */
+    margin: 15px auto !important;      /* 15px top/bottom margin, centered horizontally (adjust if not block-level) */
+    display: block !important;         /* Ensures consistent block behavior for centering */
+    width: fit-content !important;     /* Prevents full-width stretching unless desired */
+    background-color: #007bff !important; /* Example: Bootstrap-like primary blue */
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    text-align: center !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+    transition: background-color 0.2s !important;
+}
+
+#export-btn:hover {
+    background-color: #0056b3 !important; /* Darker shade on hover */
+}
