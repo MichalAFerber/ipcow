@@ -5,7 +5,7 @@
 
 function loadIncludes() {
     // Load header
-    fetch('includes/header.html')
+    fetch('../../includes/header.html')
         .then(response => response.text())
         .then(html => {
             const headerContainer = document.getElementById('header-container');

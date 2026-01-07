@@ -341,7 +341,7 @@ function parseClientInfo() {
         if (section.title === 'Browser') {
             const uaRow = table.insertRow();
             const uaCell = uaRow.insertCell(0);
-            uaCell.innerHTML = `User-Agent String <span class="info-icon" title="${explanations['User-Agent String']}"><i class="fa fa-question-circle"></i></span>`;
+            uaCell.innerHTML = `User-Agent String <i class="fa fa-question-circle info-icon" title="${explanations['User-Agent String']}"></i>`;
             const uaValueCell = uaRow.insertCell(1);
             uaValueCell.innerHTML = `<span class="ua-value" style="word-break:break-all; display:block;">${navigator.userAgent}</span>`;
         }
@@ -351,7 +351,7 @@ function parseClientInfo() {
             if (value) {
                 const row = table.insertRow();
                 const cell = row.insertCell(0);
-                cell.innerHTML = `${key} <span class="info-icon" title="${explanations[key]}"><i class="fa fa-question-circle"></i></span>`;
+                cell.innerHTML = `${key} <i class="fa fa-question-circle info-icon" title="${explanations[key]}"></i>`;
                 const valueCell = row.insertCell(1);
                 valueCell.innerHTML = `<span class="ua-value">${value}</span>`;
             }
@@ -406,7 +406,7 @@ function parseClientInfo() {
         group.fields.forEach(key => {
             const row = table.insertRow();
             const cell = row.insertCell(0);
-            cell.innerHTML = `${key} <span class="info-icon" title="${explanations[key]}"><i class="fa fa-question-circle"></i></span>`;
+            cell.innerHTML = `${key} <i class="fa fa-question-circle info-icon" title="${explanations[key]}"></i>`;
             const valueCell = row.insertCell(1);
             valueCell.innerHTML = `<span class="ua-value">${fieldValues[key]}</span>`;
         });
@@ -426,7 +426,7 @@ function parseClientInfo() {
             batteryLevel = `${Math.round(battery.level * 100)}%`;
             const row = table.insertRow();
             const cell = row.insertCell(0);
-            cell.innerHTML = `Battery Level <span class="info-icon" title="${explanations['Battery Level']}"><i class="fa fa-question-circle"></i></span>`;
+            cell.innerHTML = `Battery Level <i class="fa fa-question-circle info-icon" title="${explanations['Battery Level']}"></i>`;
             const valueCell = row.insertCell(1);
             valueCell.innerHTML = `<span class="ua-value">${batteryLevel}</span>`;
         }).catch(() => {
