@@ -41,5 +41,5 @@ extra_scripts:
 </div>
 
 <div style="text-align: center; margin-top: 20px;">
-    <button id="export-btn" style="margin-left: 20px; padding: 8px 16px; background: var(--progress-success); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">Export Data (JSON Format)</button>
+    <button id="export-btn" style="padding: 8px 16px; background: var(--progress-success); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">Export Data (JSON Format)</button>
 </div>
