@@ -309,6 +309,10 @@ td:nth-child(1) {
   transform: translateX(26px);
 }
 
+footer {
+  margin-top: auto;
+}
+
 #footer,
 #footer-copyright {
   background: black;
