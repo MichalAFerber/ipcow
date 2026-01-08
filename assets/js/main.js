@@ -1,2 +1,0 @@
-// Set the footer
-document.getElementById('footer-copyright').innerHTML = `&copy; ${new Date().getFullYear()} | Created with <i class="fa-solid fa-heart" style="color: red;"></i> by <a href="https://michalferber.com" target="_blank">Michal Ferber, aka TechGuyWithABeard</a>`;
