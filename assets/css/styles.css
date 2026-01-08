@@ -28,6 +28,8 @@
 html, body {
   height: 100%;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -63,30 +65,32 @@ body::before {
   font-family: 'Fira Code', monospace;
 }
 
-h1 {
-  text-align: center;
-  color: white;
-  margin-bottom: 30px;
-  font-size: 2.5em;
-  font-weight: bold;
-}
-
 header {
   background: black;
   color: white;
   padding: 20px;
   margin: 0 0 20px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: background 0.3s, box-shadow 0.3s;
   cursor: pointer;
+}
+
+h1 {
+  text-align: center;
+  color: white;
+  margin-bottom: 30px;
 }
 
 h2 {
   text-align: center;
   color: white;
-  font-size: 1em;
-  font-weight: normal;
   margin: 5px 0 20px;
+}
+
+h3 {
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-bottom: 12px;
+  color: var(--label);
 }
 
 .section {
@@ -95,15 +99,7 @@ h2 {
   padding: 20px;
   margin: 20px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: background 0.3s;
   color: var(--text);
-}
-
-h3 {
-  font-weight: bold;
-  font-size: 1.2em;
-  margin-bottom: 12px;
-  color: var(--label);
 }
 
 table {
@@ -139,8 +135,8 @@ td:nth-child(1) {
 }
 
 .ip-display {
+  font-family: 'Fira Code', monospace;
   font-size: 2em;
-  font-weight: bold;
   color: var(--text);
   margin-bottom: 8px;
   word-break: break-all;
@@ -149,7 +145,6 @@ td:nth-child(1) {
   display: inline-block;
   padding: 4px 8px;
   border-radius: 6px;
-  transition: background 0.2s;
 }
 
 .ip-display:hover {
@@ -314,15 +309,6 @@ td:nth-child(1) {
   transform: translateX(26px);
 }
 
-footer {
-  text-align: center;
-  margin-top: auto;
-  padding: 0;
-  padding-top: 40px;
-  font-size: 0.9em;
-  color: #777;
-}
-
 #footer,
 #footer-copyright {
   background: black;
@@ -345,12 +331,13 @@ footer {
 }
 
 #footer {
-  padding-top: 40px;
+  padding-top: 20px;
+  padding-bottom: 0;
 }
 
 #footer-copyright {
   padding-top: 20px;
-  padding-bottom: 40px;
+  padding-bottom: 20px;
 }
 
 @media (max-width: 600px) {
@@ -374,10 +361,6 @@ footer {
     margin: 0 0 10px 0;
   }
 
-  .wrapper {
-    margin: 10px auto 0;
-  }
-
   .info-icon {
     font-size: 1.2em;
     margin-left: 6px;
@@ -386,7 +369,7 @@ footer {
 
 #export-btn {
     padding: 10px 20px !important;     /* Vertical 10px, horizontal 20px – common comfortable button padding */
-    margin: 15px auto !important;      /* 15px top/bottom margin, centered horizontally (adjust if not block-level) */
+    margin: 0 auto !important;      /* 0 top/bottom margin, centered horizontally (adjust if not block-level) */
     display: block !important;         /* Ensures consistent block behavior for centering */
     width: fit-content !important;     /* Prevents full-width stretching unless desired */
     background-color: #007bff !important; /* Example: Bootstrap-like primary blue */
@@ -397,9 +380,40 @@ footer {
     cursor: pointer !important;
     text-align: center !important;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
-    transition: background-color 0.2s !important;
 }
 
 #export-btn:hover {
     background-color: #0056b3 !important; /* Darker shade on hover */
+}
+
+.ip-box, .ipv4-display, .info-box, .isp-info, .location-info {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box; /* Includes padding/borders in width */
+    overflow-x: hidden; /* Prevent internal overflow */
+}
+
+.container, .row, .main-content {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.adsense-container {
+    overflow: hidden;
+    position: relative;
+}
+
+.fredericka-the-great-regular {
+  font-family: "Fredericka the Great", serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 1.5em;
+}
+
+.fredericka-the-great-medium {
+  font-family: "Fredericka the Great", serif;
+  font-weight: 500;
+  font-style: normal;
+  font-size: 4em;
 }
