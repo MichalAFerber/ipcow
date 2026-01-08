@@ -196,7 +196,7 @@ async function fetchIPv6AndGeo() {
 
     try {
         // Replace with your actual worker URL after deployment
-        const geoResponse = await fetch('https://ipcow-geo-proxy.techguywithabeard.workers.dev', { signal: AbortSignal.timeout(10000) });
+        const geoResponse = await fetch('https://geo.ipcow.com/', { signal: AbortSignal.timeout(10000) });
         if (!geoResponse.ok) throw new Error();
         geoData = await geoResponse.json();
         displayIPDetails(geoData);
