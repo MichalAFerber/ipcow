@@ -3,5 +3,7 @@ source 'https://rubygems.org'
 gem 'jekyll', '~> 4.3'
 
 group :jekyll_plugins do
-  # Add any Jekyll plugins here
+  gem 'jekyll-sitemap'
+  gem 'jekyll-seo-tag'
+  gem 'jekyll-feed'
 end
