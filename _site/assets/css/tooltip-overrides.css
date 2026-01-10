@@ -1,0 +1,46 @@
+/* Site dark theme is controlled via html[data-theme="dark"] */
+html[data-theme="dark"] .icon-help,
+html[data-theme="dark"] .info-icon,
+html[data-theme="dark"] .icon-help::before,
+html[data-theme="dark"] .info-icon::before {
+    color: rgba(255, 255, 255, 0.95) !important;
+    fill: rgba(255, 255, 255, 0.95) !important;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.95) !important;
+    opacity: 0.95 !important;
+    /* If the icon is an SVG or font glyph, color/fill above should work.
+       If it's a background-image, this filter makes it appear white. */
+    filter: brightness(0) invert(1) !important;
+}
+
+html[data-theme="dark"] .icon-help:hover,
+html[data-theme="dark"] .info-icon:hover,
+html[data-theme="dark"] .icon-help:hover::before,
+html[data-theme="dark"] .info-icon:hover::before {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* Explicit SVG support (if icons are inline SVGs) */
+html[data-theme="dark"] .icon-help svg,
+html[data-theme="dark"] .info-icon svg,
+html[data-theme="dark"] .icon-help svg *,
+html[data-theme="dark"] .info-icon svg * {
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
+/* Fallback for users without explicit toggle state */
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme]) .icon-help,
+    html:not([data-theme]) .info-icon,
+    html:not([data-theme]) .icon-help::before,
+    html:not([data-theme]) .info-icon::before {
+        color: rgba(255, 255, 255, 0.95) !important;
+        fill: rgba(255, 255, 255, 0.95) !important;
+        -webkit-text-fill-color: rgba(255, 255, 255, 0.95) !important;
+        opacity: 0.95 !important;
+        filter: none !important;
+    }
+}

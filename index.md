@@ -7,22 +7,20 @@ extra_scripts:
 ---
 
 <div class="section">
-    <div id="ipv4-container" class="loading">
-        <div class="ip-display" id="ipv4-ip" onclick="copyIP(this)">Loading IPv4...</div>
-        <div class="tooltip">Copied!</div>
-        <div class="spinner"></div>
+    <div id="ipv4-container">
+        <div class="ip-display" id="ipv4-ip">Loading IPv4...</div>
     </div>
-    <div id="ipv6-container" class="loading" style="margin-top:20px;">
-        <div class="ip-display" id="ipv6-ip" onclick="copyIP(this)">Loading IPv6...</div>
-        <div class="tooltip">Copied!</div>
-        <div class="spinner"></div>
+    <div id="ipv6-container" style="margin-top:20px;">
+        <div class="ip-display" id="ipv6-ip">Loading IPv6...</div>
     </div>
 </div>
 
 <div class="section">
     <h3>Your ISP Information</h3>
     <div id="ip-details" style="margin-top:30px; display:none;">
-        <table id="details-table"></table>
+        <div class="table-scroll" aria-label="Scrollable table">
+            <table id="details-table"></table>
+        </div>
     </div>
 </div>
 
@@ -36,7 +34,9 @@ extra_scripts:
 <div class="section">
     <h3>Your Device & Browser</h3>
     <div id="ua-container">
-        <table id="ua-table"></table>
+        <div class="table-scroll" aria-label="Scrollable table">
+            <table id="ua-table"></table>
+        </div>
     </div>
 </div>
 

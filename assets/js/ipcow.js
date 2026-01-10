@@ -6,29 +6,170 @@ let ipv6 = null;
 let geoData = {};
 let batteryLevel = 'Loading...';
 
-// Handle info icon clicks for tooltip display
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('info-icon')) {
-        const title = e.target.getAttribute('title');
-        if (title) {
-            let tooltip = document.querySelector('.custom-tooltip');
-            if (!tooltip) {
-                tooltip = document.createElement('div');
-                tooltip.className = 'custom-tooltip';
-                document.body.appendChild(tooltip);
+// Help-icon tooltip (hover on desktop, tap/click on mobile)
+(() => {
+    const HELP_ICON_SELECTOR = '.icon-help, .info-icon';
+    let tooltipEl = null;
+    let hideTimer = null;
+    let currentTarget = null;
+
+    const ensureTooltipEl = () => {
+        if (tooltipEl) return tooltipEl;
+        tooltipEl = document.createElement('div');
+        tooltipEl.className = 'help-tooltip';
+        document.body.appendChild(tooltipEl);
+
+        // Apply styles with !important to avoid CDN/Bootstrap overrides.
+        const setImportantStyles = (styles) => {
+            for (const [key, value] of Object.entries(styles)) {
+                tooltipEl.style.setProperty(key, value, 'important');
             }
-            tooltip.textContent = title;
-            const rect = e.target.getBoundingClientRect();
-            tooltip.style.left = (rect.left + rect.width / 2 - 50) + 'px'; // center above
-            tooltip.style.top = (rect.top - 35) + 'px';
-            tooltip.style.display = 'block';
-            // Hide after 3 seconds
-            setTimeout(() => {
-                tooltip.style.display = 'none';
-            }, 3000);
+        };
+        setImportantStyles({
+            'display': 'none',
+            'position': 'fixed',
+            'z-index': '2147483647',
+            'max-width': '320px',
+            'background-color': '#111827',
+            'color': '#ffffff',
+            'padding': '6px 10px',
+            'border-radius': '6px',
+            'font-size': '13px',
+            'font-weight': '600',
+            'line-height': '1.2',
+            'font-family': 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+            'white-space': 'normal',
+            'pointer-events': 'none',
+            'box-shadow': '0 8px 24px rgba(0, 0, 0, 0.35)',
+            'opacity': '1',
+            'visibility': 'visible',
+            '-webkit-font-smoothing': 'antialiased',
+            '-webkit-text-fill-color': '#ffffff',
+            'text-shadow': '0 1px 1px rgba(0, 0, 0, 0.35)'
+        });
+        return tooltipEl;
+    };
+
+    const getHelpText = (el) => {
+        const fromData = el.getAttribute('data-original-title');
+        if (fromData) return fromData;
+        const fromTitle = el.getAttribute('title');
+        return fromTitle || '';
+    };
+
+    const suppressNativeTitle = (el) => {
+        if (!el.hasAttribute('title')) return;
+        const title = el.getAttribute('title');
+        if (title && !el.getAttribute('data-original-title')) {
+            el.setAttribute('data-original-title', title);
         }
-    }
-});
+        el.removeAttribute('title');
+    };
+
+    const restoreNativeTitle = (el) => {
+        const original = el.getAttribute('data-original-title');
+        if (!original) return;
+        // Restore only if title isn't already set by something else.
+        if (!el.hasAttribute('title')) {
+            el.setAttribute('title', original);
+        }
+    };
+
+    const positionTooltipAbove = (targetEl) => {
+        const tt = ensureTooltipEl();
+        const padding = 8;
+        const rect = targetEl.getBoundingClientRect();
+
+        // Temporarily show to measure.
+        tt.style.setProperty('display', 'block', 'important');
+        const measured = tt.getBoundingClientRect();
+        const width = measured.width || 200;
+        const height = measured.height || 28;
+
+        let left = rect.left + rect.width / 2 - width / 2;
+        let top = rect.top - height - 10;
+
+        if (left < padding) left = padding;
+        if (left + width > window.innerWidth - padding) left = window.innerWidth - padding - width;
+        if (top < padding) top = rect.bottom + 10;
+        if (top + height > window.innerHeight - padding) top = window.innerHeight - padding - height;
+
+        tt.style.setProperty('left', `${Math.round(left)}px`, 'important');
+        tt.style.setProperty('top', `${Math.round(top)}px`, 'important');
+    };
+
+    const hideTooltip = () => {
+        if (!tooltipEl) return;
+        tooltipEl.style.setProperty('display', 'none', 'important');
+        if (hideTimer) {
+            clearTimeout(hideTimer);
+            hideTimer = null;
+        }
+        if (currentTarget) {
+            restoreNativeTitle(currentTarget);
+            currentTarget = null;
+        }
+    };
+
+    const showTooltip = (targetEl, { autoHideMs } = {}) => {
+        const text = getHelpText(targetEl);
+        if (!text) return;
+
+        const tt = ensureTooltipEl();
+        tt.textContent = text;
+
+        currentTarget = targetEl;
+        suppressNativeTitle(targetEl);
+        positionTooltipAbove(targetEl);
+
+        if (hideTimer) {
+            clearTimeout(hideTimer);
+            hideTimer = null;
+        }
+        if (typeof autoHideMs === 'number') {
+            hideTimer = setTimeout(hideTooltip, autoHideMs);
+        }
+    };
+
+    // Hover support (mouse)
+    document.addEventListener('pointerover', (e) => {
+        const icon = e.target.closest?.(HELP_ICON_SELECTOR);
+        if (!icon) return;
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        showTooltip(icon);
+    });
+    document.addEventListener('pointerout', (e) => {
+        const icon = e.target.closest?.(HELP_ICON_SELECTOR);
+        if (!icon) return;
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        hideTooltip();
+    });
+
+    // Click/tap support (mobile + desktop)
+    document.addEventListener('click', (e) => {
+        const icon = e.target.closest?.(HELP_ICON_SELECTOR);
+        if (!icon) return;
+        showTooltip(icon, { autoHideMs: 3000 });
+    });
+    document.addEventListener('pointerdown', (e) => {
+        const icon = e.target.closest?.(HELP_ICON_SELECTOR);
+        if (!icon) return;
+        if (e.pointerType === 'mouse') return;
+        showTooltip(icon, { autoHideMs: 3000 });
+    }, { passive: true });
+
+    // Reposition on resize/scroll if visible.
+    window.addEventListener('scroll', () => {
+        if (tooltipEl && tooltipEl.style.display !== 'none' && currentTarget) {
+            positionTooltipAbove(currentTarget);
+        }
+    }, { passive: true });
+    window.addEventListener('resize', () => {
+        if (tooltipEl && tooltipEl.style.display !== 'none' && currentTarget) {
+            positionTooltipAbove(currentTarget);
+        }
+    });
+})();
 
 document.getElementById('export-btn').addEventListener('click', () => {
     const data = {
@@ -126,34 +267,212 @@ document.getElementById('export-btn').addEventListener('click', () => {
     URL.revokeObjectURL(url);
 });
 
-function copyIP(element) {
-    const ipText = element.firstChild.textContent.trim();
+function makeCopyable(element, textGetter = (el) => el.textContent.trim(), options = {}) {
+    if (!element || element.dataset.copyableBound === '1') return;
+    element.dataset.copyableBound = '1';
 
-    if (ipText) {
-        const tooltip = element.nextElementSibling;
-        if (tooltip) {
-            tooltip.textContent = 'Copying...';
-            tooltip.style.opacity = '1';
+    const { lockBackgroundOnHover = false } = options;
+    const lockedBackgroundColor = lockBackgroundOnHover
+        ? window.getComputedStyle(element).backgroundColor
+        : null;
 
-            navigator.clipboard.writeText(ipText).then(() => {
-                tooltip.textContent = 'Copied!';
-                setTimeout(() => {
-                    tooltip.style.opacity = '0';
-                }, 1500);
-            }).catch(err => {
-                console.error('Secure context/Clipboard error:', err);
-                tooltip.textContent = 'Failed to copy';
-                setTimeout(() => {
-                    tooltip.style.opacity = '0';
-                }, 1500);
-            });
+    // Avoid collisions with Bootstrap/other CSS by not using generic class names.
+    const tooltipEl = document.createElement('div');
+    tooltipEl.className = 'copy-tooltip';
+    document.body.appendChild(tooltipEl);
+
+    const setImportantStyles = (styles) => {
+        for (const [key, value] of Object.entries(styles)) {
+            tooltipEl.style.setProperty(key, value, 'important');
         }
-    }
+    };
+
+    const applyBaseTooltipStyle = () => {
+        setImportantStyles({
+            'display': 'none',
+            'position': 'fixed',
+            'z-index': '2147483647',
+            'background-color': '#111827',
+            'color': '#ffffff',
+            'padding': '6px 10px',
+            'border-radius': '6px',
+            'font-size': '13px',
+            'font-weight': '600',
+            'line-height': '1.2',
+            'font-family': 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+            'white-space': 'nowrap',
+            'pointer-events': 'none',
+            'box-shadow': '0 8px 24px rgba(0, 0, 0, 0.35)',
+            'opacity': '1',
+            'visibility': 'visible',
+            'mix-blend-mode': 'normal',
+            'text-rendering': 'geometricPrecision',
+            '-webkit-font-smoothing': 'antialiased',
+            '-webkit-text-fill-color': '#ffffff',
+            'text-shadow': '0 1px 1px rgba(0, 0, 0, 0.35)'
+        });
+    };
+
+    const positionTooltip = (left, top) => {
+        // Clamp to viewport with a little padding.
+        const padding = 8;
+        const rect = tooltipEl.getBoundingClientRect();
+        const width = rect.width || 160;
+        const height = rect.height || 28;
+
+        let x = left;
+        let y = top;
+        if (x < padding) x = padding;
+        if (x + width > window.innerWidth - padding) x = window.innerWidth - padding - width;
+        if (y < padding) y = padding;
+        if (y + height > window.innerHeight - padding) y = window.innerHeight - padding - height;
+
+        setImportantStyles({
+            'left': `${Math.round(x)}px`,
+            'top': `${Math.round(y)}px`
+        });
+    };
+
+    const showTooltipAtCursor = (event, text) => {
+        tooltipEl.textContent = text;
+        applyBaseTooltipStyle();
+        setImportantStyles({ 'display': 'block' });
+        // Measure then position.
+        positionTooltip(event.clientX + 12, event.clientY - 34);
+    };
+
+    const showTooltipAboveElement = (text) => {
+        tooltipEl.textContent = text;
+        applyBaseTooltipStyle();
+        setImportantStyles({ 'display': 'block' });
+
+        const rect = element.getBoundingClientRect();
+        // Measure then position.
+        const measured = tooltipEl.getBoundingClientRect();
+        const width = measured.width || 160;
+        positionTooltip(rect.left + rect.width / 2 - width / 2, rect.top - 42);
+    };
+
+    const hideTooltip = () => {
+        setImportantStyles({ 'display': 'none' });
+    };
+
+    // UX: show it's interactive.
+    if (!element.style.cursor) element.style.cursor = 'copy';
+    if (!element.hasAttribute('tabindex')) element.setAttribute('tabindex', '0');
+
+    const getPointerLike = (e) => {
+        if (!e) return null;
+        if (typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+            return { clientX: e.clientX, clientY: e.clientY };
+        }
+        const touch = e.touches && e.touches[0]
+            ? e.touches[0]
+            : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0] : null);
+        if (touch && typeof touch.clientX === 'number' && typeof touch.clientY === 'number') {
+            return { clientX: touch.clientX, clientY: touch.clientY };
+        }
+        return null;
+    };
+
+    const copyTextWithFallback = async (text) => {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function' && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (!ok) throw new Error('execCommand(copy) failed');
+    };
+
+    let lastPointer = null;
+    let isShowingResult = false;
+
+    // Mobile: capture touch/pointer coordinates so "Copied!" can appear at the tap location.
+    element.addEventListener('pointerdown', (e) => {
+        const p = getPointerLike(e);
+        if (p) lastPointer = p;
+    }, { passive: true });
+    element.addEventListener('touchstart', (e) => {
+        const p = getPointerLike(e);
+        if (p) lastPointer = p;
+    }, { passive: true });
+
+    let mousemoveHandler;
+    element.addEventListener('mouseenter', (e) => {
+        if (lockBackgroundOnHover && lockedBackgroundColor) {
+            element.style.setProperty('background-color', lockedBackgroundColor, 'important');
+        }
+        lastPointer = getPointerLike(e) || lastPointer;
+        showTooltipAtCursor(e, 'click to copy');
+        mousemoveHandler = (ev) => {
+            lastPointer = getPointerLike(ev) || lastPointer;
+            if (isShowingResult) return;
+            showTooltipAtCursor(ev, 'click to copy');
+        };
+        document.addEventListener('mousemove', mousemoveHandler);
+    });
+
+    element.addEventListener('mouseleave', () => {
+        hideTooltip();
+        if (mousemoveHandler) {
+            document.removeEventListener('mousemove', mousemoveHandler);
+            mousemoveHandler = null;
+        }
+    });
+
+    const doCopy = async (event) => {
+        const text = textGetter(element);
+        const pointerEvent = getPointerLike(event) || lastPointer;
+
+        try {
+            await copyTextWithFallback(text);
+            isShowingResult = true;
+            if (pointerEvent) {
+                showTooltipAtCursor(pointerEvent, 'Copied!');
+            } else {
+                showTooltipAboveElement('Copied!');
+            }
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+            isShowingResult = true;
+            if (pointerEvent) {
+                showTooltipAtCursor(pointerEvent, 'Failed to copy');
+            } else {
+                showTooltipAboveElement('Failed to copy');
+            }
+        }
+
+        setTimeout(() => {
+            hideTooltip();
+            isShowingResult = false;
+        }, 1500);
+    };
+
+    element.addEventListener('click', doCopy);
+    element.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            doCopy(null);
+        }
+    });
 }
 
 async function fetchIPv4() {
     const container = document.getElementById('ipv4-container');
     const ipEl = document.getElementById('ipv4-ip');
+
+    makeCopyable(ipEl, undefined, { lockBackgroundOnHover: true });
 
     try {
         const response = await fetch(IPV4_ENDPOINT, { signal: AbortSignal.timeout(8000) });
@@ -161,20 +480,20 @@ async function fetchIPv4() {
         const data = await response.json();
         ipv4 = data.ip;
         ipEl.textContent = ipv4;
-        container.classList.remove('loading', 'error');
+        container.classList.remove('error');
         container.classList.add('success');
     } catch (err) {
         ipEl.textContent = 'Unable to fetch';
-        container.classList.remove('loading', 'success');
+        container.classList.remove('success');
         container.classList.add('error');
     }
-
-    ipEl.onclick = () => copyIP(ipEl);
 }
 
 async function fetchIPv6AndGeo() {
     const container = document.getElementById('ipv6-container');
     const ipEl = document.getElementById('ipv6-ip');
+
+    makeCopyable(ipEl, undefined, { lockBackgroundOnHover: true });
 
     try {
         const response = await fetch(IPV6_ENDPOINT, { signal: AbortSignal.timeout(8000) });
@@ -182,7 +501,7 @@ async function fetchIPv6AndGeo() {
             const data = await response.json();
             ipv6 = data.ip;
             ipEl.textContent = ipv6;
-            container.classList.remove('loading', 'error');
+            container.classList.remove('error');
             container.classList.add('success');
         } else {
             throw new Error();
@@ -191,8 +510,6 @@ async function fetchIPv6AndGeo() {
         ipv6 = null;
         container.style.display = 'none';
     }
-
-    ipEl.onclick = () => copyIP(ipEl);
 
     try {
         // Replace with your actual worker URL after deployment
@@ -259,6 +576,9 @@ function displayIPDetails(data) {
     }
 
     document.getElementById('ip-details').style.display = 'block';
+
+    // Make all ua-value spans copyable
+    document.querySelectorAll('#details-table .ua-value').forEach(span => makeCopyable(span));
 }
 
 function initMap(lat, lng) {
@@ -344,6 +664,7 @@ function parseClientInfo() {
             uaCell.innerHTML = `User-Agent String <i class="icon-help" title="${explanations['User-Agent String']}"></i>`;
             const uaValueCell = uaRow.insertCell(1);
             uaValueCell.innerHTML = `<span class="ua-value" style="word-break:break-all; display:block;">${navigator.userAgent}</span>`;
+            makeCopyable(uaValueCell.querySelector('.ua-value'));
         }
 
         for (const key in section.data) {
@@ -354,6 +675,7 @@ function parseClientInfo() {
                 cell.innerHTML = `${key} <i class="icon-help" title="${explanations[key]}"></i>`;
                 const valueCell = row.insertCell(1);
                 valueCell.innerHTML = `<span class="ua-value">${value}</span>`;
+                makeCopyable(valueCell.querySelector('.ua-value'));
             }
         }
     });
@@ -409,6 +731,7 @@ function parseClientInfo() {
             cell.innerHTML = `${key} <i class="icon-help" title="${explanations[key]}"></i>`;
             const valueCell = row.insertCell(1);
             valueCell.innerHTML = `<span class="ua-value">${fieldValues[key]}</span>`;
+            makeCopyable(valueCell.querySelector('.ua-value'));
         });
     });
 
@@ -429,12 +752,17 @@ function parseClientInfo() {
             cell.innerHTML = `Battery Level <i class="icon-help" title="${explanations['Battery Level']}"></i>`;
             const valueCell = row.insertCell(1);
             valueCell.innerHTML = `<span class="ua-value">${batteryLevel}</span>`;
+            // Make copyable
+            makeCopyable(valueCell.querySelector('.ua-value'));
         }).catch(() => {
             batteryLevel = 'Unavailable';
         });
     } else {
         batteryLevel = 'Not supported';
     }
+
+    // Make all ua-value spans copyable
+    document.querySelectorAll('#ua-table .ua-value').forEach(span => makeCopyable(span));
 }
 
 // Run everything

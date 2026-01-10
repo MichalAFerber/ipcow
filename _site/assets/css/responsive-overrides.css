@@ -1,0 +1,191 @@
+/* Small-screen layout safety (e.g., 360px wide devices)
+   Loaded after CDN styles to prevent horizontal clipping. */
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.wrapper {
+    width: 100%;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+/* Compact theme toggle button */
+#themeToggle.theme-toggle {
+    /* Use inset to override any left/right/top/bottom set elsewhere */
+    inset: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-right, 0px) + 16px) auto auto !important;
+    z-index: 1000 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    flex: 0 0 32px !important;
+    padding: 0 !important;
+    margin-right: 15px !important;
+    border: 1px solid rgba(200, 200, 200, 0.25);
+    border-radius: 999px;
+    /* fixed + positioned anchor for absolute icon children */
+    position: fixed !important;
+    background: #ffe082 !important;
+    background-image: none !important;
+    color: #404040;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transform: none !important;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+/* Kill any legacy/preset pseudo-elements from shared CSS */
+#themeToggle.theme-toggle::before,
+#themeToggle.theme-toggle::after {
+    content: none !important;
+    display: none !important;
+    /* background: yellow !important; */
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+#themeToggle.theme-toggle:hover,
+#themeToggle.theme-toggle:focus-visible {
+    /* background: transparent !important; */
+    outline: none;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] #themeToggle.theme-toggle {
+    background: rgb(0, 0, 0) !important;
+    border: 0;
+    color: #ffffff;
+    border-color: #404040;
+}
+
+html[data-theme="dark"] #themeToggle.theme-toggle:hover,
+html[data-theme="dark"] #themeToggle.theme-toggle:focus-visible {
+    /* background: transparent !important; */
+}
+
+/* Theme toggle icon (two SVGs overlaid; one visible at a time) */
+#themeToggle .theme-toggle__icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none;
+}
+
+/* Make monochrome SVG assets visible on dark backgrounds */
+/* html[data-theme="dark"] #themeToggle .theme-toggle__icon {
+    filter: brightness(0) invert(1);
+} */
+
+html[data-theme="light"] #themeToggle .theme-toggle__icon,
+html:not([data-theme]) #themeToggle .theme-toggle__icon {
+    filter: none;
+}
+
+/* Light theme -> show light-off, Dark theme -> show light-on */
+html[data-theme="dark"] #themeToggle .theme-toggle__icon--light-on,
+html[data-theme="light"] #themeToggle .theme-toggle__icon--light-off,
+html:not([data-theme]) #themeToggle .theme-toggle__icon--light-off {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Table scroll fallback (keeps content viewable if wrapping still overflows) */
+.table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 420px) {
+    .wrapper {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    #themeToggle.theme-toggle {
+        inset: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 12px) auto auto !important;
+        width: 30px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+        min-height: 30px !important;
+        max-width: 30px !important;
+        max-height: 30px !important;
+        flex: 0 0 30px !important;
+    }
+
+    /* Prevent long IPs (especially IPv6) from overflowing. */
+    .ip-display {
+        max-width: 100% !important;
+        box-sizing: border-box;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        font-size: clamp(1.4rem, 7vw, 2.6rem) !important;
+        line-height: 1.1;
+    }
+
+    /* Tables: ensure they fit and wrap rather than overflow. */
+    #details-table,
+    #ua-table {
+        width: 100% !important;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+
+    /* If any table content still forces overflow, allow scrolling. */
+    .table-scroll {
+        border-radius: 6px;
+    }
+
+    #details-table td,
+    #ua-table td,
+    #details-table th,
+    #ua-table th {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /* Leaflet map: avoid overly tall map on small screens. */
+    #map {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 260px !important;
+    }
+
+    /* Buttons should not force overflow. */
+    #export-btn {
+        max-width: 100% !important;
+        font-size: 1.05em !important;
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+        white-space: normal;
+    }
+}
