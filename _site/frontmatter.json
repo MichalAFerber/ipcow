@@ -50,5 +50,10 @@
   "frontMatter.content.publicFolder": "assets",
   "frontMatter.preview.host": "http://localhost:4000",
   "frontMatter.git.enabled": true,
-  "frontMatter.content.pageFolders": []
+  "frontMatter.content.pageFolders": [
+    {
+      "title": "_pages",
+      "path": "[[workspace]]/ipcow.com/_pages"
+    }
+  ]
 }
