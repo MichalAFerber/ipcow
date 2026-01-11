@@ -2,6 +2,7 @@
 layout: default
 title: Terms of Service - IP Cow
 description: Terms of service for IP Cow - Read our terms and conditions for using our IP address lookup tool.
+permalink: /terms/
 ---
 
 <div class="section">

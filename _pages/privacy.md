@@ -2,6 +2,7 @@
 layout: default
 title: Privacy Policy - IP Cow
 description: Privacy policy for IP Cow - Learn how we collect, use, and protect your information when using our IP address lookup tool.
+permalink: /privacy/
 ---
 
 <div class="section">

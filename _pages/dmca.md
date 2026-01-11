@@ -2,6 +2,7 @@
 layout: default
 title: DMCA - IP Cow
 description: DMCA takedown policy for IP Cow - Learn how to report copyright infringement and our response procedures.
+permalink: /dmca/
 ---
 
 <div class="section">
