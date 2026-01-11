@@ -13,8 +13,8 @@ body {
     margin-left: auto;
     margin-right: auto;
     box-sizing: border-box;
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 40px;
+    padding-right: 40px;
 }
 
 /* Compact theme toggle button */
@@ -80,11 +80,6 @@ html[data-theme="dark"] #themeToggle.theme-toggle {
     border: 0;
     color: #ffffff;
     border-color: #404040;
-}
-
-html[data-theme="dark"] #themeToggle.theme-toggle:hover,
-html[data-theme="dark"] #themeToggle.theme-toggle:focus-visible {
-    /* background: transparent !important; */
 }
 
 /* Theme toggle icon (two SVGs overlaid; one visible at a time) */
@@ -187,5 +182,85 @@ html:not([data-theme]) #themeToggle .theme-toggle__icon--light-off {
         padding-left: 14px !important;
         padding-right: 14px !important;
         white-space: normal;
+    }
+}
+
+/* Stack table attributes on narrow screens: label then value (next line/row). */
+@media (max-width: 500px) {
+    /* Under 500px we stack table rows; the scroll wrapper can look like a scrollbar.
+       Disable horizontal scrolling in this mode. */
+    .table-scroll {
+        overflow-x: hidden;
+    }
+
+    .table-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
+    #details-table,
+    #ua-table {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    #details-table tbody,
+    #ua-table tbody {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    #details-table tr,
+    #ua-table tr {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box;
+        border: 0 !important;
+    }
+
+    #details-table td,
+    #ua-table td,
+    #details-table th,
+    #ua-table th {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* The upstream/shared CSS often draws borders on each table cell.
+       When we stack cells vertically, that becomes a “double line”. */
+    #details-table td,
+    #ua-table td,
+    #details-table th,
+    #ua-table th {
+        border: 0 !important;
+    }
+
+    /* Emphasize labels; keep value directly underneath. */
+    #details-table td:first-child,
+    #ua-table td:first-child {
+        font-weight: 600;
+        padding-bottom: 2px;
+    }
+
+    #details-table td:last-child,
+    #ua-table td:last-child {
+        padding-top: 0;
+    }
+
+    /* Divider after each value (i.e., between attributes). Only applies to 2-col rows.
+       Section headers use a single colspan cell, so they won't get this line. */
+    #details-table tr > td:nth-child(2),
+    #ua-table tr > td:nth-child(2) {
+        border-bottom: 1px solid rgba(128, 128, 128, 0.22) !important;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+
+    /* Don't draw an extra divider after the very last value row. */
+    #details-table tr:last-child > td:nth-child(2),
+    #ua-table tr:last-child > td:nth-child(2) {
+        border-bottom: 0 !important;
+        padding-bottom: 0;
+        margin-bottom: 0;
     }
 }
