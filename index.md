@@ -31,16 +31,6 @@ extra_scripts:
         GPS).</p>
 </div>
 
-<ins class="adsbygoogle"
-     style="display:block"
-     data-ad-format="fluid"
-     data-ad-layout-key="-fb+5w+4e-db+86"
-     data-ad-client="ca-pub-2167883673580425"
-     data-ad-slot="2684095312"></ins>
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
 <div class="section">
     <h3>Your Device & Browser</h3>
     <div id="ua-container">
