@@ -5,6 +5,8 @@ description: Privacy policy for IP Cow - Learn how we collect, use, and protect 
 permalink: /privacy/
 redirect_from:
   - /Privacy
+  - /Privacy/
+  - /privacy.html
 ---
 
 <div class="section">
