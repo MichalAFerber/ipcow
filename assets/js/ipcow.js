@@ -516,19 +516,30 @@ async function fetchIPv6AndGeo() {
         const geoResponse = await fetch('https://geo.ipcow.com/', { signal: AbortSignal.timeout(10000) });
         if (!geoResponse.ok) throw new Error();
         geoData = await geoResponse.json();
-        displayIPDetails(geoData);
+        
+        try {
+            displayIPDetails(geoData);
+        } catch (renderErr) {
+            console.error('Error rendering IP details:', renderErr);
+            const ipDetails = document.getElementById('ip-details');
+            if (ipDetails) {
+                 ipDetails.style.display = 'block';
+                 ipDetails.innerHTML += '<p style="color:orange; text-align:center;">Partial data error</p>';
+            }
+        }
+        
         initMap(geoData.latitude, geoData.longitude);
     } catch (geoErr) {
         console.error('Geolocation failed:', geoErr);
         // Optional: fallback message
         const ipDetails = document.getElementById('ip-details');
         if (ipDetails) {
-            ipDetails.innerHTML = '<p style="color:#999; text-align: center;">Location data unavailable</p>';
+            ipDetails.innerHTML = '<p style="color:#999; text-align: center;">ISP data unavailable</p>';
             ipDetails.style.display = 'block';
         }
         const mapEl = document.getElementById('map');
         if (mapEl) {
-            mapEl.innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
+            mapEl.innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data unavailable</p>';
         }
     }
 
@@ -579,8 +590,12 @@ function displayIPDetails(data) {
         const timeRow = table.insertRow();
         timeRow.insertCell(0).textContent = 'Current Time';
         const timeCell = timeRow.insertCell(1);
-        const currentTime = new Intl.DateTimeFormat('en-US', { timeZone: tz.id, dateStyle: 'full', timeStyle: 'medium' }).format(new Date());
-        timeCell.innerHTML = `<span class="ua-value">${currentTime}</span>`;
+        try {
+            const currentTime = new Intl.DateTimeFormat('en-US', { timeZone: tz.id, dateStyle: 'full', timeStyle: 'medium' }).format(new Date());
+            timeCell.innerHTML = `<span class="ua-value">${currentTime}</span>`;
+        } catch (e) {
+            timeCell.innerHTML = `<span class="ua-value">Date/Time Unavailable</span>`;
+        }
     }
 
     document.getElementById('ip-details').style.display = 'block';
