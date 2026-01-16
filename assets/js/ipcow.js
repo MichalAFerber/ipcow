@@ -521,7 +521,15 @@ async function fetchIPv6AndGeo() {
     } catch (geoErr) {
         console.error('Geolocation failed:', geoErr);
         // Optional: fallback message
-        document.getElementById('ip-details').innerHTML = '<p style="color:#999;">Location data unavailable</p>';
+        const ipDetails = document.getElementById('ip-details');
+        if (ipDetails) {
+            ipDetails.innerHTML = '<p style="color:#999; text-align: center;">Location data unavailable</p>';
+            ipDetails.style.display = 'block';
+        }
+        const mapEl = document.getElementById('map');
+        if (mapEl) {
+            mapEl.innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
+        }
     }
 
     if (ipv4 && ipv6 && ipv4 === ipv6) {
