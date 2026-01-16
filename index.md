@@ -4,8 +4,6 @@ title: "What is my IP Address?"
 extra_scripts:
   - "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
   - "/assets/js/ipcow.js"
-redirect_from:
-  - /default.aspx
 ---
 
 <div class="section">
