@@ -513,7 +513,8 @@ async function fetchIPv6AndGeo() {
 
     try {
         // Replace with your actual worker URL after deployment
-        const geoResponse = await fetch('https://geo.ipcow.com/', { signal: AbortSignal.timeout(10000) });
+        // Add cache buster to prevent cached responses
+        const geoResponse = await fetch(`https://geo.ipcow.com/?_=${Date.now()}`, { signal: AbortSignal.timeout(10000) });
         if (!geoResponse.ok) throw new Error();
         geoData = await geoResponse.json();
         
@@ -568,18 +569,13 @@ function displayIPDetails(data) {
 
     let hasLocationData = false;
     for (const key in locationFields) {
-        // Check for 0 specifically for lat/long but allow 0 for other fields if valid?
-        // Usually 0,0 lat/old is "null island", might want to hide if both are exactly 0.
-        if (data[key] !== undefined && data[key] !== null) {
-            
-            // Filter out 0 for lat/long if desired, or keep it.
-            // The user saw 0 0 in the source dump for lat/long. 
-            // If the API returns 0, we are showing 0.
-            
+        const val = data[key];
+        // Skip null, undefined, 0, or empty string
+        if (val !== undefined && val !== null && val !== 0 && val !== '') {
             const row = table.insertRow();
             row.insertCell(0).textContent = locationFields[key];
             const cell = row.insertCell(1);
-            cell.innerHTML = `<span class="ua-value">${data[key]}</span>`;
+            cell.innerHTML = `<span class="ua-value">${val}</span>`;
             hasLocationData = true;
         }
     }
