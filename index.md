@@ -53,3 +53,13 @@ extra_scripts:
 <div style="text-align: center; margin-top: 20px;">
     <button id="export-btn" style="background: var(--progress-success); color: black !important; border: none; border-radius: 6px; cursor: pointer; font-size: 1.25em;">Export Data (JSON Format) <i class="icon-download" title="Download"></i></button>
 </div>
+
+<ins class="adsbygoogle"
+    style="display:block"
+    data-ad-client="ca-pub-2167883673580425"
+    data-ad-slot="7744850301"
+    data-ad-format="auto"
+    data-full-width-responsive="true"></ins>
+<script>
+    (adsbygoogle = window.adsbygoogle || []).push({});
+</script> 

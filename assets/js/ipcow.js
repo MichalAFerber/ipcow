@@ -489,7 +489,7 @@ async function fetchIPv4() {
     }
 }
 
-async function fetchIPv6AndGeo() {
+async function fetchIPv6() {
     const container = document.getElementById('ipv6-container');
     const ipEl = document.getElementById('ipv6-ip');
 
@@ -510,11 +510,18 @@ async function fetchIPv6AndGeo() {
         ipv6 = null;
         container.style.display = 'none';
     }
+}
 
+async function fetchGeo(ip) {
     try {
         // Replace with your actual worker URL after deployment
         // Add cache buster to prevent cached responses
-        const geoResponse = await fetch(`https://geo.ipcow.com/?_=${Date.now()}`, { signal: AbortSignal.timeout(10000) });
+        let url = `https://geo.ipcow.com/?_=${Date.now()}`;
+        if (ip) {
+            url += `&ip=${encodeURIComponent(ip)}`;
+        }
+
+        const geoResponse = await fetch(url, { signal: AbortSignal.timeout(10000) });
         if (!geoResponse.ok) throw new Error();
         geoData = await geoResponse.json();
         
@@ -540,12 +547,9 @@ async function fetchIPv6AndGeo() {
         }
         const mapEl = document.getElementById('map');
         if (mapEl) {
-            mapEl.innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data unavailable</p>';
+             const section = mapEl.closest('.section');
+             if (section) section.style.display = 'none';
         }
-    }
-
-    if (ipv4 && ipv6 && ipv4 === ipv6) {
-        document.getElementById('ipv6-container').style.display = 'none';
     }
 }
 
@@ -623,21 +627,12 @@ function displayIPDetails(data) {
 }
 
 function initMap(lat, lng) {
-    if (!lat && !lng) {
-         // If both are 0 or null/undefined, treat as invalid
-         document.getElementById('map').innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
-         return;
-    }
-    // Allow 0 if one of them is non-zero (unlikely but possible), but if both are falsy (0,0), it's usually bad data.
-    // However, the check `if (!lat || !lng)` fails for coordinate 0.
-    // Let's be more specific: fail if they are null/undefined.
-    // If they are exactly 0, that's "Null Island", but for IP geolocation it usually means "failed lookup".
-    if (lat === 0 && lng === 0) {
-        document.getElementById('map').innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
-        return;
-    }
-    if (lat === undefined || lat === null || lng === undefined || lng === null) {
-        document.getElementById('map').innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
+    if ((!lat && !lng) || (lat === 0 && lng === 0)) {
+        const mapEl = document.getElementById('map');
+        if (mapEl) {
+            const section = mapEl.closest('.section');
+            if (section) section.style.display = 'none';
+        }
         return;
     }
 
@@ -820,4 +815,19 @@ function parseClientInfo() {
 }
 
 // Run everything
-Promise.allSettled([fetchIPv4(), fetchIPv6AndGeo()]).finally(parseClientInfo);
+(async () => {
+    // 1. Fetch IPs parallelly
+    await Promise.allSettled([fetchIPv4(), fetchIPv6()]);
+
+    // 2. Hide dupes
+    if (ipv4 && ipv6 && ipv4 === ipv6) {
+        const c6 = document.getElementById('ipv6-container');
+        if (c6) c6.style.display = 'none';
+    }
+
+    // 3. Fetch Geo (preferring IPv4 if available)
+    await fetchGeo(ipv4);
+
+    // 4. Parse browser info
+    parseClientInfo();
+})();
