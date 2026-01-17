@@ -50,7 +50,7 @@ extra_scripts:
     </div>
 </div>
 
-<div style="text-align: center; margin-top: 20px;">
+<div style="text-align: center; margin-bottom: 20px; margin-top: 20px;">
     <button id="export-btn" style="background: var(--progress-success); color: black !important; border: none; border-radius: 6px; cursor: pointer; font-size: 1.25em;">Export Data (JSON Format) <i class="icon-download" title="Download"></i></button>
 </div>
 
