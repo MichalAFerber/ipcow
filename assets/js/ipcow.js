@@ -551,6 +551,9 @@ async function fetchIPv6AndGeo() {
 function displayIPDetails(data) {
     const table = document.getElementById('details-table');
     if (!table) return;
+    
+    // Clear any existing rows to prevent duplication if called multiple times
+    // But preserve the table structure if needed? Here we just wipe tbody content.
     table.innerHTML = '';
 
     const locationFields = {
@@ -563,12 +566,21 @@ function displayIPDetails(data) {
         longitude: 'Longitude',
     };
 
+    let hasLocationData = false;
     for (const key in locationFields) {
+        // Check for 0 specifically for lat/long but allow 0 for other fields if valid?
+        // Usually 0,0 lat/old is "null island", might want to hide if both are exactly 0.
         if (data[key] !== undefined && data[key] !== null) {
+            
+            // Filter out 0 for lat/long if desired, or keep it.
+            // The user saw 0 0 in the source dump for lat/long. 
+            // If the API returns 0, we are showing 0.
+            
             const row = table.insertRow();
             row.insertCell(0).textContent = locationFields[key];
             const cell = row.insertCell(1);
             cell.innerHTML = `<span class="ua-value">${data[key]}</span>`;
+            hasLocationData = true;
         }
     }
 
@@ -605,7 +617,20 @@ function displayIPDetails(data) {
 }
 
 function initMap(lat, lng) {
-    if (!lat || !lng) {
+    if (!lat && !lng) {
+         // If both are 0 or null/undefined, treat as invalid
+         document.getElementById('map').innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
+         return;
+    }
+    // Allow 0 if one of them is non-zero (unlikely but possible), but if both are falsy (0,0), it's usually bad data.
+    // However, the check `if (!lat || !lng)` fails for coordinate 0.
+    // Let's be more specific: fail if they are null/undefined.
+    // If they are exactly 0, that's "Null Island", but for IP geolocation it usually means "failed lookup".
+    if (lat === 0 && lng === 0) {
+        document.getElementById('map').innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
+        return;
+    }
+    if (lat === undefined || lat === null || lng === undefined || lng === null) {
         document.getElementById('map').innerHTML = '<p style="text-align:center; color:#999; padding:60px;">Location data not available</p>';
         return;
     }
