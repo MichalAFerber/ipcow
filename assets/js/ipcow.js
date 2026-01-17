@@ -579,6 +579,16 @@ function displayIPDetails(data) {
             hasLocationData = true;
         }
     }
+    
+    // If no location data was found, show a fallback row
+    if (!hasLocationData) {
+        const row = table.insertRow();
+        const cell = row.insertCell(0);
+        cell.colSpan = 2;
+        cell.style.textAlign = 'center';
+        cell.style.color = '#999';
+        cell.textContent = 'Detailed location data unavailable for this IP';
+    }
 
     if (data.connection) {
         const row = table.insertRow();
