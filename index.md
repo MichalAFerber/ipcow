@@ -25,6 +25,18 @@ extra_scripts:
 </div>
 
 <div class="section">
+    <ins class="adsbygoogle"
+        style="display:block"
+        data-ad-client="ca-pub-2167883673580425"
+        data-ad-slot="7744850301"
+        data-ad-format="auto"
+        data-full-width-responsive="true"></ins>
+    <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+</div>
+
+<div class="section">
     <h3>Your Approximate Location</h3>
     <div id="map"></div>
     <p style="font-size:0.6em; color:#777; margin-top:8px;">Location is approximate based on IP geolocation (not
