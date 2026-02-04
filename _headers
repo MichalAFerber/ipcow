@@ -1,0 +1,12 @@
+/default.aspx
+  Status = 301
+  Location = https://ipcow.com/
+
+/default.aspx/*
+  Status = 301
+  Location = https://ipcow.com/
+
+/*
+  X-Frame-Options = SAMEORIGIN
+  X-Content-Type-Options = nosniff
+  Referrer-Policy = strict-origin-when-cross-origin
